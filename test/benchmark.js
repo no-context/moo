@@ -31,13 +31,14 @@ for (let [name, pat] of python.rules) {
 /*****************************************************************************/
 
 const tosh = require('./tosh')
+let toshFile = tosh.exampleFile + tosh.exampleFile  + tosh.exampleFile + tosh.exampleFile + tosh.exampleFile
 
 suite.add('moo tosh', function() {
-  tosh.tokenize(tosh.exampleFile)
+  tosh.tokenize(toshFile)
 })
 
 suite.add('tosh', function() {
-  let oldTokens = tosh.oldTokenizer(tosh.exampleFile)
+  let oldTokens = tosh.oldTokenizer(toshFile)
 })
 
 /*****************************************************************************/
