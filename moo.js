@@ -4,7 +4,7 @@
   } else if (typeof module === 'object' && module.exports) {
     module.exports = factory()
   } else {
-    root.BrickFace = factory()
+    root.Moo = factory()
   }
 }(this, function() {
   'use strict';

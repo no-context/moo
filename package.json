@@ -1,14 +1,14 @@
 {
-  "name": "brickface",
+  "name": "moo",
   "version": "0.1.0",
   "description": "Optimising lexer generator, using /y for performance",
-  "main": "brickface.js",
-  "repository": "https://github.com/tjvr/brickface",
+  "main": "moo.js",
+  "repository": "https://github.com/tjvr/moo",
   "author": "tjvr <tim@tjvr.org>",
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest",
-    "lint": "eslint brickface.js",
+    "lint": "eslint moo.js",
     "benchmark": "node test/benchmark.js"
   },
   "devDependencies": {

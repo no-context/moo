@@ -1,4 +1,4 @@
-var brickface = require('../brickface')
+var Moo = require('../moo')
 
 
 function assert(x) {
@@ -55,8 +55,8 @@ var TOKENS = [
 
 ];
 
-var Token = brickface.Token;
-var factory = brickface.compile(TOKENS);
+var Token = Moo.Token;
+var factory = Moo.compile(TOKENS);
 
 var tokenize = function(input, emit) {
   var lexer = factory(input);

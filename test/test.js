@@ -1,11 +1,11 @@
 
 const fs = require('fs')
 
-const { compile } = require('../brickface')
+const { compile } = require('../moo')
 const python = require('./python')
 
 
-describe('BrickFace.compile', () => {
+describe('Moo.compile', () => {
 
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile([['word', /foo/]])).not.toThrow()

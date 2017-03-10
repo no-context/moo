@@ -2,14 +2,14 @@
 const fs = require('fs')
 const Benchmark = require('benchmark')
 
-const BrickFace = require('../brickface')
+const Moo = require('../moo')
 
 let suite = new Benchmark.Suite()
 
 
 const python = require('./python')
 let pythonFile = python.pythonFile
-let pythonFactory = BrickFace.compile(python.rules)
+let pythonFactory = Moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 /*
@@ -30,7 +30,7 @@ suite.add('python x100', function() {
 })
 */
 
-suite.add('brickface', function() {
+suite.add('moo', function() {
   pythonFactory(kurtFile).lexAll()
 })
 
