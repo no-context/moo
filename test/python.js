@@ -159,7 +159,7 @@ var tokenize = function(readline, emit) {
   emit(new Token('ENDMARKER'));
 };
 
-function tokenizePython(source) {
+function outputTokens(source) {
   var readline = lex.stringReadlines(source);
   var tokens = [];
   tokenize(readline, function emit(token) {
@@ -180,7 +180,8 @@ for info in tokenize(open(path, 'rb').readline):
 `
 
 module.exports = {
-  tokenizePython,
+  tokenize,
+  outputTokens,
   pythonFile,
 }
 

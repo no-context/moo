@@ -1,11 +1,11 @@
 
-let { tokenizePython, pythonFile } = require('./python')
+const python = require('./python')
 
 
 describe('python tokenizer', () => {
 
   test("1 + 2", () => {
-    expect(tokenizePython("1 + 2")).toEqual([
+    expect(python.outputTokens("1 + 2")).toEqual([
       'NUMBER "1"',
       'OP "+"',
       'NUMBER "2"',
@@ -14,7 +14,7 @@ describe('python tokenizer', () => {
   })
 
   test('example python file', () => {
-    expect(tokenizePython(pythonFile)).toEqual([
+    expect(python.outputTokens(python.pythonFile)).toEqual([
       // 'ENCODING "utf-8"',
       'COMMENT "#!/usr/local/bin/python3"',
       'NL "\\n"',
