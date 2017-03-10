@@ -186,5 +186,6 @@ module.exports = {
   tokenize,
   outputTokens,
   pythonFile,
+  rules: TOKENS,
 }
 

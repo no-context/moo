@@ -76,7 +76,7 @@
   var NamedGroup = function(name, isCapture, regexp) {
     this.name = name
     this.isCapture = isCapture
-    this._regexp = regexp // for troubleshooting
+    this.regexp = regexp // for troubleshooting
   }
 
 
@@ -169,6 +169,15 @@
     var lexer
     return lexer = {
       lex: lex,
+      lexAll: function() {
+        var tokens = []
+        var token
+        while (token = lex()) {
+          tokens.push(token)
+        }
+        return tokens
+      },
+      groups: groups,
       seek: function(newIndex) { re.lastIndex = newIndex },
       feed: function(data) { buffer += data },
       remaining: function() { return buffer.slice(index) },

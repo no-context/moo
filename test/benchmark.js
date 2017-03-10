@@ -9,8 +9,9 @@ let suite = new Benchmark.Suite()
 
 const python = require('./python')
 let pythonFile = python.pythonFile
-let tokenizePython = python.tokenize
+let pythonFactory = BrickFace.compile(python.rules)
 
+/*
 suite.add('python', function() {
   tokenizePython(pythonFile, () => {})
 })
@@ -26,12 +27,26 @@ for (var i = 100; i--; ) { pythonFile100 += pythonFile }
 suite.add('python x100', function() {
   tokenizePython(pythonFile100, () => {})
 })
+*/
 
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
-suite.add('python kurt', function() {
-  tokenizePython(kurtFile, () => {})
+suite.add('brickface', function() {
+  pythonFactory(kurtFile).lexAll()
 })
 
+/* tokenizer2 
+ *
+ * handicap: this is doing line/col tracking
+ */
+const core = require('tokenizer2/core')
+var t = core(token => {})
+for (let group of pythonFactory().groups) {
+  t.addRule(new RegExp('^' + group.regexp + '$'), group.name)
+}
+suite.add('tokenizer2', function() {
+  t.onText(kurtFile)
+  t.end()
+})
 
 
 suite.on('cycle', function(event) {
