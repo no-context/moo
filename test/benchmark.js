@@ -34,6 +34,19 @@ suite.add('brickface', function() {
   pythonFactory(kurtFile).lexAll()
 })
 
+/* lex
+ */
+const Lexer = require('lex')
+var lexer = new Lexer
+for (let group of pythonFactory().groups) {
+  lexer.addRule(new RegExp(group.regexp), () => group.name)
+}
+suite.add('lex', function() {
+  lexer.setInput(kurtFile)
+  var count = 0
+  while (lexer.lex()) { count++ }
+})
+
 /* tokenizer2 
  *
  * handicap: this is doing line/col tracking
@@ -58,7 +71,7 @@ for (let group of pythonFactory().groups) {
 }
 let chevLexer = new chev.Lexer(chevTokens);
 suite.add('chevrotain', function() {
-  chevLexer.tokenize(kurtFile)
+  let count = chevLexer.tokenize(kurtFile).tokens.length
 })
 
 suite.on('cycle', function(event) {
