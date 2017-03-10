@@ -22,7 +22,7 @@
   function reCapture(s) {
     return s + '()'
   }
-  function reUnion(regexps ) {
+  function reUnion(regexps) {
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")"
     }).join('|')

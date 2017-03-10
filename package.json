@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "benchmark": "^2.1.3",
+    "chevrotain": "^0.23.0",
     "eslint": "^3.17.1",
     "jest": "^19.0.2",
     "tokenizer2": "^2.0.0"

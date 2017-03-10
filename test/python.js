@@ -40,7 +40,7 @@ var TOKENS = [
   ['NEWLINE', /\r|\r\n|\n/],
   ['Continuation', /\\/],
 
-  ['ERRORTOKEN', /[$?`]/],
+  ['ERRORTOKEN', /[\$?`]/],
 
   // TODO literals: str, long, float, imaginary
 

@@ -10,6 +10,7 @@ let suite = new Benchmark.Suite()
 const python = require('./python')
 let pythonFile = python.pythonFile
 let pythonFactory = BrickFace.compile(python.rules)
+let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 /*
 suite.add('python', function() {
@@ -29,7 +30,6 @@ suite.add('python x100', function() {
 })
 */
 
-let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 suite.add('brickface', function() {
   pythonFactory(kurtFile).lexAll()
 })
@@ -48,6 +48,18 @@ suite.add('tokenizer2', function() {
   t.end()
 })
 
+/* chevrotain's lexer
+ */
+const chev = require('chevrotain')
+let createToken = chev.createLazyToken
+let chevTokens = []
+for (let group of pythonFactory().groups) {
+  chevTokens.push(createToken({ name: group.name, pattern: new RegExp(group.regexp) }))
+}
+let chevLexer = new chev.Lexer(chevTokens);
+suite.add('chevrotain', function() {
+  chevLexer.tokenize(kurtFile)
+})
 
 suite.on('cycle', function(event) {
     var bench = event.target;
