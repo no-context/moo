@@ -116,20 +116,14 @@
     }
   }
 
-  function lexer(regexp, groups, data) {
-    // clone RegExp object
-    var re = new RegExp(regexp.source, regexp.flags)
+  function lexer(re, groups, data) {
     var buffer = data || ''
-    var index = 0
     var groupCount = groups.length
+    re.lastIndex = 0 // reset RegExp
 
     var eat = hasSticky ? function() {
       // assume re has /y flag
-      re.lastIndex = index
       var match = re.exec(buffer)
-      if (match != null) {
-        index += match[0].length
-      }
       return match
     } : function() {
       var start = re.lastIndex
@@ -138,8 +132,9 @@
       // did we skip characters?
       if (match.index > start) {
         re.lastIndex = start
-        match = null
+        return null
       }
+      return match
     }
     // TODO: try instead the |(?:) trick?
 
@@ -150,7 +145,7 @@
 
       var match = eat()
       if (match === null) {
-        throw new Error('Invalid token')
+        return new Token('ERRORTOKEN', lexer.remaining())
       }
 
       var group = null
@@ -160,11 +155,10 @@
           group = groups[i]
           break
         }
-      } if (i === groupCount) {
-        throw "Assertion failed"
-      }
+      } // assert(i < groupCount)
 
       var text = group.isCapture ? value : match[0]
+      // TODO is `buffer` being leaked here?
       return new Token(group.name, text)
     }
 
@@ -176,6 +170,9 @@
       seek: function(newIndex) { index = newIndex },
       feed: function(data) { buffer += data },
       remaining: function() { return buffer.slice(index) },
+      clone: function(input) {
+        return lexer(new RegExp(re.source, re.flags), groups, input)
+      },
     }
   }
 
