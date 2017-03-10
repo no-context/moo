@@ -43,8 +43,7 @@
       if (obj.ignoreCase) { throw new Error('RegExp /i flag not allowed') }
       if (obj.global) { throw new Error('RegExp /g flag is implied') }
       if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
-      if (obj.multiline) { throw new Error('RegExp /y flag is implied') }
-      // TODO: test ^ support
+      if (obj.multiline) { throw new Error('RegExp /m flag is implied') }
       if (/^\(*\^/.test(obj.source)) {
         throw new Error('RegExp ^ has no effect')
       }
@@ -93,7 +92,7 @@
 
       // validate
       if (new RegExp(re).test("")) {
-        throw new Error("RegExp matches empty string: " + re)
+        throw new Error("RegExp matches empty string: " + new RegExp(re))
       }
 
       // store named group
@@ -110,7 +109,7 @@
     }
 
     var suffix = hasSticky ? '' : '|(?:)'
-    var flags = hasSticky ? 'y' : 'g'
+    var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
     return function(input) {
@@ -145,8 +144,9 @@
 
       var match = eat()
       if (match === null) {
+        var token = new Token('ERRORTOKEN', lexer.remaining())
         re.lastIndex = buffer.length
-        return new Token('ERRORTOKEN', lexer.remaining())
+        return token
       }
 
       var group = null
@@ -180,7 +180,7 @@
       groups: groups,
       seek: function(newIndex) { re.lastIndex = newIndex },
       feed: function(data) { buffer += data },
-      remaining: function() { return buffer.slice(index) },
+      remaining: function() { return buffer.slice(re.lastIndex) },
       clone: function(input) {
         return lexer(new RegExp(re.source, re.flags), groups, input)
       },

@@ -38,6 +38,32 @@ describe('Lexer', () => {
     expect(lexer.lex().toString()).toBe('are')
   })
 
+  test('multiline', () => {
+    var lexer = compile([
+      ['file', /([^]+)/],
+    ])('I like to moo\na lot')
+    expect(lexer.lex().value).toBe('I like to moo\na lot')
+
+    var lexer = compile([
+      ['x-eol', /x$/],
+      ['x', /x/],
+      ['WS', / +/],
+      ['NL', /\n/],
+      ['other', /[^ \n]+/],
+    ])('x \n x\n yz x')
+    let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
+    expect(tokens.map(t => [t.name, t.value])).toEqual([
+      ['x', 'x'],
+      ['NL', '\n'],
+      ['x-eol', 'x'],
+      ['NL', '\n'],
+      ['other', 'yz'],
+      ['x-eol', 'x'],
+    ])
+  })
+
+  // TODO test / design API for errors
+
   test('kurt tokens', () => {
     let pythonFactory = compile(python.rules)
     let tokens = pythonFactory(fs.readFileSync('test/kurt.py', 'utf-8')).lexAll()
@@ -55,6 +81,15 @@ describe('python tokenizer', () => {
       'NUMBER "2"',
       'ENDMARKER ""',
     ])
+  })
+
+  // use non-greedy matching
+  test('triple-quoted strings', () => {
+    let example = '"""abc""" 1+1 """def"""'
+    let pythonFactory = compile(python.rules)
+    expect(pythonFactory(example).lexAll().map(t => t.value)).toEqual(
+      ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
+    )
   })
 
   test('example python file', () => {
