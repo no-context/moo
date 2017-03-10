@@ -192,3 +192,15 @@ describe('python tokenizer', () => {
   })
 
 })
+
+
+describe('tosh tokenizer', () => {
+
+  const tosh = require('./tosh')
+
+  test('tosh', () => {
+    let oldTokens = tosh.oldTokenizer(tosh.exampleFile)
+    expect(tosh.tokenize(tosh.exampleFile)).toEqual(oldTokens)
+  })
+
+})
