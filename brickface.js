@@ -25,8 +25,36 @@
     }).join('|')
     return new RegExp(prefix + "(?:" + source + ")", flags)
   }
-  function reLiterals(literals) {
-    return new RegExp('(' + literals.map(reEscape).join('|') + ')')
+
+
+  function compareLength(a, b) {
+    return b.length - a.length
+  }
+
+  function regexpOrLiteral(obj) {
+    if (typeof obj === 'string') {
+      return '(' + reEscape(obj) + ')'
+
+    } else if (obj && obj.constructor === RegExp) {
+      // TODO: consider /u support
+      if (obj.ignoreCase) { throw new Error('RegExp /i flag not allowed') }
+      if (obj.global) { throw new Error('RegExp /g flag is implied') }
+      if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
+      if (obj.multiline) { throw new Error('RegExp /y flag is implied') }
+      if (/^\(*\^/.test(obj.source)) {
+        throw new Error('RegExp ^ has no effect')
+      }
+      return obj.source
+
+    } else if (obj && obj.constructor === Array) {
+      // sort to help ensure longest match
+      var options = obj.slice()
+      options.sort(compareLength)
+      return '(' + options.map(reEscape).join('|') + ')'
+
+    } else {
+      throw new Error('not a pattern: ' + obj)
+    }
   }
 
 
@@ -36,17 +64,9 @@
   }
 
   Token.prototype.toString = function() {
-    switch (this.name) {
-      case 'NAME':
-      case 'OP':
-      case 'ERRORTOKEN':
-        return this.value
-      case 'NEWLINE':
-      case 'ENDMARKER':
-      default:
-        return this.name
-    }
+    return this.value || this.name
   }
+
 
 
   var NamedGroup = function(name, isCapture, regexp) {
@@ -56,20 +76,20 @@
   }
 
 
-  var Lexer = function(tokens) {
+  var Lexer = function(rules) {
     this.parts = []
     this.groups = []
     this.regexp = /^/
 
-    for (var i=0; i<tokens.length; i++) {
-      var tok = tokens[i]
-      this.addRule(tok[0], tok[1])
+    for (var i=0; i<rules.length; i++) {
+      var tok = rules[i]
+      this._addRule(tok[0], tok[1])
     }
   }
 
-  Lexer.prototype.addRule = function(name, re) {
+  Lexer.prototype._addRule = function(name, re) {
     // convert string literal to RegExp
-    re = re instanceof RegExp ? re.source : reEscape(re)
+    re = regexpOrLiteral(re)
 
     // validate
     if (new RegExp(re).test("")) {
@@ -170,7 +190,6 @@
   return {
     Lexer: Lexer,
     Token: Token,
-    reLiterals: reLiterals,
   }
 
 }))

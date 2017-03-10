@@ -1,6 +1,25 @@
 
+const { Lexer } = require('../brickface')
 const python = require('./python')
 
+
+describe('BrickFace.compile', () => {
+
+  test("warns for /g, /y, /i, /m", () => {
+    expect(() => new Lexer([['word', /foo/]])).not.toThrow()
+    expect(() => new Lexer([['word', /foo/g]])).toThrow()
+    expect(() => new Lexer([['word', /foo/i]])).toThrow()
+    expect(() => new Lexer([['word', /foo/y]])).toThrow()
+    expect(() => new Lexer([['word', /foo/m]])).toThrow()
+  })
+
+  test("tries to warn for leading ^", () => {
+    expect(() => new Lexer([['word', /^BOL/]])).toThrow()
+    expect(() => new Lexer([['word', /(^BOL)/]])).toThrow()
+    expect(() => new Lexer([['word', /[^]/]])).not.toThrow()
+  })
+
+})
 
 describe('python tokenizer', () => {
 

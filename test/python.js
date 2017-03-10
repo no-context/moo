@@ -15,7 +15,7 @@ function err(name, message) {
 }
 
 
-var opPat = lex.reLiterals([
+var opPat = [
   // operators
   '(',')', '[', ']', '{', '}',
   ',',':', '.', ';', '@', '->',
@@ -30,7 +30,7 @@ var opPat = lex.reLiterals([
 
   // another operator
   '=',
-]);
+];
 
 var TOKENS = [
   ['Whitespace', /([ ]+)/], // TODO tabs

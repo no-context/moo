@@ -16,7 +16,8 @@ module.exports = {
         "block-spacing": "error",
         "brace-style": [
             "error",
-            "1tbs"
+            "1tbs",
+            { "allowSingleLine": true }
         ],
         "callback-return": "off",
         "camelcase": "error",
@@ -103,7 +104,6 @@ module.exports = {
         "no-continue": "error",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
-        "no-else-return": "error",
         "no-empty-function": "error",
         "no-eq-null": "error",
         "no-eval": "error",
@@ -187,8 +187,6 @@ module.exports = {
         "no-with": "error",
         "nonblock-statement-body-position": "error",
         "object-curly-newline": "error",
-        "object-curly-spacing": "error",
-        "object-property-newline": "error",
         "object-shorthand": "off",
         "one-var": "off",
         "one-var-declaration-per-line": "error",
