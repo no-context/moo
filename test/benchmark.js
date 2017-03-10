@@ -11,15 +11,13 @@ let pythonFile = python.pythonFile
 let tokenizePython = python.tokenize
 
 suite.add('python', function() {
-  let readline = BrickFace.stringReadlines(pythonFile);
-  tokenizePython(readline, () => {})
+  tokenizePython(pythonFile, () => {})
 })
 
 let pythonFile10 = ''
 for (var i = 10; i--; ) { pythonFile10 += pythonFile }
 suite.add('python x10', function() {
-  let readline = BrickFace.stringReadlines(pythonFile10);
-  tokenizePython(readline, () => {})
+  tokenizePython(pythonFile10, () => {})
 })
 
 
@@ -37,4 +35,5 @@ suite.on('cycle', function(event) {
     // TODO: report geometric mean.
 })
 .run()
+
 

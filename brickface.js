@@ -52,7 +52,7 @@
   var NamedGroup = function(name, isCapture, regexp) {
     this.name = name
     this.isCapture = isCapture
-    this._regexp = regexp; // for troubleshooting
+    this._regexp = regexp // for troubleshooting
   }
 
 
@@ -90,109 +90,86 @@
     this.regexp = reUnion('', this.parts, 'g')
   }
 
-  Lexer.prototype.tokenize = function(readline) {
-    var regexp = this.regexp
-    var groups = this.groups
-    var groupCount = groups.length
-    var width
-    var queue = []
+  Lexer.prototype.instance = function() {
+    return new LexerInstance(this)
+  };
 
-    var line
-    function next() {
-      line = readline()
-      if (line === null) return
-      width = line.length
-      regexp.lastIndex = 0
-    }
-    next()
 
-    return function lex() {
-      if (queue.length) {
-        return queue.shift()
-      }
-      if (regexp.lastIndex === width) {
-        next()
-        if (line === null) {
-          return; // EOF
-        }
-      }
+  var LexerInstance = function(lexer) {
+    this.lexer = lexer
 
-      var start = regexp.lastIndex
-      var match = regexp.exec(line)
-      if (!match) {
-        regexp.lastIndex = width
-        return new Token('ERRORTOKEN', line.slice(start))
-      }
-      if (match.index > start) { // skipped chars
-        queue.push(new Token('ERRORTOKEN', line.slice(start, match.index)))
-      }
-      // assert match.length === this.groups.length + 1
-      // assert match[0].length
-      // assert regexp.lastIndex === match.index + match[0].length
+    this.parts = lexer.parts
+    this.groups = lexer.groups
+    this.regexp = lexer.regexp
 
-      // which group matched?
-      var group = null
-      for (var i = 0; i < groupCount; i++) {
-        var value = match[i + 1]
-        if (value !== undefined) {
-          group = groups[i]
-          break
-        }
-      } if (i === groupCount) {
-        throw "Assertion failed"
-      }
-
-      var text = group.isCapture ? value : match[0]
-      var token = new Token(group.name, text)
-      //console.log('-', token.name, start)
-      if (token.name === 'Whitespace' && start === 0) {
-        token.name = 'Indentation'
-      }
-
-      if (queue.length) {
-        queue.push(token)
-        return queue.pop()
-      }
-      return token
-    }
+    this.buffer = ''
+    this.queue = []
+    this.regexp.lastIndex = 0
   }
 
+  // consider rewind()
 
-  function stringReadlines(source) {
-    var length = source.length
-    var index = 0
+  LexerInstance.prototype.feed = function(input) {
+    this.buffer += input
+  }
 
-    return function readline() {
-      if (index === length) {
-        return null; // EOF
-      }
-      var start = index
-      var tok = source[index]
-      while (tok) {
-        if (tok === '\r') {
-          index++
-          if (tok === '\n') {
-            index++
-          }
-          break
-        }
-        if (tok === '\n') {
-          index++
-          break
-        }
-        tok = source[++index]
-      }
-      var line = source.slice(start, index)
-      //console.log(JSON.stringify(line))
-      return line
+  LexerInstance.prototype.lex = function() {
+    var regexp = this.regexp
+    var line = this.buffer
+    var width = line.length
+    var groups = this.groups
+    var groupCount = groups.length
+    var queue = this.queue
+
+    if (queue.length) {
+      return queue.shift()
     }
+
+    if (regexp.lastIndex === width) {
+      return // EOF
+    }
+
+    var start = regexp.lastIndex
+    var match = regexp.exec(line)
+    if (!match) {
+      regexp.lastIndex = width
+      return new Token('ERRORTOKEN', line.slice(start))
+    }
+    if (match.index > start) { // skipped chars
+      queue.push(new Token('ERRORTOKEN', line.slice(start, match.index)))
+    }
+    // const assert = require('assert')
+    // assert(match.length === this.groups.length + 1)
+    // assert(match[0].length)
+    // assert(regexp.lastIndex === match.index + match[0].length)
+
+    // which group matched?
+    var group = null
+    for (var i = 0; i < groupCount; i++) {
+      var value = match[i + 1]
+      if (value !== undefined) {
+        group = groups[i]
+        break
+      }
+    } if (i === groupCount) {
+      throw "Assertion failed"
+    }
+
+    var text = group.isCapture ? value : match[0]
+    var token = new Token(group.name, text)
+    //console.log('-', token.name, start)
+
+    if (queue.length) {
+      queue.push(token)
+      return queue.pop()
+    }
+    return token
   }
 
 
   return {
     Lexer: Lexer,
     Token: Token,
-    stringReadlines: stringReadlines,
     reLiterals: reLiterals,
   }
 

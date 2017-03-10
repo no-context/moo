@@ -57,20 +57,24 @@ var TOKENS = [
 var Token = lex.Token;
 var lexer = new lex.Lexer(TOKENS);
 
-var tokenize = function(readline, emit) {
-  var lex = lexer.tokenize(readline);
+var tokenize = function(input, emit) {
+  var ins = lexer.instance()
+  ins.feed(input);
 
-  var tok = lex();
+  var tok = ins.lex();
+  var last;
   var peeked;
   function next() {
     if (peeked) {
       peeked = null;
       return peeked;
     }
-    tok = lex();
+    last = tok;
+    tok = ins.lex();
   }
   function peek() {
-    return peeked = lex();
+    return peeked = ins.lex();
+    // return peeked ? peeked : peeked = ins.lex();
   }
 
   var stack = [];
@@ -79,7 +83,7 @@ var tokenize = function(readline, emit) {
   while (tok) {
     var indent = 0;
     var indentation = '';
-    if (tok.name === 'Indentation') {
+    if (tok.name === 'Whitespace' && (!last || last.name === 'NEWLINE' || last.name === 'NL')) {
       indentation = tok.value;
       indent = indentation.length;
       next();
@@ -102,7 +106,6 @@ var tokenize = function(readline, emit) {
     while (tok && isLine) {
       switch (tok.name) {
         case 'Whitespace':
-        case 'Indentation':
           next();
           continue;
         case 'Continuation':
@@ -160,9 +163,8 @@ var tokenize = function(readline, emit) {
 };
 
 function outputTokens(source) {
-  var readline = lex.stringReadlines(source);
   var tokens = [];
-  tokenize(readline, function emit(token) {
+  tokenize(source, function emit(token) {
     tokens.push(token.name + ' ' + JSON.stringify(token.value));
   });
   return tokens;
