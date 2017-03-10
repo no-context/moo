@@ -109,40 +109,42 @@
       parts.push(re)
     }
 
-    var regexp = reUnion('', parts, 'g')
+    var regexp = reUnion(hasSticky ? '' : '', parts, hasSticky ? 'y' : 'g')
 
     return function(input) {
       return lexer(regexp, groups, input)
     }
   }
 
-  function lexer(re, groups, data) {
+  function lexer(regexp, groups, data) {
+    // clone RegExp object
+    var re = new RegExp(regexp.source, regexp.flags)
     var buffer = data || ''
     var index = 0
     var groupCount = groups.length
 
-    var eat = /* hasSticky ? function() {
+    var eat = hasSticky ? function() {
       // assume re has /y flag
       re.lastIndex = index
-      var m = re.exec(buffer)
-      if (m != null) {
-        index += m[0].length
+      var match = re.exec(buffer)
+      if (match != null) {
+        index += match[0].length
       }
-      return m
-    } : */ function() {
-      // .slice() is O(1) in V8 and most other JSes,
-      // thanks to SlicedStrings
-      re.lastIndex = 0
-      var m = re.exec(buffer.slice(index))
-      if (m) {
-        index += m[0].length
+      return match
+    } : function() {
+      var start = re.lastIndex
+      var match = re.exec(buffer)
+      
+      // did we skip characters?
+      if (match.index > start) {
+        re.lastIndex = start
+        match = null
       }
-      return m
     }
     // TODO: try instead the |(?:) trick?
 
     function lex() {
-      if (index === buffer.length) {
+      if (re.lastIndex === buffer.length) {
         return // EOF
       }
 
