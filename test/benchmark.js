@@ -12,6 +12,23 @@ let pythonFile = python.pythonFile
 let pythonFactory = Moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
+
+function reEscape(pat) {
+  if (typeof pat === 'string') {
+    pat = pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  }
+  return pat
+}
+
+let groups = []
+for (let [name, pat] of python.rules) {
+  if (pat instanceof Array) {
+    groups.push({ name: name, regexp: pat.map(reEscape).join('|') })
+  } else {
+    groups.push({ name: name, regexp: reEscape(pat) })
+  }
+}
+
 /*
 suite.add('python', function() {
   tokenizePython(pythonFile, () => {})
@@ -43,7 +60,7 @@ suite.add('moo', function() {
  */
 const ReMix = require('remix').ReMix
 let rm = new ReMix
-for (let group of pythonFactory().groups) {
+for (let group of groups) {
   rm.add({ [group.name]: new RegExp(group.regexp) })
 }
 suite.add('remix', function() {
@@ -61,7 +78,7 @@ suite.add('remix', function() {
  */
 const Lexer = require('lex')
 var lexer = new Lexer
-for (let group of pythonFactory().groups) {
+for (let group of groups) {
   lexer.addRule(new RegExp(group.regexp), () => group.name)
 }
 suite.add('lex', function() {
@@ -85,7 +102,7 @@ var t = core(token => {
   // console.log(token)
   t2count++
 })
-for (let group of pythonFactory().groups) {
+for (let group of groups) {
   t.addRule(new RegExp('^' + group.regexp + '$'), group.name)
 }
 suite.add('tokenizer2', function() {
@@ -101,7 +118,7 @@ suite.add('tokenizer2', function() {
 const chev = require('chevrotain')
 let createToken = chev.createLazyToken
 let chevTokens = []
-for (let group of pythonFactory().groups) {
+for (let group of groups) {
   chevTokens.push(createToken({ name: group.name, pattern: new RegExp(group.regexp) }))
 }
 let chevLexer = new chev.Lexer(chevTokens);
@@ -115,12 +132,11 @@ suite.add('chevrotain', function() {
  *
  * wrong output -- I don't think it likes our triple-quoted strings?
  * Does pretty well considering, though!
- */
 const lexing = require('lexing')
 let lexingRules = [
   [/^$/, function(match) { return { type: 'EOF' } }],
 ]
-for (let group of pythonFactory().groups) {
+for (let group of groups) {
   lexingRules.push([new RegExp('^' + group.regexp), function(match) {
     return { type: group.name, value: match[1] || match[0] }
   }])
@@ -137,6 +153,7 @@ suite.add('lexing', function() {
   }
   // if (count !== 14513) throw 'fail'
 })
+ */
 
 
 suite.on('cycle', function(event) {
