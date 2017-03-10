@@ -65,8 +65,6 @@
       var tok = tokens[i];
       this.addRule(tok[0], tok[1]);
     }
-
-    this.scope = [];
   };
 
   Lexer.prototype.addRule = function(name, re) {
@@ -90,24 +88,6 @@
     if (!isCapture) re = reCapture(re);
     this.parts.push(re);
     this.regexp = reUnion('', this.parts, 'g');
-  };
-
-  Lexer.prototype.save = function() {
-    this.scope.push({
-      parts: this.parts.slice(),
-      groups: this.groups.slice(),
-      regexp: this.regexp,
-    });
-  };
-
-  Lexer.prototype.restore = function() {
-    if (!this.scope.length) {
-      throw "Can't restore";
-    }
-    var old = this.scope.pop();
-    this.parts = old.parts;
-    this.groups = old.groups;
-    this.regexp = old.regexp;
   };
 
   Lexer.prototype.tokenize = function(readline) {
