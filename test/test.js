@@ -1,22 +1,22 @@
 
-const { Lexer } = require('../brickface')
+const { compile } = require('../brickface')
 const python = require('./python')
 
 
 describe('BrickFace.compile', () => {
 
   test("warns for /g, /y, /i, /m", () => {
-    expect(() => new Lexer([['word', /foo/]])).not.toThrow()
-    expect(() => new Lexer([['word', /foo/g]])).toThrow()
-    expect(() => new Lexer([['word', /foo/i]])).toThrow()
-    expect(() => new Lexer([['word', /foo/y]])).toThrow()
-    expect(() => new Lexer([['word', /foo/m]])).toThrow()
+    expect(() => compile([['word', /foo/]])).not.toThrow()
+    expect(() => compile([['word', /foo/g]])).toThrow()
+    expect(() => compile([['word', /foo/i]])).toThrow()
+    expect(() => compile([['word', /foo/y]])).toThrow()
+    expect(() => compile([['word', /foo/m]])).toThrow()
   })
 
   test("tries to warn for leading ^", () => {
-    expect(() => new Lexer([['word', /^BOL/]])).toThrow()
-    expect(() => new Lexer([['word', /(^BOL)/]])).toThrow()
-    expect(() => new Lexer([['word', /[^]/]])).not.toThrow()
+    expect(() => compile([['word', /^BOL/]])).toThrow()
+    expect(() => compile([['word', /(^BOL)/]])).toThrow()
+    expect(() => compile([['word', /[^]/]])).not.toThrow()
   })
 
 })
@@ -24,12 +24,12 @@ describe('BrickFace.compile', () => {
 describe('Lexer', () => {
 
   test('ducks', () => {
-    var l = new Lexer([
+    var factory = compile([
       ['word', /[a-z]+/],
       ['number', /[0-9]+/],
       [null, / +/],
     ])
-    let lexer = l.instance()
+    let lexer = factory()
     lexer.feed('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
     expect(lexer.lex().toString()).toBe(' ')

@@ -1,4 +1,4 @@
-var lex = require('../brickface')
+var brickface = require('../brickface')
 
 
 function assert(x) {
@@ -54,14 +54,14 @@ var TOKENS = [
 
 ];
 
-var Token = lex.Token;
-var lexer = new lex.Lexer(TOKENS);
+var Token = brickface.Token;
+var factory = brickface.compile(TOKENS);
 
 var tokenize = function(input, emit) {
-  var ins = lexer.instance()
-  ins.feed(input);
+  var lexer = factory(input);
+  var lex = function() { return lexer.lex(); }
 
-  var tok = ins.lex();
+  var tok = lex();
   var last;
   var peeked;
   function next() {
@@ -70,11 +70,11 @@ var tokenize = function(input, emit) {
       return peeked;
     }
     last = tok;
-    tok = ins.lex();
+    tok = lex();
   }
   function peek() {
-    return peeked = ins.lex();
-    // return peeked ? peeked : peeked = ins.lex();
+    return peeked = lex();
+    // return peeked ? peeked : peeked = lex();
   }
 
   var stack = [];

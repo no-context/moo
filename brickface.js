@@ -232,9 +232,21 @@
   }
 
 
+  function compile(rules) {
+    var lexer = new Lexer(rules)
+    return function factory(input) {
+      let ins = lexer.instance()
+      if (input) {
+        ins.feed(input)
+      }
+      return ins
+    }
+  }
+
+
   return {
-    Lexer: Lexer,
     Token: Token,
+    compile: compile,
   }
 
 }))
