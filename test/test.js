@@ -1,4 +1,6 @@
 
+const fs = require('fs')
+
 const { compile } = require('../brickface')
 const python = require('./python')
 
@@ -123,5 +125,15 @@ describe('python tokenizer', () => {
       'ENDMARKER ""',
     ])
   })
+
+  test("kurt", () => {
+    let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
+    expect(tokens[100].toString()).toBe('NAME "def"')
+    expect(tokens.pop().toString()).toBe('ENDMARKER ""')
+    tokens.pop()
+    expect(tokens.pop().toString()).not.toBe('ERRORTOKEN ""')
+    expect(tokens.length).toBe(11616)
+  })
+
 
 })

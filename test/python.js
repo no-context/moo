@@ -49,8 +49,9 @@ var TOKENS = [
   ["NUMBER", /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/],    // 123.[123]
   ["NUMBER", /(?:0|[1-9][0-9]*)/],              // 123
 
-  ["STRING", /"((?:\\["\\n]|[^"\\])*)"/], // strings are backslash-escaped
-  ["STRING", /'((?:\\['\\n]|[^'\\])*)'/],
+  ["STRING", /"""(.*)"""/],
+  ["STRING", /"((?:\\["\\rn]|[^"\\])*)"/], // strings are backslash-escaped
+  ["STRING", /'((?:\\['\\rn]|[^'\\])*)'/],
 
 ];
 
