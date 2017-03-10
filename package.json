@@ -7,9 +7,11 @@
   "author": "tjvr <tim@tjvr.org>",
   "license": "BSD-3-Clause",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint brickface.js"
   },
   "devDependencies": {
+    "eslint": "^3.17.1",
     "jest": "^19.0.2"
   }
 }
