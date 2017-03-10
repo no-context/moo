@@ -20,7 +20,7 @@
     return re.exec('').length - 1
   }
   function reCapture(s) {
-    return s + '()'
+    return '(' + s + ')'
   }
   function reUnion(regexps) {
     var source =  regexps.map(function(s) {
@@ -71,14 +71,6 @@
   }
 
 
-
-  var NamedGroup = function(name, isCapture, regexp) {
-    this.name = name
-    this.isCapture = isCapture
-    this.regexp = regexp // for troubleshooting
-  }
-
-
   function compile(rules) {
     var parts = []
 
@@ -100,10 +92,10 @@
       if (groupCount > 1) {
         throw new Error("RegExp has more than one capture group: " + re)
       }
-      var isCapture = !!groupCount
-      groups.push(new NamedGroup(name, isCapture, re))
+      groups.push(name)
 
       // store regex
+      var isCapture = !!groupCount
       if (!isCapture) re = reCapture(re)
       parts.push(re)
     }
@@ -159,9 +151,8 @@
       }
       // assert(i < groupCount)
 
-      var text = group.isCapture ? value : match[0]
       // TODO is `buffer` being leaked here?
-      return new Token(group.name, text)
+      return new Token(group, value)
     }
 
     // TODO multiple states / continuations ?

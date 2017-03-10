@@ -38,6 +38,18 @@ describe('Lexer', () => {
     expect(lexer.lex().toString()).toBe('are')
   })
 
+  test('no capture groups', () => {
+    let factory = compile([
+        ['a', /a+/],
+        ['b', /b|c/],
+    ])
+    let lexer = factory('aaaaabcbcbcbc')
+    expect(lexer.lex().value).toEqual('aaaaa')
+    expect(lexer.lex().value).toEqual('b')
+    expect(lexer.lex().value).toEqual('c')
+    expect(lexer.lex().value).toEqual('b')
+  })
+
   test('multiline', () => {
     var lexer = compile([
       ['file', /([^]+)/],
