@@ -1589,6 +1589,10 @@ lex@^1.7.9:
   version "1.7.9"
   resolved "https://registry.yarnpkg.com/lex/-/lex-1.7.9.tgz#5d5636ccef574348362938b79a47f0eed8ed0d43"
 
+lexing@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/lexing/-/lexing-0.8.0.tgz#23aeadc9c30bef9e7ae7afa06cb64d3b40d8096a"
+
 load-json-file@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/load-json-file/-/load-json-file-1.1.0.tgz#956905708d58b4bab4c2261b04f59f31c99374c0"

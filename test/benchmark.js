@@ -30,9 +30,12 @@ suite.add('python x100', function() {
 })
 */
 
+
+/* moo! */
 suite.add('moo', function() {
   pythonFactory(kurtFile).lexAll()
 })
+
 
 /* lex
  * I do not know why this one is so slow
@@ -45,8 +48,12 @@ for (let group of pythonFactory().groups) {
 suite.add('lex', function() {
   lexer.setInput(kurtFile)
   var count = 0
-  while (lexer.lex()) { count++ }
+  var token
+  while (token = lexer.lex()) {
+    count++
+  }
 })
+
 
 /* tokenizer2 
  *
@@ -62,6 +69,7 @@ suite.add('tokenizer2', function() {
   t.end()
 })
 
+
 /* chevrotain's lexer
  */
 const chev = require('chevrotain')
@@ -74,6 +82,34 @@ let chevLexer = new chev.Lexer(chevTokens);
 suite.add('chevrotain', function() {
   let count = chevLexer.tokenize(kurtFile).tokens.length
 })
+
+
+/* lexing
+ *
+ * produces the wrong number of output tokens
+ * -- I don't think it likes our triple-quoted strings?
+ */
+const lexing = require('lexing')
+let lexingRules = [
+  [/^$/, function(match) { return { type: 'EOF' } }],
+]
+for (let group of pythonFactory().groups) {
+  lexingRules.push([new RegExp('^' + group.regexp), function(match) {
+    return { type: group.name, value: match[1] || match[0] }
+  }])
+}
+const lexingTokenizer = new lexing.Tokenizer(lexingRules)
+suite.add('lexing', function() {
+  let input = new lexing.StringIterator(kurtFile);
+  let output = lexingTokenizer.map(input)
+  var count = 0
+  var token
+  while ((token = output.next()).type !== 'EOF') {
+    // console.log(token.type, JSON.stringify(token.value))
+    count++
+  }
+})
+
 
 suite.on('cycle', function(event) {
     var bench = event.target;
