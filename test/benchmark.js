@@ -37,6 +37,25 @@ suite.add('moo', function() {
 })
 
 
+/* ReMix
+ *
+ * not strictly a tokenizer, but definitely interesting
+ */
+const ReMix = require('remix').ReMix
+let rm = new ReMix
+for (let group of pythonFactory().groups) {
+  rm.add({ [group.name]: new RegExp(group.regexp) })
+}
+suite.add('remix', function() {
+  var count = 0
+  var token
+  while (token = rm.exec(kurtFile)) {
+    count++
+  }
+  if (count !== 14513) throw 'fail'
+})
+
+
 /* lex
  * I do not know why this one is so slow
  */
@@ -52,21 +71,28 @@ suite.add('lex', function() {
   while (token = lexer.lex()) {
     count++
   }
+  if (count !== 14513) throw 'fail'
 })
 
 
 /* tokenizer2 
  *
- * handicap: this is doing line/col tracking
+ * wrong output. Does not seem to use regexes in the way I expect
  */
 const core = require('tokenizer2/core')
-var t = core(token => {})
+var t2count
+var t = core(token => {
+  // console.log(token)
+  t2count++
+})
 for (let group of pythonFactory().groups) {
   t.addRule(new RegExp('^' + group.regexp + '$'), group.name)
 }
 suite.add('tokenizer2', function() {
+  t2count = 0
   t.onText(kurtFile)
   t.end()
+  // if (t2count !== 14513) throw 'fail'
 })
 
 
@@ -81,13 +107,14 @@ for (let group of pythonFactory().groups) {
 let chevLexer = new chev.Lexer(chevTokens);
 suite.add('chevrotain', function() {
   let count = chevLexer.tokenize(kurtFile).tokens.length
+  if (count !== 14513) throw 'fail'
 })
 
 
 /* lexing
  *
- * produces the wrong number of output tokens
- * -- I don't think it likes our triple-quoted strings?
+ * wrong output -- I don't think it likes our triple-quoted strings?
+ * Does pretty well considering, though!
  */
 const lexing = require('lexing')
 let lexingRules = [
@@ -108,6 +135,7 @@ suite.add('lexing', function() {
     // console.log(token.type, JSON.stringify(token.value))
     count++
   }
+  // if (count !== 14513) throw 'fail'
 })
 
 
