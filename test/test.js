@@ -40,7 +40,7 @@ describe('Lexer', () => {
 
   test('kurt tokens', () => {
     let pythonFactory = compile(python.rules)
-    let tokens = pythonFactory(kurtFile).lexAll()
+    let tokens = pythonFactory(fs.readFileSync('test/kurt.py', 'utf-8')).lexAll()
     expect(tokens.length).toBe(14513)
   })
 
