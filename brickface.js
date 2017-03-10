@@ -22,11 +22,11 @@
   function reCapture(s) {
     return s + '()'
   }
-  function reUnion(prefix, regexps, flags) {
+  function reUnion(regexps ) {
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")"
     }).join('|')
-    return new RegExp(prefix + "(?:" + source + ")", flags)
+    return "(?:" + source + ")"
   }
 
 
@@ -109,7 +109,9 @@
       parts.push(re)
     }
 
-    var regexp = reUnion(hasSticky ? '' : '', parts, hasSticky ? 'y' : 'g')
+    var suffix = hasSticky ? '' : '|(?:)'
+    var flags = hasSticky ? 'y' : 'g'
+    var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
     return function(input) {
       return lexer(regexp, groups, input)
@@ -126,12 +128,10 @@
       var match = re.exec(buffer)
       return match
     } : function() {
-      var start = re.lastIndex
       var match = re.exec(buffer)
-      
-      // did we skip characters?
-      if (match.index > start) {
-        re.lastIndex = start
+      // assert(match)
+      // assert(match.index === 0)
+      if (match[0].length === 0) {
         return null
       }
       return match
@@ -145,6 +145,7 @@
 
       var match = eat()
       if (match === null) {
+        re.lastIndex = buffer.length
         return new Token('ERRORTOKEN', lexer.remaining())
       }
 
@@ -155,7 +156,8 @@
           group = groups[i]
           break
         }
-      } // assert(i < groupCount)
+      }
+      // assert(i < groupCount)
 
       var text = group.isCapture ? value : match[0]
       // TODO is `buffer` being leaked here?
@@ -167,7 +169,7 @@
     var lexer
     return lexer = {
       lex: lex,
-      seek: function(newIndex) { index = newIndex },
+      seek: function(newIndex) { re.lastIndex = newIndex },
       feed: function(data) { buffer += data },
       remaining: function() { return buffer.slice(index) },
       clone: function(input) {
