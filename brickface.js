@@ -44,6 +44,7 @@
       if (obj.global) { throw new Error('RegExp /g flag is implied') }
       if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
       if (obj.multiline) { throw new Error('RegExp /y flag is implied') }
+      // TODO: test ^ support
       if (/^\(*\^/.test(obj.source)) {
         throw new Error('RegExp ^ has no effect')
       }
@@ -79,167 +80,100 @@
   }
 
 
-  var Lexer = function(rules) {
-    this.parts = []
-    this.groups = []
-    this.regexp = /^/
+  function compile(rules) {
+    var parts = []
 
+    var groups = []
     for (var i=0; i<rules.length; i++) {
-      var tok = rules[i]
-      this._addRule(tok[0], tok[1])
+      var rule = rules[i]
+      var name = rule[0], re = rule[1]
+
+      // convert string literal to RegExp
+      re = regexpOrLiteral(re)
+
+      // validate
+      if (new RegExp(re).test("")) {
+        throw new Error("RegExp matches empty string: " + re)
+      }
+
+      // store named group
+      var groupCount = reGroups(re)
+      if (groupCount > 1) {
+        throw new Error("RegExp has more than one capture group: " + re)
+      }
+      var isCapture = !!groupCount
+      groups.push(new NamedGroup(name, isCapture, re))
+
+      // store regex
+      if (!isCapture) re = reCapture(re)
+      parts.push(re)
+    }
+
+    var regexp = reUnion('', parts, 'g')
+
+    return function(input) {
+      return lexer(regexp, groups, input)
     }
   }
 
-  Lexer.prototype._addRule = function(name, re) {
-    // convert string literal to RegExp
-    re = regexpOrLiteral(re)
+  function lexer(re, groups, data) {
+    var buffer = data || ''
+    var index = 0
+    var groupCount = groups.length
 
-    // validate
-    if (new RegExp(re).test("")) {
-      throw new Error("Token regexp matches empty string: " + re)
-    }
-
-    // store named group
-    var groupCount = reGroups(re)
-    if (groupCount > 1) {
-      throw new Error("Token regexp has more than one capture group: " + re)
-    }
-    var isCapture = !!groupCount
-    this.groups.push(new NamedGroup(name, isCapture, re))
-
-    // store regex
-    if (!isCapture) re = reCapture(re)
-    this.parts.push(re)
-    this.regexp = reUnion('', this.parts, 'g')
-  }
-
-  Lexer.prototype.instance = function() {
-    return new LexerInstance(this)
-  };
-
-
-  var Scanner = function(buffer) {
-    this.buffer = buffer || ''
-    this.index = 0
-  }
-
-  Scanner.prototype.seek = function(index) {
-    this.index = index
-  }
-
-  Scanner.prototype.feed = function(data) {
-    this.buffer += data
-  }
-
-  Scanner.prototype.remaining = function() {
-    return this.buffer.slice(this.index)
-  }
-
-  /*
-  if (hasSticky) {
-    Scanner.prototype.eat = function(re) {
+    var eat = /* hasSticky ? function() {
       // assume re has /y flag
-      re.lastIndex = this.index
-      var m = re.exec(this.buffer)
+      re.lastIndex = index
+      var m = re.exec(buffer)
       if (m != null) {
-        this.index += m[0].length
+        index += m[0].length
+      }
+      return m
+    } : */ function() {
+      // .slice() is O(1) in V8 and most other JSes,
+      // thanks to SlicedStrings
+      re.lastIndex = 0
+      var m = re.exec(buffer.slice(index))
+      if (m) {
+        index += m[0].length
       }
       return m
     }
-  } else {
-    // TODO: require regexp anchored at start.
-  */
+    // TODO: try instead the |(?:) trick?
 
-  Scanner.prototype.eat = function(re) {
-    // .slice() is O(1) in V8 and most other JSes,
-    // thanks to SlicedStrings
-    re.lastIndex = 0
-    var m = re.exec(this.buffer.slice(this.index))
-    if (m) {
-      this.index += m[0].length
-    }
-    return m
-  }
-
-  // ALTERNATIVELY use the |(?:) trick?
-
-  var LexerInstance = function(lexer) {
-    this.lexer = lexer
-
-    this.parts = lexer.parts
-    this.groups = lexer.groups
-    this.regexp = lexer.regexp
-
-    this.scanner = new Scanner()
-    this.queue = []
-  }
-
-  LexerInstance.prototype.feed = function(input) {
-    this.scanner.feed(input)
-  }
-
-  LexerInstance.prototype.lex = function() {
-    var regexp = this.regexp
-    var scanner = this.scanner
-    var width = this.scanner.buffer.length
-    var groups = this.groups
-    var groupCount = groups.length
-    var queue = this.queue
-
-    if (queue.length) {
-      return queue.shift()
-    }
-
-    if (scanner.index === width) {
-      return // EOF
-    }
-
-    var start = regexp.lastIndex
-    var match = scanner.eat(regexp)
-    if (!match) {
-      regexp.lastIndex = width
-      return new Token('ERRORTOKEN', scanner.remaining())
-    }
-    if (match.index > start) { // skipped chars
-      queue.push(new Token('ERRORTOKEN', line.slice(start, match.index)))
-    }
-    // const assert = require('assert')
-    // assert(match.length === this.groups.length + 1)
-    // assert(match[0].length)
-    // assert(regexp.lastIndex === match.index + match[0].length)
-
-    // which group matched?
-    var group = null
-    for (var i = 0; i < groupCount; i++) {
-      var value = match[i + 1]
-      if (value !== undefined) {
-        group = groups[i]
-        break
+    function lex() {
+      if (index === buffer.length) {
+        return // EOF
       }
-    } if (i === groupCount) {
-      throw "Assertion failed"
-    }
 
-    var text = group.isCapture ? value : match[0]
-    var token = new Token(group.name, text)
-    //console.log('-', token.name, start)
-
-    if (queue.length) {
-      queue.push(token)
-      return queue.pop()
-    }
-    return token
-  }
-
-
-  function compile(rules) {
-    var lexer = new Lexer(rules)
-    return function factory(input) {
-      let ins = lexer.instance()
-      if (input) {
-        ins.feed(input)
+      var match = eat()
+      if (match === null) {
+        throw new Error('Invalid token')
       }
-      return ins
+
+      var group = null
+      for (var i = 0; i < groupCount; i++) {
+        var value = match[i + 1]
+        if (value !== undefined) {
+          group = groups[i]
+          break
+        }
+      } if (i === groupCount) {
+        throw "Assertion failed"
+      }
+
+      var text = group.isCapture ? value : match[0]
+      return new Token(group.name, text)
+    }
+
+    // TODO multiple states / continuations ?
+
+    var lexer
+    return lexer = {
+      lex: lex,
+      seek: function(newIndex) { index = newIndex },
+      feed: function(data) { buffer += data },
+      remaining: function() { return buffer.slice(index) },
     }
   }
 
