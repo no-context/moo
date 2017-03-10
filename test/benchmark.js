@@ -35,6 +35,7 @@ suite.add('moo', function() {
 })
 
 /* lex
+ * I do not know why this one is so slow
  */
 const Lexer = require('lex')
 var lexer = new Lexer

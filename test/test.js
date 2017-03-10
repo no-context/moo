@@ -38,6 +38,12 @@ describe('Lexer', () => {
     expect(lexer.lex().toString()).toBe('are')
   })
 
+  test('kurt tokens', () => {
+    let pythonFactory = compile(python.rules)
+    let tokens = pythonFactory(kurtFile).lexAll()
+    expect(tokens.length).toBe(14513)
+  })
+
 })
 
 describe('python tokenizer', () => {
@@ -126,14 +132,16 @@ describe('python tokenizer', () => {
     ])
   })
 
-  test("kurt", () => {
+  test("kurt python", () => {
     let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
-    expect(tokens[100].toString()).toBe('NAME "def"')
-    expect(tokens.pop().toString()).toBe('ENDMARKER ""')
+    expect(tokens[100]).toBe('NAME "def"')
+    expect(tokens.pop()).toBe('ENDMARKER ""')
     tokens.pop()
-    expect(tokens.pop().toString()).not.toBe('ERRORTOKEN ""')
+    expect(tokens.pop()).not.toBe('ERRORTOKEN ""')
     expect(tokens.length).toBe(11616)
-  })
 
+    // let expected = fs.readFileSync('test/kurt-tokens.txt', 'utf-8').split('\n')
+    // expect(tokens).toEqual(expected)
+  })
 
 })
