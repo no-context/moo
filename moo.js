@@ -179,9 +179,7 @@
   }
 
 
-  return {
-    Token: Token,
-    compile: compile,
-  }
+  compile.Token = Token
+  return compile
 
 }))

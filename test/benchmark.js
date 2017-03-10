@@ -2,13 +2,13 @@
 const fs = require('fs')
 const Benchmark = require('benchmark')
 
-const Moo = require('../moo')
+const moo = require('../moo')
 
 let suite = new Benchmark.Suite()
 
 
 const python = require('./python')
-let pythonFactory = Moo.compile(python.rules)
+let pythonFactory = moo(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 

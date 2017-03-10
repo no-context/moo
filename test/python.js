@@ -1,4 +1,4 @@
-var Moo = require('../moo')
+var moo = require('../moo')
 
 
 function assert(x) {
@@ -55,8 +55,8 @@ var TOKENS = [
 
 ];
 
-var Token = Moo.Token;
-var factory = Moo.compile(TOKENS);
+var Token = moo.Token;
+var factory = moo(TOKENS);
 
 var tokenize = function(input, emit) {
   var lexer = factory(input);

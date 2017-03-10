@@ -1,11 +1,11 @@
 
 const fs = require('fs')
 
-const { compile } = require('../moo')
+const moo = compile = require('../moo')
 const python = require('./python')
 
 
-describe('Moo.compile', () => {
+describe('moo compiler', () => {
 
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile([['word', /foo/]])).not.toThrow()
@@ -23,7 +23,7 @@ describe('Moo.compile', () => {
 
 })
 
-describe('Lexer', () => {
+describe('moo lexer', () => {
 
   test('ducks', () => {
     var factory = compile([

@@ -1,7 +1,7 @@
 
-const Moo = require('../moo')
+const moo = require('../moo')
 
-let factory = Moo.compile([
+let factory = moo([
   ['WS',      /[ \t]+/],
   ['ellips',  /\.{3}/],
   ['comment', /\/{2}(.*)$/],
