@@ -18,116 +18,204 @@
   function reCapture(s) {
     return s + '()';
   }
-  function reUnion(prefix, regexps) {
+  function reUnion(prefix, regexps, flags) {
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")";
     }).join('|');
-    return new RegExp(prefix + "(?:" + source + ")");
+    return new RegExp(prefix + "(?:" + source + ")", flags);
+  }
+  function reLiterals(literals) {
+    return new RegExp('(' + literals.map(reEscape).join('|') + ')');
   }
 
 
-  var Token = function(symbol, text) {
-    this.symbol = symbol;
-    this.text = text;
+  var Token = function(name, value) {
+    this.name = name;
+    this.value = value || '';
   };
 
   Token.prototype.toString = function() {
-    return this.symbol;
+    switch (this.name) {
+      case 'NAME':
+      case 'OP':
+      case 'ERRORTOKEN':
+        return this.value;
+      case 'NEWLINE':
+      case 'ENDMARKER':
+      default:
+        return this.name;
+    }
+    return 'token' + this.name;
   };
 
 
   var NamedGroup = function(name, isCapture, regexp) {
     this.name = name;
     this.isCapture = isCapture;
-    this._regexp = regexp; // for debugging
+    this._regexp = regexp; // for troubleshooting
   };
 
 
+  var Lexer = function(tokens) {
+    this.parts = [];
+    this.groups = [];
+    this.regexp = /^/;
 
-  var Tokenizer = function(tokens) {
-    var parts = [];
-    var groups = [];
-    for (var index = 0; index < tokens.length; index++) {
-      var token = tokens[index];
-      if (typeof token === 'string') {
-        token = [token, token];
-      }
-      var name = token[0],
-          re = token[1];
-
-      // convert string literal to RegExp
-      re = re instanceof RegExp ? re.source : reEscape(re);
-
-      // validate
-      if (new RegExp(re).test("")) {
-        throw new Error("Token regexp matches empty string: " + re);
-      }
-
-      // store named group
-      var groupCount = reGroups(re);
-      if (groupCount > 1) {
-        throw new Error("Token regexp has more than one capture group: " + re);
-      }
-      var isCapture = !!groupCount;
-      groups.push(new NamedGroup(name, isCapture, re));
-
-      // store regex
-      if (!isCapture) re = reCapture(re);
-      console.log(re);
-      parts.push(re);
+    for (var i=0; i<tokens.length; i++) {
+      var tok = tokens[i];
+      this.addRule(tok[0], tok[1]);
     }
-    this.regexp = reUnion('^', parts);
-    this.groups = groups;
-    this._parts = parts;
+
+    this.scope = [];
   };
 
-  Tokenizer.prototype.tokenize = function(source) {
+  Lexer.prototype.addRule = function(name, re) {
+    // convert string literal to RegExp
+    var re = re instanceof RegExp ? re.source : reEscape(re);
+
+    // validate
+    if (new RegExp(re).test("")) {
+      throw new Error("Token regexp matches empty string: " + re);
+    }
+
+    // store named group
+    var groupCount = reGroups(re);
+    if (groupCount > 1) {
+      throw new Error("Token regexp has more than one capture group: " + re);
+    }
+    var isCapture = !!groupCount;
+    this.groups.push(new NamedGroup(name, isCapture, re));
+
+    // store regex
+    if (!isCapture) re = reCapture(re);
+    this.parts.push(re);
+    this.regexp = reUnion('', this.parts, 'g');
+  };
+
+  Lexer.prototype.save = function() {
+    this.scope.push({
+      parts: this.parts.slice(),
+      groups: this.groups.slice(),
+      regexp: this.regexp,
+    });
+  };
+
+  Lexer.prototype.restore = function() {
+    if (!this.scope.length) {
+      throw "Can't restore";
+    }
+    var old = this.scope.pop();
+    this.parts = old.parts;
+    this.groups = old.groups;
+    this.regexp = old.regexp;
+  };
+
+  Lexer.prototype.tokenize = function(readline) {
     var regexp = this.regexp;
     var groups = this.groups;
-    var tokens = [];
-    var remaining = source;
+    var groupCount = groups.length;
+    var width;
+    var queue = [];
 
-    while (remaining.length) {
-      var match = regexp.exec(remaining);
-      // assert match.length === this.groups.length + 1
+    var readline = readline;
+    var line;
 
-      // check we parsed all of source
-      if (!match) {
-        throw new Error("Could not tokenize: " + remaining);
+    function next() {
+      line = readline();
+      if (line === null) return;
+      width = line.length;
+      regexp.lastIndex = 0;
+    }
+    next();
+
+    return function lex() {
+      if (queue.length) {
+        return queue.shift();
       }
+      if (regexp.lastIndex === width) {
+        next();
+        if (line === null) {
+          return; // EOF
+        }
+      }
+
+      var start = regexp.lastIndex;
+      var match = regexp.exec(line);
+      if (!match) {
+        regexp.lastIndex = width;
+        return new Token('ERRORTOKEN', line.slice(start));
+      }
+      if (match.index > start) { // skipped chars
+        queue.push(new Token('ERRORTOKEN', line.slice(start, match.index)));
+      }
+      // assert match.length === this.groups.length + 1
+      // assert match[0].length
+      // assert regexp.lastIndex === match.index + match[0].length
 
       // which group matched?
       var group = null;
-      for (var index = 0; index < groups.length; index++) {
-        var value = match[index + 1];
+      for (var i = 0; i < groupCount; i++) {
+        var value = match[i + 1];
         if (value !== undefined) {
-          group = groups[index];
+          group = groups[i];
           break;
         }
-      } if (index === groups.length) {
-        throw new Error("this should never happen");
+      } if (i === groupCount) {
+        throw "Assertion failed";
       }
 
-      // check we didn't skip some of the input
-      if (match.index > 0) {
-        var offending = remaining.slice(0, match.index);
-        throw new Error("Could not tokenize: " + offending); 
+      var text = group.isCapture ? value : match[0];
+      var token = new Token(group.name, text);
+      //console.log('-', token.name, start);
+      if (token.name === 'Whitespace' && start === 0) {
+        token.name = 'Indentation';
       }
 
-      // make token
-      var text = match[0];
-      var symbol = group.isCapture ? value : group.name + "Token";
-      var token = new Token(symbol, text);
-      tokens.push(token);
-
-      var symbol = group.name + "Token";
-      if (group.isCapture) symbol = value + symbol;
-
-      // consume input
-      remaining = remaining.slice(text.length);
+      if (queue.length) {
+        queue.push(token);
+        return queue.pop();
+      }
+      return token;
     }
+  }
 
-    return tokens;
+
+  function stringReadlines(source) {
+    var length = source.length;
+    var index = 0;
+
+    return function readline() {
+      if (index === length) {
+        return null; // EOF
+      }
+      var start = index;
+      var tok = source[index];
+      while (tok) {
+        if (tok === '\r') {
+          index++;
+          if (tok === '\n') {
+            index++;
+          }
+          break;
+        }
+        if (tok === '\n') {
+          index++;
+          break;
+        }
+        tok = source[++index];
+      }
+      var line = source.slice(start, index);
+      //console.log(JSON.stringify(line));
+      return line;
+    }
+  }
+
+
+  return {
+    Lexer: Lexer,
+    Token: Token,
+    stringReadlines: stringReadlines,
+    reLiterals: reLiterals,
   };
 
 }))
