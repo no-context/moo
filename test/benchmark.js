@@ -20,6 +20,12 @@ suite.add('python x10', function() {
   tokenizePython(pythonFile10, () => {})
 })
 
+let pythonFile100 = ''
+for (var i = 100; i--; ) { pythonFile100 += pythonFile }
+suite.add('python x100', function() {
+  tokenizePython(pythonFile100, () => {})
+})
+
 
 suite.on('cycle', function(event) {
     var bench = event.target;
