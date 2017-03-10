@@ -9,6 +9,9 @@
 }(this, function() {
   'use strict';
 
+  var hasSticky = typeof new RegExp().sticky === 'boolean'
+
+
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
   }
@@ -115,6 +118,51 @@
   };
 
 
+  var Scanner = function(buffer) {
+    this.buffer = buffer || ''
+    this.index = 0
+  }
+
+  Scanner.prototype.seek = function(index) {
+    this.index = index
+  }
+
+  Scanner.prototype.feed = function(data) {
+    this.buffer += data
+  }
+
+  Scanner.prototype.remaining = function() {
+    return this.buffer.slice(this.index)
+  }
+
+  /*
+  if (hasSticky) {
+    Scanner.prototype.eat = function(re) {
+      // assume re has /y flag
+      re.lastIndex = this.index
+      var m = re.exec(this.buffer)
+      if (m != null) {
+        this.index += m[0].length
+      }
+      return m
+    }
+  } else {
+    // TODO: require regexp anchored at start.
+  */
+
+  Scanner.prototype.eat = function(re) {
+    // .slice() is O(1) in V8 and most other JSes,
+    // thanks to SlicedStrings
+    re.lastIndex = 0
+    var m = re.exec(this.buffer.slice(this.index))
+    if (m) {
+      this.index += m[0].length
+    }
+    return m
+  }
+
+  // ALTERNATIVELY use the |(?:) trick?
+
   var LexerInstance = function(lexer) {
     this.lexer = lexer
 
@@ -122,21 +170,18 @@
     this.groups = lexer.groups
     this.regexp = lexer.regexp
 
-    this.buffer = ''
+    this.scanner = new Scanner()
     this.queue = []
-    this.regexp.lastIndex = 0
   }
 
-  // consider rewind()
-
   LexerInstance.prototype.feed = function(input) {
-    this.buffer += input
+    this.scanner.feed(input)
   }
 
   LexerInstance.prototype.lex = function() {
     var regexp = this.regexp
-    var line = this.buffer
-    var width = line.length
+    var scanner = this.scanner
+    var width = this.scanner.buffer.length
     var groups = this.groups
     var groupCount = groups.length
     var queue = this.queue
@@ -145,15 +190,15 @@
       return queue.shift()
     }
 
-    if (regexp.lastIndex === width) {
+    if (scanner.index === width) {
       return // EOF
     }
 
     var start = regexp.lastIndex
-    var match = regexp.exec(line)
+    var match = scanner.eat(regexp)
     if (!match) {
       regexp.lastIndex = width
-      return new Token('ERRORTOKEN', line.slice(start))
+      return new Token('ERRORTOKEN', scanner.remaining())
     }
     if (match.index > start) { // skipped chars
       queue.push(new Token('ERRORTOKEN', line.slice(start, match.index)))

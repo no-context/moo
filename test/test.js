@@ -21,6 +21,23 @@ describe('BrickFace.compile', () => {
 
 })
 
+describe('Lexer', () => {
+
+  test('ducks', () => {
+    var l = new Lexer([
+      ['word', /[a-z]+/],
+      ['number', /[0-9]+/],
+      [null, / +/],
+    ])
+    let lexer = l.instance()
+    lexer.feed('ducks are 123 bad')
+    expect(lexer.lex().toString()).toBe('ducks')
+    expect(lexer.lex().toString()).toBe(' ')
+    expect(lexer.lex().toString()).toBe('are')
+  })
+
+})
+
 describe('python tokenizer', () => {
 
   test("1 + 2", () => {
