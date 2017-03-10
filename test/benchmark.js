@@ -8,7 +8,6 @@ let suite = new Benchmark.Suite()
 
 
 const python = require('./python')
-let pythonFile = python.pythonFile
 let pythonFactory = Moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
@@ -29,24 +28,20 @@ for (let [name, pat] of python.rules) {
   }
 }
 
-/*
-suite.add('python', function() {
-  tokenizePython(pythonFile, () => {})
+/*****************************************************************************/
+
+const tosh = require('./tosh')
+
+suite.add('moo tosh', function() {
+  tosh.tokenize(tosh.exampleFile)
 })
 
-let pythonFile10 = ''
-for (var i = 10; i--; ) { pythonFile10 += pythonFile }
-suite.add('python x10', function() {
-  tokenizePython(pythonFile10, () => {})
+suite.add('tosh', function() {
+  let oldTokens = tosh.oldTokenizer(tosh.exampleFile)
 })
 
-let pythonFile100 = ''
-for (var i = 100; i--; ) { pythonFile100 += pythonFile }
-suite.add('python x100', function() {
-  tokenizePython(pythonFile100, () => {})
-})
-*/
-
+/*****************************************************************************/
+// tokenizing Python
 
 /* moo! */
 suite.add('moo', function() {
