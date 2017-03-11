@@ -106,83 +106,97 @@
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
     return function(input) {
-      return lexer(regexp, groups, input)
-    }
-  }
-
-  function lexer(re, groups, data) {
-    var buffer = data || ''
-    var groupCount = groups.length
-    re.lastIndex = 0 // reset RegExp
-
-    var eat = hasSticky ? function() {
-      // assume re is /y
-      var match = re.exec(buffer)
-      return match
-    } : function() {
-      // assume re is /g
-      var match = re.exec(buffer)
-      // assert(match)
-      // assert(match.index === 0)
-      if (match[0].length === 0) {
-        return null
-      }
-      return match
-    }
-    // TODO: try instead the |(?:) trick?
-
-    function lex() {
-      if (re.lastIndex === buffer.length) {
-        return // EOF
-      }
-
-      var start = re.lastIndex
-      var match = eat()
-      if (match === null) {
-        var token = new Token('ERRORTOKEN', buffer.slice(start))
-        re.lastIndex = buffer.length
-        return token
-      }
-
-      var group = null
-      for (var i = 0; i < groupCount; i++) {
-        var value = match[i + 1]
-        if (value !== undefined) {
-          group = groups[i]
-          break
-        }
-      }
-      // assert(i < groupCount)
-
-      // TODO is `buffer` being leaked here?
-      return new Token(group, value)
-    }
-
-    // TODO multiple states / continuations ?
-
-    var lexer
-    return lexer = {
-      lex: lex,
-      lexAll: function() {
-        var tokens = []
-        var token
-        while ((token = lex())) {
-          tokens.push(token)
-        }
-        return tokens
-      },
-      groups: groups,
-      seek: function(newIndex) { re.lastIndex = newIndex },
-      feed: function(data) { buffer += data },
-      remaining: function() { return buffer.slice(re.lastIndex) },
-      clone: function(input) {
-        return lexer(new RegExp(re.source, re.flags), groups, input)
-      },
+      return new Lexer(regexp, groups, input)
     }
   }
 
 
-  compile.Token = Token
-  return compile
+  var Lexer = function(re, groups, data) {
+    this.buffer = data || ''
+    this.groupCount = groups.length
+    this.re = re
+
+    // reset RegExp
+    re.lastIndex = 0
+
+    this.groups = groups
+  }
+
+  Lexer.prototype.eat = hasSticky ? function(re) {
+    // assume re is /y
+    return re.exec(this.buffer)
+  } : function(re) {
+    // assume re is /g
+    var match = re.exec(this.buffer)
+    // assert(match)
+    // assert(match.index === 0)
+    if (match[0].length === 0) {
+      return null
+    }
+    return match
+  }
+  // TODO: try instead the |(?:) trick?
+
+  Lexer.prototype.lex = function() {
+    var re = this.re
+    var buffer = this.buffer
+
+    if (re.lastIndex === buffer.length) {
+      return // EOF
+    }
+
+    var start = re.lastIndex
+    var match = this.eat(re)
+    if (match === null) {
+      var token = new Token('ERRORTOKEN', buffer.slice(start))
+      re.lastIndex = buffer.length
+      return token
+    }
+
+    var groups = this.groups
+    var group
+    for (var i = 0; i < this.groupCount; i++) {
+      var value = match[i + 1]
+      if (value !== undefined) {
+        group = groups[i]
+        break
+      }
+    }
+    // assert(i < groupCount)
+
+    // TODO is `buffer` being leaked here?
+    return new Token(group, value)
+  }
+
+  Lexer.prototype.lexAll = function() {
+    var tokens = []
+    var token
+    while ((token = this.lex())) {
+      tokens.push(token)
+    }
+    return tokens
+  }
+
+  Lexer.prototype.seek = function(index) {
+    this.re.lastIndex = index
+  }
+
+  Lexer.prototype.feed = function(data) {
+    this.buffer += data
+  }
+
+  Lexer.prototype.remaining = function() {
+    return this.buffer.slice(this.re.lastIndex)
+  }
+
+  Lexer.prototype.clone = function(input) {
+    var re = new RegExp(this.re.source, this.re.flags)
+    return new Lexer(re, this.groups, input)
+  }
+
+
+  var moo = compile
+  moo.Token = Token
+  return moo
 
 }))
