@@ -55,7 +55,6 @@ var TOKENS = [
 
 ];
 
-var Token = moo.Token;
 var factory = moo(TOKENS);
 
 var tokenize = function(input, emit) {
@@ -138,11 +137,11 @@ var tokenize = function(input, emit) {
             if (indent > currentIndent) {
               stack.push(currentIndent);
               currentIndent = indent;
-              emit(new Token('INDENT', indentation));
+              emit({ name: 'INDENT', value: indentation });
             } else {
               while (indent < currentIndent) {
                 currentIndent = stack.pop();
-                emit(new Token('DEDENT'));
+                emit({ name: 'DEDENT', value: '' });
               }
               if (indent > currentIndent) {
                 throw err('IndentationError', "unindent does not match any outer indentation level");
@@ -158,9 +157,9 @@ var tokenize = function(input, emit) {
 
   while (currentIndent) {
     currentIndent = stack.pop();
-    emit(new Token('DEDENT'));
+    emit({ name: 'DEDENT', value: '' });
   }
-  emit(new Token('ENDMARKER'));
+  emit({ name: 'ENDMARKER', value: '' });
 };
 
 function outputTokens(source) {

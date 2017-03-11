@@ -61,13 +61,7 @@
   }
 
 
-  var Token = function(name, value, size) {
-    this.name = name
-    this.value = value || ''
-    this.size = size
-  }
-
-  Token.prototype.toString = function() {
+  function tokenToString() {
     return this.value || this.name
   }
 
@@ -148,7 +142,13 @@
     var start = re.lastIndex
     var match = this.eat(re)
     if (match === null) {
-      var token = new Token('ERRORTOKEN', buffer.slice(start))
+      var remaining = buffer.slice(start)
+      var token = {
+        name: 'ERRORTOKEN',
+        value: remaining,
+        size: remaining.length,
+        toString: tokenToString,
+      }
       re.lastIndex = buffer.length
       return token
     }
@@ -163,9 +163,14 @@
       }
     }
     // assert(i < groupCount)
-
     // TODO is `buffer` being leaked here?
-    return new Token(group, value, match[0].length)
+
+    return {
+      name: group,
+      value: value,
+      size: match[0].length,
+      toString: tokenToString,
+    }
   }
 
   Lexer.prototype.lexAll = function() {
@@ -262,7 +267,6 @@
 
   var moo = compile
   moo.lines = compileLines
-  moo.Token = Token
   return moo
 
 }))
