@@ -61,9 +61,10 @@
   }
 
 
-  var Token = function(name, value) {
+  var Token = function(name, value, size) {
     this.name = name
     this.value = value || ''
+    this.size = size
   }
 
   Token.prototype.toString = function() {
@@ -72,9 +73,8 @@
 
 
   function compile(rules) {
-    var parts = []
-
     var groups = []
+    var parts = []
     for (var i=0; i<rules.length; i++) {
       var rule = rules[i]
       var name = rule[0]
@@ -165,7 +165,7 @@
     // assert(i < groupCount)
 
     // TODO is `buffer` being leaked here?
-    return new Token(group, value)
+    return new Token(group, value, match[0].length)
   }
 
   Lexer.prototype.lexAll = function() {
@@ -175,6 +175,10 @@
       tokens.push(token)
     }
     return tokens
+  }
+
+  Lexer.prototype.index = function() {
+    return this.re.lastIndex
   }
 
   Lexer.prototype.seek = function(index) {
@@ -195,7 +199,69 @@
   }
 
 
+  function compileLines(rules) {
+    // try and detect rules matching newlines
+    for (var i = 0; i < rules.length; i++) {
+      var pat = rules[i][1]
+      if (pat instanceof RegExp && pat.test('\n')) {
+        throw new Error('RegExp matches newline: ' + pat)
+      }
+    }
+    // insert newline rule
+    rules.splice(0, 0, ['NL', '\n'])
+
+    var factory = compile(rules)
+    return function(input) {
+      return new LineLexer(factory(input))
+    }
+  }
+
+
+  var LineLexer = function(lexer) {
+    this.lexer = lexer
+
+    this.lineIndexes = [-1, 0] // 1-based
+    this.lineno = 1
+    this.col = 0
+  }
+
+  LineLexer.prototype.lex = function() {
+    var tok = this.lexer.lex()
+    if (!tok) {
+      return tok
+    }
+    tok.lineno = this.lineno
+    tok.col = this.col
+
+    if (tok.name === 'NL') {
+      this.lineno++
+      this.col = 0
+      this.lineIndexes.push(this.lexer.index())
+    } else {
+      this.col += tok.size
+    }
+
+    // TODO handle error tokens
+    return tok
+  }
+
+  LineLexer.prototype.lexAll = Lexer.prototype.lexAll
+
+  LineLexer.prototype.seek = function(lineno) {
+    if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
+    this.lexer.seek(this.lineIndexes[lineno])
+    this.lineIndexes.splice(lineno)
+    this.lineno = lineno
+    this.col = 0
+  }
+
+  LineLexer.prototype.clone = function(input) {
+    return new LineLexer(this.lexer.clone(input))
+  }
+
+
   var moo = compile
+  moo.lines = compileLines
   moo.Token = Token
   return moo
 

@@ -88,7 +88,6 @@ module.exports = {
             "error",
             "never"
         ],
-        "new-cap": "error",
         "new-parens": "error",
         "newline-after-var": "off",
         "newline-before-return": "off",
@@ -192,7 +191,6 @@ module.exports = {
         "no-whitespace-before-property": "error",
         "no-with": "error",
         "nonblock-statement-body-position": "error",
-        "object-curly-newline": "error",
         "object-shorthand": "off",
         "one-var": "off",
         "one-var-declaration-per-line": "error",
@@ -203,7 +201,6 @@ module.exports = {
         "prefer-const": "error",
         "prefer-numeric-literals": "error",
         "prefer-promise-reject-errors": "error",
-        "prefer-reflect": "error",
         "prefer-rest-params": "error",
         "prefer-spread": "error",
         "prefer-template": "off",

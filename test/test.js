@@ -89,7 +89,32 @@ describe('moo lexer', () => {
     expect(tokens.length).toBe(14513)
   })
 
+  // TODO test seek()
+  // TODO test clone()
 })
+
+
+describe('moo line lexer', () => {
+
+  test('lexes lines', () => {
+    var factory = moo.lines([
+      ['WS', / +/],
+      ['word', /[a-z]+/],
+    ])
+    var tokens = factory('steak\nsauce\nparty').lexAll()
+    expect(tokens.map(t => t.value)).toEqual(['steak', '\n', 'sauce', '\n', 'party'])
+    expect(tokens.map(t => t.lineno)).toEqual([1, 1, 2, 2, 3])
+  })
+
+  test('tries to warn if rule matches \\n', () => {
+    expect(() => moo.lines([['whitespace', /\s+/]])).toThrow()
+    expect(() => moo.lines([['multiline', /q[^]*/]])).not.toThrow()
+  })
+
+  // TODO test seek()
+  // TODO test clone()
+})
+
 
 describe('python tokenizer', () => {
 
