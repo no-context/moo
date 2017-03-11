@@ -77,7 +77,8 @@
     var groups = []
     for (var i=0; i<rules.length; i++) {
       var rule = rules[i]
-      var name = rule[0], re = rule[1]
+      var name = rule[0]
+      var re = rule[1]
 
       // convert string literal to RegExp
       re = regexpOrLiteral(re)
@@ -163,7 +164,7 @@
       lexAll: function() {
         var tokens = []
         var token
-        while (token = lex()) {
+        while ((token = lex())) {
           tokens.push(token)
         }
         return tokens
