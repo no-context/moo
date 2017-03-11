@@ -81,6 +81,7 @@ describe('moo lexer', () => {
   })
 
   // TODO test / design API for errors
+  // - check the reported error location
 
   test('kurt tokens', () => {
     let pythonFactory = compile(python.rules)

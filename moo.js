@@ -136,9 +136,10 @@
         return // EOF
       }
 
+      var start = re.lastIndex
       var match = eat()
       if (match === null) {
-        var token = new Token('ERRORTOKEN', lexer.remaining())
+        var token = new Token('ERRORTOKEN', buffer.slice(start))
         re.lastIndex = buffer.length
         return token
       }
