@@ -147,6 +147,7 @@
         name: 'ERRORTOKEN',
         value: remaining,
         size: remaining.length,
+        offset: start,
         toString: tokenToString,
       }
       re.lastIndex = buffer.length
@@ -169,6 +170,7 @@
       name: group,
       value: value,
       size: match[0].length,
+      offset: re.lastIndex,
       toString: tokenToString,
     }
   }
