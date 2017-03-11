@@ -21,6 +21,12 @@ describe('moo compiler', () => {
     expect(() => compile([['word', /[^]/]])).not.toThrow()
   })
 
+  test("handles newline literals", () => {
+    // it seems \n doesn't need to be escaped!
+    expect(compile([['NL', '\n']])('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile([['NL', /\n/]])('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+  })
+
 })
 
 describe('moo lexer', () => {

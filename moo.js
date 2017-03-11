@@ -116,10 +116,11 @@
     re.lastIndex = 0 // reset RegExp
 
     var eat = hasSticky ? function() {
-      // assume re has /y flag
+      // assume re is /y
       var match = re.exec(buffer)
       return match
     } : function() {
+      // assume re is /g
       var match = re.exec(buffer)
       // assert(match)
       // assert(match.index === 0)
