@@ -247,7 +247,7 @@
 
   LineLexer.prototype.lexAll = Lexer.prototype.lexAll
 
-  LineLexer.prototype.seek = function(lineno) {
+  LineLexer.prototype.seekLine = function(lineno) {
     if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
     this.lexer.seek(this.lineIndexes[lineno])
     this.lineIndexes.splice(lineno)

@@ -31,13 +31,14 @@ describe('moo compiler', () => {
 
 describe('moo lexer', () => {
 
+  var simpleFactory = compile([
+    ['word', /[a-z]+/],
+    ['number', /[0-9]+/],
+    [null, / +/],
+  ])
+
   test('ducks', () => {
-    var factory = compile([
-      ['word', /[a-z]+/],
-      ['number', /[0-9]+/],
-      [null, / +/],
-    ])
-    let lexer = factory()
+    let lexer = simpleFactory()
     lexer.feed('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
     expect(lexer.lex().toString()).toBe(' ')
@@ -89,21 +90,32 @@ describe('moo lexer', () => {
     expect(tokens.length).toBe(14513)
   })
 
-  // TODO test seek()
+  test('can seek', () => {
+    let lexer = simpleFactory()
+    lexer.feed('ducks are 123 bad')
+    expect(lexer.lex().toString()).toBe('ducks')
+    expect(lexer.lex().toString()).toBe(' ')
+    expect(lexer.lex().toString()).toBe('are')
+    lexer.seek(6)
+    expect(lexer.lex().toString()).toBe('are')
+  })
+
   // TODO test clone()
 })
 
 
 describe('moo line lexer', () => {
 
+  var factory = moo.lines([
+    ['WS', / +/],
+    ['word', /[a-z]+/],
+  ])
+
   test('lexes lines', () => {
-    var factory = moo.lines([
-      ['WS', / +/],
-      ['word', /[a-z]+/],
-    ])
     var tokens = factory('steak\nsauce\nparty').lexAll()
     expect(tokens.map(t => t.value)).toEqual(['steak', '\n', 'sauce', '\n', 'party'])
     expect(tokens.map(t => t.lineno)).toEqual([1, 1, 2, 2, 3])
+    expect(tokens.map(t => t.col)).toEqual([0, 5, 0, 5, 0])
   })
 
   test('tries to warn if rule matches \\n', () => {
@@ -111,7 +123,28 @@ describe('moo line lexer', () => {
     expect(() => moo.lines([['multiline', /q[^]*/]])).not.toThrow()
   })
 
-  // TODO test seek()
+  test('can rewind', () => {
+    var lexer = factory('steak\nsauce\nparty')
+    expect(lexer.lex().value).toBe('steak')
+    expect(lexer.lex().value).toBe('\n')
+    expect(lexer.lex().value).toBe('sauce')
+    lexer.seekLine(2)
+    expect(lexer.lex().value).toBe('sauce')
+    lexer.seekLine(1)
+    expect(lexer.lex().value).toBe('steak')
+  })
+
+  test("won't rewind forward", () => {
+    var lexer = factory('steak\nsauce\nparty')
+    expect(() => lexer.seekLine(0)).not.toThrow()
+    expect(() => lexer.seekLine(1)).toThrow()
+    expect(lexer.lex().value).toBe('steak')
+    expect(lexer.lex().value).toBe('\n')
+    expect(lexer.lex().value).toBe('sauce')
+    lexer.seekLine(0)
+    expect(() => lexer.seekLine(1)).toThrow()
+  })
+
   // TODO test clone()
 })
 
