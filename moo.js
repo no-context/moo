@@ -86,13 +86,36 @@
     if (!Array.isArray(rules)) rules = objectToRules(rules)
     var groups = []
     var parts = []
-    for (var i=0; i<rules.length; i++) {
+    var keywords = Object.create(null)
+    for (var i = 0; i < rules.length; i++) {
       var rule = rules[i]
       var name = rule[0]
-      var re = rule[1]
+      var obj = rule[1]
+
+      if (typeof obj === 'string' || obj.constructor === Array) {
+        var words = obj.constructor === Array ? obj : [obj]
+        var remaining = []
+        for (var j = 0; j < words.length; j++) {
+          var word = words[j]
+          for (var k = 0; k < rules.length; k++) {
+            var other = rules[k][1]
+            if (other.constructor === RegExp && other.test(word)) {
+              keywords[word] = name
+              break
+            }
+          }
+          if (k === rules.length) {
+            remaining.push(word)
+          }
+        }
+        if (remaining.length === 0) {
+          continue
+        }
+        obj = remaining
+      }
 
       // convert string literal to RegExp
-      re = pattern(re)
+      var re = pattern(obj)
 
       // validate
       if (new RegExp(re).test("")) {
@@ -116,19 +139,18 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return new Lexer(regexp, groups)
+    return new Lexer(regexp, groups, keywords)
   }
 
 
-  var Lexer = function(re, groups, data) {
+  var Lexer = function(re, groups, keywords, data) {
     this.buffer = data || ''
-    this.groupCount = groups.length
     this.re = re
+    this.groups = groups
+    this.keywords = keywords
 
     // reset RegExp
     re.lastIndex = 0
-
-    this.groups = groups
   }
 
   Lexer.prototype.eat = hasSticky ? function(re) {
@@ -149,6 +171,7 @@
   Lexer.prototype.lex = function() {
     var re = this.re
     var buffer = this.buffer
+    var keywords = this.keywords
 
     if (re.lastIndex === buffer.length) {
       return // EOF
@@ -169,17 +192,23 @@
       return token
     }
 
-    var groups = this.groups
+    var value = match[0]
     var group
-    for (var i = 0; i < this.groupCount; i++) {
-      var value = match[i + 1]
-      if (value !== undefined) {
-        group = groups[i]
-        break
+    if (keywords[value]) {
+      group = keywords[value]
+
+    } else {
+      var groups = this.groups
+      for (var i = 0; i < groups.length; i++) {
+        value = match[i + 1]
+        if (value !== undefined) {
+          group = groups[i]
+          break
+        }
       }
+      // assert(i < groupCount)
+      // TODO is `buffer` being leaked here?
     }
-    // assert(i < groupCount)
-    // TODO is `buffer` being leaked here?
 
     return {
       name: group,
@@ -229,7 +258,7 @@
 
   Lexer.prototype.clone = function(input) {
     var re = new RegExp(this.re.source, this.re.flags)
-    return new Lexer(re, this.groups, input)
+    return new Lexer(re, this.groups, this.keywords, input)
   }
 
 

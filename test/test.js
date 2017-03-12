@@ -22,6 +22,22 @@ describe('moo compiler', () => {
     expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
   })
 
+  test("deals with keyword literals", () => {
+    var keywordFirst = compile([
+      ['keyword',     ['class']],
+      ['identifier',  /[a-zA-Z]+/],
+    ])
+    expect(keywordFirst.reset('class').lexAll().map(t => t.name)).toEqual(['keyword'])
+    expect(keywordFirst.reset('className').lexAll().map(t => t.name)).toEqual(['identifier'])
+
+    var identifierFirst = compile([
+      ['identifier',  /[a-zA-Z]+/],
+      ['keyword',     ['class']],
+    ])
+    expect(identifierFirst.reset('class').lexAll().map(t => t.name)).toEqual(['keyword'])
+    expect(identifierFirst.reset('className').lexAll().map(t => t.name)).toEqual(['identifier'])
+  })
+
 })
 
 describe('moo lexer', () => {
