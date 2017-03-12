@@ -96,9 +96,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return function(input) {
-      return new Lexer(regexp, groups, input)
-    }
+    return new Lexer(regexp, groups)
   }
 
 
@@ -220,10 +218,7 @@
     // insert newline rule
     rules.splice(0, 0, ['NL', '\n'])
 
-    var factory = compile(rules)
-    return function(input) {
-      return new LineLexer(factory(input))
-    }
+    return new LineLexer(compile(rules))
   }
 
 
