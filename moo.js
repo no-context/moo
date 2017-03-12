@@ -185,12 +185,18 @@
     return this.re.lastIndex
   }
 
-  Lexer.prototype.seek = function(index) {
+  Lexer.prototype.rewind = function(index) {
+    if (index > this.buffer.length) {
+      throw new Error("Can't seek forwards")
+    }
     this.re.lastIndex = index
+    this.buffer = this.buffer.slice(0, index)
+    return this
   }
 
   Lexer.prototype.feed = function(data) {
     this.buffer += data
+    return this
   }
 
   Lexer.prototype.remaining = function() {
@@ -251,12 +257,19 @@
 
   LineLexer.prototype.lexAll = Lexer.prototype.lexAll
 
-  LineLexer.prototype.seekLine = function(lineno) {
+  LineLexer.prototype.feed = function(data) {
+    this.lexer.feed(data)
+    return this
+  }
+
+  LineLexer.prototype.rewindLine = function(lineno) {
     if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
-    this.lexer.seek(this.lineIndexes[lineno])
+    this.lexer.rewind(this.lineIndexes[lineno])
+    // TODO slice buffer
     this.lineIndexes.splice(lineno)
     this.lineno = lineno
     this.col = 0
+    return this
   }
 
   LineLexer.prototype.clone = function(input) {

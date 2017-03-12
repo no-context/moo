@@ -126,7 +126,6 @@ module.exports = {
             "error",
             "functions"
         ],
-        "no-invalid-this": "error",
         "no-iterator": "error",
         "no-label-var": "error",
         "no-labels": "error",

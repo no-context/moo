@@ -105,14 +105,27 @@ describe('moo lexer', () => {
     expect(tokens.length).toBe(14513)
   })
 
-  test('can seek', () => {
+  test('can rewind', () => {
     let lexer = simpleFactory()
     lexer.feed('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
     expect(lexer.lex().toString()).toBe(' ')
     expect(lexer.lex().toString()).toBe('are')
-    lexer.seek(6)
-    expect(lexer.lex().toString()).toBe('are')
+    lexer.rewind(6)
+    expect(lexer.lex()).toBe(undefined)
+    lexer.feed('lik the bred')
+    expect(lexer.lex().toString()).toBe('lik')
+  })
+
+  test("won't rewind forward", () => {
+    let lexer = simpleFactory()
+    lexer.feed('ducks are 123 bad')
+    expect(() => lexer.rewind(0)).not.toThrow()
+    expect(() => lexer.rewind(1)).toThrow()
+    lexer.feed('ducks are 123 bad')
+    expect(lexer.lex().toString()).toBe('ducks')
+    lexer.rewind(0)
+    expect(() => lexer.rewind(1)).toThrow()
   })
 
   // TODO test clone()
@@ -138,26 +151,31 @@ describe('moo line lexer', () => {
     expect(() => moo.lines([['multiline', /q[^]*/]])).not.toThrow()
   })
 
-  test('can rewind', () => {
+  test('can rewind to line', () => {
     var lexer = factory('steak\nsauce\nparty')
     expect(lexer.lex().value).toBe('steak')
     expect(lexer.lex().value).toBe('\n')
     expect(lexer.lex().value).toBe('sauce')
-    lexer.seekLine(2)
-    expect(lexer.lex().value).toBe('sauce')
-    lexer.seekLine(1)
-    expect(lexer.lex().value).toBe('steak')
+    lexer.rewindLine(2)
+    expect(lexer.lexer.buffer).toBe('steak\n')
+    expect(lexer.lex()).toBe(undefined)
+    lexer.feed('and\nchips')
+    expect(lexer.lexer.buffer).toBe('steak\nand\nchips')
+    expect(lexer.lex().value).toBe('and')
+    lexer.rewindLine(1)
+    expect(lexer.lexer.buffer).toBe('')
+    expect(lexer.lex()).toBe(undefined)
   })
 
   test("won't rewind forward", () => {
     var lexer = factory('steak\nsauce\nparty')
-    expect(() => lexer.seekLine(0)).not.toThrow()
-    expect(() => lexer.seekLine(1)).toThrow()
+    expect(() => lexer.rewindLine(0)).not.toThrow()
+    expect(() => lexer.rewindLine(1)).toThrow()
     expect(lexer.lex().value).toBe('steak')
     expect(lexer.lex().value).toBe('\n')
     expect(lexer.lex().value).toBe('sauce')
-    lexer.seekLine(0)
-    expect(() => lexer.seekLine(1)).toThrow()
+    lexer.rewindLine(0)
+    expect(() => lexer.rewindLine(1)).toThrow()
   })
 
   // TODO test clone()
