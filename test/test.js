@@ -39,6 +39,16 @@ describe('moo lexer', () => {
     expect(lexer.lex().toString()).toBe('are')
   })
 
+  test('accepts rules in an object', () => {
+    const lexer = compile({
+      word: /[a-z]+/,
+      number: /[0-9]+/,
+      space: / +/,
+    })('ducks are 123 bad')
+    expect(lexer.lex()).toMatchObject({name: 'word', value: 'ducks'})
+    expect(lexer.lex()).toMatchObject({name: 'space', value: ' '})
+  })
+
   test('no capture groups', () => {
     let factory = compile([
         ['a', /a+/],
