@@ -30,7 +30,7 @@ Then you can start roasting your very own lexer/tokenizer:
 ```js
     const moo = require('moo')
 
-    let factory = moo([
+    let lexer = moo.compile([
       ['WS',      /[ \t]+/],
       ['comment', /\/\/.*?$/],
       ['number',  /(0|[1-9][0-9]*)/],
@@ -45,7 +45,7 @@ Then you can start roasting your very own lexer/tokenizer:
 And now throw some text at it:
 
 ```js
-    let lexer = factory('while (10) cows\nmoo')
+    lexer.reset('while (10) cows\nmoo')
     lexer.lex() // -> { name: 'keyword', value: 'while' }
     lexer.lex() // -> { name: 'WS', value: ' ' }
     lexer.lex() // -> { name: 'lparen', value: '(' }
@@ -56,9 +56,10 @@ And now throw some text at it:
 You can also feed it chunks of input at a time:
 
 ```j
-    let lexer = factory()
+    lexer.reset()
     lexer.feed('while')
     lexer.feed(' 10 cows\n')
+    lexer.lex() // -> { name: 'keyword', value: 'while' }
     // ...
 ```
 
@@ -75,7 +76,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 * You often want to use **non-greedy quantifiers**: e.g. `*?` instead of `*`. Otherwise your tokens will be longer than you expect:
 
 ```js
-    let factory = moo([
+    let lexer = moo.compile([
       ['string', /".*"/],   // greedy quantifier *
       // ...
     ])
@@ -86,15 +87,15 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 * The **order of your rules** matters. Earlier ones will take precedence.
 
 ```js
-    moo([
+    moo.compile([
         ['word',  /[a-z]+/],
         ['foo',   'foo'],
-    ])('foo').lexAll() // -> [{ name: 'word', value: 'foo' }]
+    ]).reset('foo').lexAll() // -> [{ name: 'word', value: 'foo' }]
 
-    moo([
+    moo.compile([
         ['foo',   'foo'],
         ['word',  /[a-z]+/],
-    ])('foo').lexAll() // -> [{ name: 'foo', value: 'foo' }]
+    ]).reset('foo').lexAll() // -> [{ name: 'foo', value: 'foo' }]
 ```
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, `/./` doesn't include newlines. Use `[^]` instead if you want this.
