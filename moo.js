@@ -98,9 +98,11 @@
         for (var j = 0; j < words.length; j++) {
           var word = words[j]
           for (var k = 0; k < rules.length; k++) {
+            var otherGroup = rules[k][0]
             var other = rules[k][1]
             if (other.constructor === RegExp && other.test(word)) {
-              keywords[word] = name
+              keywords[otherGroup] = keywords[otherGroup] || Object.create(null)
+              keywords[otherGroup][word] = name
               break
             }
           }
@@ -192,22 +194,23 @@
       return token
     }
 
-    var value = match[0]
     var group
-    if (keywords[value]) {
-      group = keywords[value]
-
-    } else {
-      var groups = this.groups
-      for (var i = 0; i < groups.length; i++) {
-        value = match[i + 1]
-        if (value !== undefined) {
-          group = groups[i]
-          break
-        }
+    var groups = this.groups
+    for (var i = 0; i < groups.length; i++) {
+      var value = match[i + 1]
+      if (value !== undefined) {
+        group = groups[i]
+        // TODO is `buffer` being leaked here?
+        break
       }
-      // assert(i < groupCount)
-      // TODO is `buffer` being leaked here?
+    }
+    // assert(i < groupCount)
+
+    // check identifier isn't really a keyword
+    // we only do this if the group is known to contain keywords,
+    // to avoid a performance hit
+    if (group in keywords) {
+      group = keywords[group][value] || group
     }
 
     return {
