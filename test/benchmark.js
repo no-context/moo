@@ -8,7 +8,7 @@ let suite = new Benchmark.Suite()
 
 
 const python = require('./python')
-let pythonLexer = moo(python.rules)
+let pythonLexer = moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 

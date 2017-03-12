@@ -283,7 +283,8 @@
   }
 
 
-  var moo = compile
+  var moo = {} // TODO: what should moo() do?
+  moo.compile = compile
   moo.lines = compileLines
   return moo
 

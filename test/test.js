@@ -1,7 +1,8 @@
 
 const fs = require('fs')
 
-const moo = compile = require('../moo')
+const moo = require('../moo')
+const compile = moo.compile
 const python = require('./python')
 
 

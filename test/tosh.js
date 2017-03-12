@@ -1,7 +1,7 @@
 
 const moo = require('../moo')
 
-let toshLexer = moo([
+let toshLexer = moo.compile([
   ['WS',      /[ \t]+/],
   ['ellips',  /\.{3}/],
   ['comment', /\/{2}(.*)$/],

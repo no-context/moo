@@ -55,7 +55,7 @@ var TOKENS = [
 
 ];
 
-var pythonLexer = moo(TOKENS);
+var pythonLexer = moo.compile(TOKENS);
 
 var tokenize = function(input, emit) {
   var lexer = pythonLexer.clone().feed(input);
