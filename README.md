@@ -116,6 +116,43 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 * Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
 
 
+Keywords
+--------
+
+Moo makes it convenient to define literals and keywords:
+
+```js
+      // ...
+      ['lparen',  '('],
+      ['rparen',  ')'],
+      ['keyword', ['while', 'if', 'else', 'moo', 'cows']],
+      // ...
+```
+
+It'll automatically compile them into regular expressions, escaping them where necessary.
+
+**Important!**: moo also special-cases keywords to ensure the **longest match** principle applies, even in edge cases.
+
+Imagine trying to parse the input `className` with the following rules:
+
+      ['keyword',     ['class']],
+      ['identifier',  /[a-zA-Z]+/],
+
+You'll get _two_ tokens — `['class', 'Name']` -- which is _not_ what you want! If you swap the order of the rules, you'll fix this example; but now you'll lex `class` wrong (as an `identifier`).
+
+Moo solves this by checking to see if any of your literals can be matched by one of your other rules; if so, it doesn't lex the keyword separately, but instead handles it at a later stage (by checking identifiers against a list of keywords). So you should always do this:
+
+```js
+    ['while', 'if', 'else', 'moo', 'cows']
+```
+
+and **not** this:
+
+```js
+    /while|if|else|moo|cows/
+```
+
+
 States
 ------
 
