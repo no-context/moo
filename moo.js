@@ -44,9 +44,6 @@
       if (obj.global) { throw new Error('RegExp /g flag is implied') }
       if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
       if (obj.multiline) { throw new Error('RegExp /m flag is implied') }
-      if (/^\(*\^/.test(obj.source)) {
-        throw new Error('RegExp ^ has no effect')
-      }
       return obj.source
 
     } else if (obj && obj.constructor === Array) {

@@ -15,12 +15,6 @@ describe('moo compiler', () => {
     expect(() => compile([['word', /foo/m]])).toThrow()
   })
 
-  test("tries to warn for leading ^", () => {
-    expect(() => compile([['word', /^BOL/]])).toThrow()
-    expect(() => compile([['word', /(^BOL)/]])).toThrow()
-    expect(() => compile([['word', /[^]/]])).not.toThrow()
-  })
-
   test("handles newline literals", () => {
     // it seems \n doesn't need to be escaped!
     expect(compile([['NL', '\n']])('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
@@ -62,7 +56,9 @@ describe('moo lexer', () => {
       ['file', /([^]+)/],
     ])('I like to moo\na lot')
     expect(lexer.lex().value).toBe('I like to moo\na lot')
+  })
 
+  test('match EOL $', () => {
     var lexer = compile([
       ['x-eol', /x$/],
       ['x', /x/],
@@ -78,6 +74,25 @@ describe('moo lexer', () => {
       ['NL', '\n'],
       ['other', 'yz'],
       ['x-eol', 'x'],
+    ])
+  })
+
+  test('match BOL ^', () => {
+    var lexer = compile([
+      ['x-bol', /^x/],
+      ['x', /x/],
+      ['WS', / +/],
+      ['NL', /\n/],
+      ['other', /[^ \n]+/],
+    ])('x \n x\nx yz')
+    let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
+    expect(tokens.map(t => [t.name, t.value])).toEqual([
+      ['x-bol', 'x'],
+      ['NL', '\n'],
+      ['x', 'x'],
+      ['NL', '\n'],
+      ['x-bol', 'x'],
+      ['other', 'yz'],
     ])
   })
 
