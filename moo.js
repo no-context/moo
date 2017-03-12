@@ -203,6 +203,12 @@
     return this
   }
 
+  Lexer.prototype.reset = function(data) {
+    this.rewind(0)
+    if (data) { this.feed(data) }
+    return this
+  }
+
   Lexer.prototype.feed = function(data) {
     this.buffer += data
     return this
@@ -262,6 +268,12 @@
   }
 
   LineLexer.prototype.lexAll = Lexer.prototype.lexAll
+
+  LineLexer.prototype.reset = function(data) {
+    this.rewindLine(1)
+    if (data) { this.feed(data) }
+    return this
+  }
 
   LineLexer.prototype.feed = function(data) {
     this.lexer.feed(data)

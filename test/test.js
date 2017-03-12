@@ -18,8 +18,8 @@ describe('moo compiler', () => {
 
   test("handles newline literals", () => {
     // it seems \n doesn't need to be escaped!
-    expect(compile([['NL', '\n']]).feed('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
-    expect(compile([['NL', /\n/]]).feed('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile([['NL', '\n']]).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile([['NL', /\n/]]).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
   })
 
 })
@@ -33,8 +33,7 @@ describe('moo lexer', () => {
   ])
 
   test('ducks', () => {
-    let lexer = simpleLexer.clone()
-    lexer.feed('ducks are 123 bad')
+    let lexer = simpleLexer.reset('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
     expect(lexer.lex().toString()).toBe(' ')
     expect(lexer.lex().toString()).toBe('are')
@@ -46,7 +45,7 @@ describe('moo lexer', () => {
       number: /[0-9]+/,
       space: / +/,
     })
-    lexer.feed('ducks are 123 bad')
+    lexer.reset('ducks are 123 bad')
     expect(lexer.lex()).toMatchObject({name: 'word', value: 'ducks'})
     expect(lexer.lex()).toMatchObject({name: 'space', value: ' '})
   })
@@ -56,7 +55,7 @@ describe('moo lexer', () => {
         ['a', /a+/],
         ['b', /b|c/],
     ])
-    lexer.feed('aaaaabcbcbcbc')
+    lexer.reset('aaaaabcbcbcbc')
     expect(lexer.lex().value).toEqual('aaaaa')
     expect(lexer.lex().value).toEqual('b')
     expect(lexer.lex().value).toEqual('c')
@@ -66,7 +65,7 @@ describe('moo lexer', () => {
   test('multiline', () => {
     var lexer = compile([
       ['file', /([^]+)/],
-    ]).feed('I like to moo\na lot')
+    ]).reset('I like to moo\na lot')
     expect(lexer.lex().value).toBe('I like to moo\na lot')
   })
 
@@ -77,7 +76,7 @@ describe('moo lexer', () => {
       ['WS', / +/],
       ['NL', /\n/],
       ['other', /[^ \n]+/],
-    ]).feed('x \n x\n yz x')
+    ]).reset('x \n x\n yz x')
     let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
     expect(tokens.map(t => [t.name, t.value])).toEqual([
       ['x', 'x'],
@@ -96,7 +95,7 @@ describe('moo lexer', () => {
       ['WS', / +/],
       ['NL', /\n/],
       ['other', /[^ \n]+/],
-    ]).feed('x \n x\nx yz')
+    ]).reset('x \n x\nx yz')
     let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
     expect(tokens.map(t => [t.name, t.value])).toEqual([
       ['x-bol', 'x'],
@@ -113,13 +112,12 @@ describe('moo lexer', () => {
 
   test('kurt tokens', () => {
     let pythonLexer = compile(python.rules)
-    let tokens = pythonLexer.feed(fs.readFileSync('test/kurt.py', 'utf-8')).lexAll()
+    let tokens = pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')).lexAll()
     expect(tokens.length).toBe(14513)
   })
 
   test('can rewind', () => {
-    let lexer = simpleLexer.clone()
-    lexer.feed('ducks are 123 bad')
+    let lexer = simpleLexer.reset('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
     expect(lexer.lex().toString()).toBe(' ')
     expect(lexer.lex().toString()).toBe('are')
@@ -130,8 +128,7 @@ describe('moo lexer', () => {
   })
 
   test("won't rewind forward", () => {
-    let lexer = simpleLexer.clone()
-    lexer.feed('ducks are 123 bad')
+    let lexer = simpleLexer.reset('ducks are 123 bad')
     expect(() => lexer.rewind(0)).not.toThrow()
     expect(() => lexer.rewind(1)).toThrow()
     lexer.feed('ducks are 123 bad')
@@ -209,7 +206,7 @@ describe('python tokenizer', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     let pythonLexer = compile(python.rules)
-    expect(pythonLexer.feed(example).lexAll().map(t => t.value)).toEqual(
+    expect(pythonLexer.reset(example).lexAll().map(t => t.value)).toEqual(
       ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
     )
   })
