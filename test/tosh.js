@@ -1,7 +1,7 @@
 
 const moo = require('../moo')
 
-let factory = moo([
+let toshLexer = moo([
   ['WS',      /[ \t]+/],
   ['ellips',  /\.{3}/],
   ['comment', /\/{2}(.*)$/],
@@ -27,7 +27,7 @@ let factory = moo([
 ])
 
 function tokenize(source) {
-  let lexer = factory(source + '\n')
+  let lexer = toshLexer.clone().feed(source + '\n')
   return lexer.lexAll().filter(x => x.name !== 'WS').map(x => [x.name, x.value])
 }
 

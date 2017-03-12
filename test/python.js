@@ -55,10 +55,10 @@ var TOKENS = [
 
 ];
 
-var factory = moo(TOKENS);
+var pythonLexer = moo(TOKENS);
 
 var tokenize = function(input, emit) {
-  var lexer = factory(input);
+  var lexer = pythonLexer.clone().feed(input);
   var lex = function() { return lexer.lex(); }
 
   var tok = lex();
