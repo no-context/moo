@@ -131,29 +131,6 @@ describe('moo lexer', () => {
     expect(tokens.length).toBe(14513)
   })
 
-  /*
-  test('can rewind', () => {
-    let lexer = simpleLexer.reset('ducks are 123 bad')
-    expect(lexer.lex().toString()).toBe('ducks')
-    expect(lexer.lex().toString()).toBe(' ')
-    expect(lexer.lex().toString()).toBe('are')
-    lexer.rewind(6)
-    expect(lexer.lex()).toBe(undefined)
-    lexer.feed('lik the bred')
-    expect(lexer.lex().toString()).toBe('lik')
-  })
-
-  test("won't rewind forward", () => {
-    let lexer = simpleLexer.reset('ducks are 123 bad')
-    expect(() => lexer.rewind(0)).not.toThrow()
-    expect(() => lexer.rewind(1)).toThrow()
-    lexer.feed('ducks are 123 bad')
-    expect(lexer.lex().toString()).toBe('ducks')
-    lexer.rewind(0)
-    expect(() => lexer.rewind(1)).toThrow()
-  })
-  */
-
   // TODO test clone()
 })
 
@@ -204,43 +181,6 @@ describe('line numbers', () => {
     lexer.reset('cheesecake')
     expect(lexer.buffer).toBe('cheesecake')
   })
-
-  /*
-  test('can rewind to line', () => {
-    var lexer = testLexer
-    lexer.reset('steak\nsauce\nparty')
-    expect(lexer.lex().value).toBe('steak')
-    expect(lexer.lex().value).toBe('\n')
-    expect(lexer.lex().value).toBe('sauce')
-    lexer.rewindLine(2)
-    expect(lexer.lexer.buffer).toBe('steak\n')
-    expect(lexer.lex()).toBe(undefined)
-    lexer.feed('and\nchips')
-    expect(lexer.lexer.buffer).toBe('steak\nand\nchips')
-    expect(lexer.lex().value).toBe('and')
-    lexer.rewindLine(1)
-    expect(lexer.lexer.buffer).toBe('')
-    expect(lexer.lex()).toBe(undefined)
-  })
-
-  test("can't rewind before line 1", () => {
-    var lexer = testLexer
-    lexer.reset('cow')
-    expect(() => lexer.rewindLine(0)).toThrow()
-  })
-
-  test("won't rewind forward", () => {
-    var lexer = testLexer.reset('steak\nsauce\nparty')
-    expect(() => lexer.rewindLine(1)).not.toThrow()
-    expect(() => lexer.rewindLine(2)).toThrow()
-    lexer.reset('steak\nsauce\nparty')
-    expect(lexer.lex().value).toBe('steak')
-    expect(lexer.lex().value).toBe('\n')
-    expect(lexer.lex().value).toBe('sauce')
-    lexer.rewindLine(1)
-    expect(() => lexer.rewindLine(2)).toThrow()
-  })
-  */
 
   // TODO test clone()
 })
