@@ -234,6 +234,8 @@
 
 
   function compileLines(rules) {
+    if (!Array.isArray(rules)) rules = objectToRules(rules)
+
     // try and detect rules matching newlines
     for (var i = 0; i < rules.length; i++) {
       var pat = rules[i][1]

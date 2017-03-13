@@ -9,34 +9,34 @@ const python = require('./python')
 describe('moo compiler', () => {
 
   test("warns for /g, /y, /i, /m", () => {
-    expect(() => compile([['word', /foo/]])).not.toThrow()
-    expect(() => compile([['word', /foo/g]])).toThrow()
-    expect(() => compile([['word', /foo/i]])).toThrow()
-    expect(() => compile([['word', /foo/y]])).toThrow()
-    expect(() => compile([['word', /foo/m]])).toThrow()
+    expect(() => compile({ word: /foo/ })).not.toThrow()
+    expect(() => compile({ word: /foo/g })).toThrow()
+    expect(() => compile({ word: /foo/i })).toThrow()
+    expect(() => compile({ word: /foo/y })).toThrow()
+    expect(() => compile({ word: /foo/m })).toThrow()
   })
 
   test("handles newline literals", () => {
     // it seems \n doesn't need to be escaped!
-    expect(compile([['NL', '\n']]).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
-    expect(compile([['NL', /\n/]]).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile({ NL: '\n' }).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
   })
 
 })
 
 describe('moo lexer', () => {
 
-  var simpleLexer = compile([
-    ['word', /[a-z]+/],
-    ['number', /[0-9]+/],
-    [null, / +/],
-  ])
+  var simpleLexer = compile({
+    word: /[a-z]+/,
+    number: /[0-9]+/,
+    ws: / +/,
+  })
 
-  test('ducks', () => {
-    let lexer = simpleLexer.reset('ducks are 123 bad')
-    expect(lexer.lex().toString()).toBe('ducks')
-    expect(lexer.lex().toString()).toBe(' ')
-    expect(lexer.lex().toString()).toBe('are')
+  test('vaguely works', () => {
+    simpleLexer.reset('ducks are 123 bad')
+    expect(simpleLexer.lex()).toMatchObject({ name: 'word', value: 'ducks' })
+    expect(simpleLexer.lex()).toMatchObject({ name: 'ws', value: ' ' })
+    expect(simpleLexer.lex()).toMatchObject({ name: 'word', value: 'are' })
   })
 
   test('accepts rules in an object', () => {
@@ -66,10 +66,10 @@ describe('moo lexer', () => {
   })
 
   test('no capture groups', () => {
-    let lexer = compile([
-        ['a', /a+/],
-        ['b', /b|c/],
-    ])
+    let lexer = compile({
+      a: /a+/,
+      b: /b|c/,
+    })
     lexer.reset('aaaaabcbcbcbc')
     expect(lexer.lex().value).toEqual('aaaaa')
     expect(lexer.lex().value).toEqual('b')
@@ -78,46 +78,46 @@ describe('moo lexer', () => {
   })
 
   test('multiline', () => {
-    var lexer = compile([
-      ['file', /([^]+)/],
-    ]).reset('I like to moo\na lot')
+    var lexer = compile({
+      file: /([^]+)/,
+    }).reset('I like to moo\na lot')
     expect(lexer.lex().value).toBe('I like to moo\na lot')
   })
 
   test('match EOL $', () => {
-    var lexer = compile([
-      ['x-eol', /x$/],
-      ['x', /x/],
-      ['WS', / +/],
-      ['NL', /\n/],
-      ['other', /[^ \n]+/],
-    ]).reset('x \n x\n yz x')
+    var lexer = compile({
+      x_eol: /x$/,
+      x: /x/,
+      WS: / +/,
+      NL: /\n/,
+      other: /[^ \n]+/,
+    }).reset('x \n x\n yz x')
     let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
     expect(tokens.map(t => [t.name, t.value])).toEqual([
       ['x', 'x'],
       ['NL', '\n'],
-      ['x-eol', 'x'],
+      ['x_eol', 'x'],
       ['NL', '\n'],
       ['other', 'yz'],
-      ['x-eol', 'x'],
+      ['x_eol', 'x'],
     ])
   })
 
   test('match BOL ^', () => {
-    var lexer = compile([
-      ['x-bol', /^x/],
-      ['x', /x/],
-      ['WS', / +/],
-      ['NL', /\n/],
-      ['other', /[^ \n]+/],
-    ]).reset('x \n x\nx yz')
+    var lexer = compile({
+      x_bol: /^x/,
+      x: /x/,
+      WS: / +/,
+      NL: /\n/,
+      other: /[^ \n]+/,
+    }).reset('x \n x\nx yz')
     let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
     expect(tokens.map(t => [t.name, t.value])).toEqual([
-      ['x-bol', 'x'],
+      ['x_bol', 'x'],
       ['NL', '\n'],
       ['x', 'x'],
       ['NL', '\n'],
-      ['x-bol', 'x'],
+      ['x_bol', 'x'],
       ['other', 'yz'],
     ])
   })
@@ -158,13 +158,13 @@ describe('moo lexer', () => {
 
 describe('moo line lexer', () => {
 
-  var testLexer = moo.lines([
-    ['WS', / +/],
-    ['word', /[a-z]+/],
-  ])
+  var testLexer = moo.lines({
+    WS: / +/,
+    word: /[a-z]+/,
+  })
 
   test('lexes lines', () => {
-    var tokens = testLexer.clone().feed('steak\nsauce\nparty').lexAll()
+    var tokens = testLexer.reset('steak\nsauce\nparty').lexAll()
     expect(tokens.map(t => t.value)).toEqual(['steak', '\n', 'sauce', '\n', 'party'])
     expect(tokens.map(t => t.lineno)).toEqual([1, 1, 2, 2, 3])
     expect(tokens.map(t => t.col)).toEqual([0, 5, 0, 5, 0])
@@ -176,10 +176,10 @@ describe('moo line lexer', () => {
   })
 
   test('resets', () => {
-    var lexer = moo.lines([
-      ['WS', / +/],
-      ['word', /[a-z]+/],
-    ])
+    var lexer = moo.lines({
+      WS: / +/,
+      word: /[a-z]+/,
+    })
     lexer.reset('potatoes')
     expect(lexer.lineIndexes).toEqual([-1, 0])
     expect(lexer.lexer.buffer).toBe('potatoes')
@@ -189,7 +189,8 @@ describe('moo line lexer', () => {
   })
 
   test('can rewind to line', () => {
-    var lexer = testLexer.clone().feed('steak\nsauce\nparty')
+    var lexer = testLexer
+    lexer.reset('steak\nsauce\nparty')
     expect(lexer.lex().value).toBe('steak')
     expect(lexer.lex().value).toBe('\n')
     expect(lexer.lex().value).toBe('sauce')
@@ -205,7 +206,8 @@ describe('moo line lexer', () => {
   })
 
   test("can't rewind before line 1", () => {
-    var lexer = testLexer.reset('cow')
+    var lexer = testLexer
+    lexer.reset('cow')
     expect(() => lexer.rewindLine(0)).toThrow()
   })
 

@@ -46,7 +46,7 @@ suite.add('tosh', function() {
 
 /* moo! */
 suite.add('moo', function() {
-  pythonLexer.clone().feed(kurtFile).lexAll()
+  pythonLexer.reset(kurtFile).lexAll()
 })
 
 
