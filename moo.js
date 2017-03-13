@@ -86,27 +86,35 @@
     for (var i=0; i<rules.length; i++) {
       var rule = rules[i]
       var name = rule[0]
-      var re = rule[1]
+      var obj = rule[1]
 
-      // convert string literal to RegExp
-      re = pattern(re)
+      // get options
+      if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
+        obj = { match: obj }
+      }
+      var options = Object.assign({
+        name: name,
+        lineBreaks: false,
+      }, obj)
+      groups.push(options)
+
+      // convert to RegExp
+      var pat = pattern(obj.match)
 
       // validate
-      if (new RegExp(re).test("")) {
-        throw new Error("RegExp matches empty string: " + new RegExp(re))
+      var regexp = new RegExp(pat)
+      if (regexp.test("")) {
+        throw new Error("RegExp matches empty string: " + regexp)
       }
-
-      // store named group
-      var groupCount = reGroups(re)
+      var groupCount = reGroups(pat)
       if (groupCount > 1) {
-        throw new Error("RegExp has more than one capture group: " + re)
+        throw new Error("RegExp has more than one capture group: " + regexp)
       }
-      groups.push(name)
 
       // store regex
       var isCapture = !!groupCount
-      if (!isCapture) re = reCapture(re)
-      parts.push(re)
+      if (!isCapture) pat = reCapture(pat)
+      parts.push(pat)
     }
 
     var suffix = hasSticky ? '' : '|(?:)'
@@ -118,9 +126,17 @@
 
 
   var Lexer = function(re, groups) {
-    this.buffer = ''
     this.groups = groups
     this.re = re
+
+    this.buffer = ''
+    this.lineno = 1
+    this.col = 0
+  }
+
+  Lexer.error = {
+    name: 'ERRORTOKEN',
+    lineBreaks: true,
   }
 
   Lexer.prototype.eat = hasSticky ? function(re) {
@@ -152,38 +168,55 @@
 
     var start = re.lastIndex
     var match = this.eat(re)
+    var group, value, text
     if (match === null) {
-      var remaining = buffer.slice(start)
-      var token = {
-        type: 'ERRORTOKEN',
-        value: remaining,
-        size: remaining.length,
-        offset: start,
-        toString: tokenToString,
-      }
+      group = Lexer.error
+
+      // consume rest of buffer
+      text = value = buffer.slice(start)
       re.lastIndex = buffer.length
-      return token
-    }
 
-    var groups = this.groups
-    var group
-    for (var i = 0; i < groups.length; i++) {
-      var value = match[i + 1]
-      if (value !== undefined) {
-        group = groups[i]
-        break
+    } else {
+      text = match[0]
+      var groups = this.groups
+      for (var i = 0; i < groups.length; i++) {
+        var value = match[i + 1]
+        if (value !== undefined) {
+          group = groups[i]
+          break
+        }
       }
+      // assert(i < groupCount)
+      // TODO is `buffer` being leaked here?
     }
-    // assert(i < groupCount)
-    // TODO is `buffer` being leaked here?
 
-    return {
-      type: group,
-      value: value,
-      size: match[0].length,
-      offset: re.lastIndex,
-      toString: tokenToString,
+    // count line breaks
+    var lineBreaks = 0
+    if (group.lineBreaks) {
+      var re = /\n/g
+      var nl
+      while (re.exec(text)) { lineBreaks++; nl = re.lastIndex }
     }
+
+    var size = text.length
+    var token = {
+      type: group.name,
+      value: value,
+      toString: tokenToString,
+      offset: start,
+      size: size,
+      lineBreaks: lineBreaks,
+      lineno: this.lineno,
+      col: this.col,
+    }
+
+    this.lineno += lineBreaks
+    if (lineBreaks !== 0) {
+      this.col = size - nl
+    } else {
+      this.col += size
+    }
+    return token
   }
 
   Lexer.prototype.lexAll = function() {
@@ -199,18 +232,11 @@
     return this.re.lastIndex
   }
 
-  Lexer.prototype.rewind = function(index) {
-    if (index > this.buffer.length) {
-      throw new Error("Can't seek forwards")
-    }
-    this.re.lastIndex = index
-    this.buffer = this.buffer.slice(0, index)
-    return this
-  }
-
   Lexer.prototype.reset = function(data) {
-    this.rewind(0)
-    if (data) { this.feed(data) }
+    this.buffer = data || ''
+    this.re.lastIndex = 0
+    this.lineno = 1
+    this.col = 0
     return this
   }
 
@@ -229,83 +255,8 @@
   }
 
 
-  function compileLines(rules) {
-    if (!Array.isArray(rules)) rules = objectToRules(rules)
-
-    // try and detect rules matching newlines
-    for (var i = 0; i < rules.length; i++) {
-      var pat = rules[i][1]
-      if (pat instanceof RegExp && pat.test('\n')) {
-        throw new Error('RegExp matches newline: ' + pat)
-      }
-    }
-    // insert newline rule
-    rules.splice(0, 0, ['NL', '\n'])
-
-    return new LineLexer(compile(rules))
-  }
-
-
-  var LineLexer = function(lexer) {
-    this.lexer = lexer
-
-    this.lineIndexes = [-1, 0] // 1-based
-    this.lineno = 1
-    this.col = 0
-  }
-
-  LineLexer.prototype.lex = function() {
-    var tok = this.lexer.lex()
-    if (!tok) {
-      return tok
-    }
-    tok.lineno = this.lineno
-    tok.col = this.col
-
-    if (tok.type === 'NL') {
-      this.lineno++
-      this.col = 0
-      this.lineIndexes.push(this.lexer.index())
-    } else {
-      this.col += tok.size
-    }
-
-    // TODO handle error tokens
-    return tok
-  }
-
-  LineLexer.prototype.lexAll = Lexer.prototype.lexAll
-
-  LineLexer.prototype.reset = function(data) {
-    this.rewindLine(1)
-    if (data) { this.feed(data) }
-    return this
-  }
-
-  LineLexer.prototype.feed = function(data) {
-    this.lexer.feed(data)
-    return this
-  }
-
-  LineLexer.prototype.rewindLine = function(lineno) {
-    if (lineno < 1) { throw new Error("Line 0 is out-of-bounds") }
-    if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
-    this.lexer.rewind(this.lineIndexes[lineno])
-    // TODO slice buffer
-    this.lineIndexes.splice(lineno + 1)
-    this.lineno = lineno
-    this.col = 0
-    return this
-  }
-
-  LineLexer.prototype.clone = function(input) {
-    return new LineLexer(this.lexer.clone(input))
-  }
-
-
   var moo = {} // TODO: what should moo() do?
   moo.compile = compile
-  moo.lines = compileLines
   return moo
 
 }))

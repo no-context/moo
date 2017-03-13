@@ -16,11 +16,11 @@ describe('moo compiler', () => {
     expect(() => compile({ word: /foo/m })).toThrow()
   })
 
-  test("handles newline literals", () => {
-    // it seems \n doesn't need to be escaped!
-    expect(compile({ NL: '\n' }).reset('\n\n').lexAll().map(t => t.type)).toEqual(['NL', 'NL'])
-    expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.type)).toEqual(['NL', 'NL'])
-  })
+  // TODO warns for multiple capture groups
+
+  // TODO wraps zero capture groups
+
+  // TODO warns if no lineBreaks: true
 
 })
 
@@ -79,7 +79,7 @@ describe('moo lexer', () => {
 
   test('multiline', () => {
     var lexer = compile({
-      file: /([^]+)/,
+      file: { match: /([^]+)/, lineBreaks: true },
     }).reset('I like to moo\na lot')
     expect(lexer.lex().value).toBe('I like to moo\na lot')
   })
@@ -89,7 +89,7 @@ describe('moo lexer', () => {
       x_eol: /x$/,
       x: /x/,
       WS: / +/,
-      NL: /\n/,
+      NL: { match: /\n/, lineBreaks: true },
       other: /[^ \n]+/,
     }).reset('x \n x\n yz x')
     let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
@@ -108,7 +108,7 @@ describe('moo lexer', () => {
       x_bol: /^x/,
       x: /x/,
       WS: / +/,
-      NL: /\n/,
+      NL: { match: /\n/, lineBreaks: true },
       other: /[^ \n]+/,
     }).reset('x \n x\nx yz')
     let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
@@ -131,6 +131,7 @@ describe('moo lexer', () => {
     expect(tokens.length).toBe(14513)
   })
 
+  /*
   test('can rewind', () => {
     let lexer = simpleLexer.reset('ducks are 123 bad')
     expect(lexer.lex().toString()).toBe('ducks')
@@ -151,43 +152,55 @@ describe('moo lexer', () => {
     lexer.rewind(0)
     expect(() => lexer.rewind(1)).toThrow()
   })
+  */
 
   // TODO test clone()
 })
 
 
-describe('moo line lexer', () => {
+describe('line numbers', () => {
 
-  var testLexer = moo.lines({
+  var testLexer = compile({
     WS: / +/,
     word: /[a-z]+/,
+    NL: { match: /\n/, lineBreaks: true },
   })
 
-  test('lexes lines', () => {
-    var tokens = testLexer.reset('steak\nsauce\nparty').lexAll()
-    expect(tokens.map(t => t.value)).toEqual(['steak', '\n', 'sauce', '\n', 'party'])
+  test('counts line numbers', () => {
+    var tokens = testLexer.reset('cow\nfarm\ngrass').lexAll()
+    expect(tokens.map(t => t.value)).toEqual(['cow', '\n', 'farm', '\n', 'grass'])
+    expect(tokens.map(t => t.lineBreaks)).toEqual([0, 1, 0, 1, 0])
+    expect(tokens.map(t => t.size)).toEqual([3, 1, 4, 1, 5])
     expect(tokens.map(t => t.lineno)).toEqual([1, 1, 2, 2, 3])
-    expect(tokens.map(t => t.col)).toEqual([0, 5, 0, 5, 0])
+    expect(tokens.map(t => t.col)).toEqual([0, 3, 0, 4, 0])
   })
 
-  test('tries to warn if rule matches \\n', () => {
-    expect(() => moo.lines([['whitespace', /\s+/]])).toThrow()
-    expect(() => moo.lines([['multiline', /q[^]*/]])).not.toThrow()
+  test('tracks columns', () => {
+    var lexer = compile({
+      WS: / +/,
+      thing: { match: /[a-z\n]+/, lineBreaks: true },
+    })
+    lexer.reset('pie cheese\nsalad what\n ')
+    expect(lexer.lex()).toMatchObject({ value: 'pie', col: 0 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 3 })
+    expect(lexer.lex()).toMatchObject({ value: 'cheese\nsalad', col: 4, lineno: 1 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 5, lineno: 2 })
+    expect(lexer.lex()).toMatchObject({ value: 'what\n', col: 6, lineno: 2 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 0, lineno: 3 })
   })
 
   test('resets', () => {
-    var lexer = moo.lines({
+    var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
     })
     lexer.reset('potatoes')
-    expect(lexer.lineIndexes).toEqual([-1, 0])
-    expect(lexer.lexer.buffer).toBe('potatoes')
+    expect(lexer.buffer).toBe('potatoes')
     lexer.reset('cheesecake')
-    expect(lexer.lineIndexes).toEqual([-1, 0])
-    expect(lexer.lexer.buffer).toBe('cheesecake')
+    expect(lexer.buffer).toBe('cheesecake')
   })
 
+  /*
   test('can rewind to line', () => {
     var lexer = testLexer
     lexer.reset('steak\nsauce\nparty')
@@ -222,6 +235,7 @@ describe('moo line lexer', () => {
     lexer.rewindLine(1)
     expect(() => lexer.rewindLine(2)).toThrow()
   })
+  */
 
   // TODO test clone()
 })
