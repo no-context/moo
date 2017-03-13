@@ -83,19 +83,19 @@ var tokenize = function(input, emit) {
   while (tok) {
     var indent = 0;
     var indentation = '';
-    if (tok.name === 'Whitespace' && (!last || last.name === 'NEWLINE' || last.name === 'NL')) {
+    if (tok.type === 'Whitespace' && (!last || last.type === 'NEWLINE' || last.type === 'NL')) {
       indentation = tok.value;
       indent = indentation.length;
       next();
     }
-    if (tok.name === 'COMMENT') {
+    if (tok.type === 'COMMENT') {
       // TODO encoding declarations
       emit(tok);
       next();
-      // assert tok.name === 'NEWLINE' ?
+      // assert tok.type === 'NEWLINE' ?
     }
-    if (tok.name === 'NEWLINE') {
-      tok.name = 'NL';
+    if (tok.type === 'NEWLINE') {
+      tok.type = 'NL';
       emit(tok);
       next();
       continue;
@@ -104,20 +104,20 @@ var tokenize = function(input, emit) {
     var parenlev = 0;
     var isLine = true;
     while (tok && isLine) {
-      switch (tok.name) {
+      switch (tok.type) {
         case 'Whitespace':
           next();
           continue;
         case 'Continuation':
           next();
-          if (tok.name === 'NEWLINE') {
+          if (tok.type === 'NEWLINE') {
             next();
           }
           continue;
         case 'NEWLINE':
           if (parenlev) {
             // implicit line continuation
-            tok.name = 'NL';
+            tok.type = 'NL';
           } else {
             isLine = false;
           }
@@ -137,11 +137,11 @@ var tokenize = function(input, emit) {
             if (indent > currentIndent) {
               stack.push(currentIndent);
               currentIndent = indent;
-              emit({ name: 'INDENT', value: indentation });
+              emit({ type: 'INDENT', value: indentation });
             } else {
               while (indent < currentIndent) {
                 currentIndent = stack.pop();
-                emit({ name: 'DEDENT', value: '' });
+                emit({ type: 'DEDENT', value: '' });
               }
               if (indent > currentIndent) {
                 throw err('IndentationError', "unindent does not match any outer indentation level");
@@ -157,15 +157,15 @@ var tokenize = function(input, emit) {
 
   while (currentIndent) {
     currentIndent = stack.pop();
-    emit({ name: 'DEDENT', value: '' });
+    emit({ type: 'DEDENT', value: '' });
   }
-  emit({ name: 'ENDMARKER', value: '' });
+  emit({ type: 'ENDMARKER', value: '' });
 };
 
 function outputTokens(source) {
   var tokens = [];
   tokenize(source, function emit(token) {
-    tokens.push(token.name + ' ' + JSON.stringify(token.value));
+    tokens.push(token.type + ' ' + JSON.stringify(token.value));
   });
   return tokens;
 }

@@ -28,7 +28,7 @@ let toshLexer = moo.compile([
 
 function tokenize(source) {
   let lexer = toshLexer.clone().feed(source + '\n')
-  return lexer.lexAll().filter(x => x.name !== 'WS').map(x => [x.name, x.value])
+  return lexer.lexAll().filter(x => x.type !== 'WS').map(x => [x.type, x.value])
 }
 
 

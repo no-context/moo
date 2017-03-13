@@ -46,10 +46,10 @@ And now throw some text at it:
 
 ```js
     lexer.reset('while (10) cows\nmoo')
-    lexer.lex() // -> { name: 'keyword', value: 'while' }
-    lexer.lex() // -> { name: 'WS', value: ' ' }
-    lexer.lex() // -> { name: 'lparen', value: '(' }
-    lexer.lex() // -> { name: 'number', value: '10' }
+    lexer.lex() // -> { type: 'keyword', value: 'while' }
+    lexer.lex() // -> { type: 'WS', value: ' ' }
+    lexer.lex() // -> { type: 'lparen', value: '(' }
+    lexer.lex() // -> { type: 'number', value: '10' }
     // ...
 ```
 
@@ -59,7 +59,7 @@ You can also feed it chunks of input at a time:
     lexer.reset()
     lexer.feed('while')
     lexer.feed(' 10 cows\n')
-    lexer.lex() // -> { name: 'keyword', value: 'while' }
+    lexer.lex() // -> { type: 'keyword', value: 'while' }
     // ...
 ```
 
@@ -81,7 +81,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
       // ...
     ])
     // ...
-    lexer.lex() // -> { name: 'string', value: '"foo" "bar"' }
+    lexer.lex() // -> { type: 'string', value: '"foo" "bar"' }
 ```
 
 * The **order of your rules** matters. Earlier ones will take precedence.
@@ -90,12 +90,12 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     moo.compile([
         ['word',  /[a-z]+/],
         ['foo',   'foo'],
-    ]).reset('foo').lexAll() // -> [{ name: 'word', value: 'foo' }]
+    ]).reset('foo').lexAll() // -> [{ type: 'word', value: 'foo' }]
 
     moo.compile([
         ['foo',   'foo'],
         ['word',  /[a-z]+/],
-    ]).reset('foo').lexAll() // -> [{ name: 'foo', value: 'foo' }]
+    ]).reset('foo').lexAll() // -> [{ type: 'foo', value: 'foo' }]
 ```
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, `/./` doesn't include newlines. Use `[^]` instead if you want this.

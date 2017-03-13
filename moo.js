@@ -67,10 +67,6 @@
   }
 
 
-  function tokenToString() {
-    return this.value || this.name
-  }
-
 
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
@@ -141,6 +137,10 @@
   }
   // TODO: try instead the |(?:) trick?
 
+  function tokenToString() {
+    return this.value || this.name
+  }
+
   Lexer.prototype.lex = function() {
     var re = this.re
     var buffer = this.buffer
@@ -154,7 +154,7 @@
     if (match === null) {
       var remaining = buffer.slice(start)
       var token = {
-        name: 'ERRORTOKEN',
+        type: 'ERRORTOKEN',
         value: remaining,
         size: remaining.length,
         offset: start,
@@ -177,7 +177,7 @@
     // TODO is `buffer` being leaked here?
 
     return {
-      name: group,
+      type: group,
       value: value,
       size: match[0].length,
       offset: re.lastIndex,
@@ -261,7 +261,7 @@
     tok.lineno = this.lineno
     tok.col = this.col
 
-    if (tok.name === 'NL') {
+    if (tok.type === 'NL') {
       this.lineno++
       this.col = 0
       this.lineIndexes.push(this.lexer.index())

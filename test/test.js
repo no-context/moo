@@ -18,8 +18,8 @@ describe('moo compiler', () => {
 
   test("handles newline literals", () => {
     // it seems \n doesn't need to be escaped!
-    expect(compile({ NL: '\n' }).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
-    expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.name)).toEqual(['NL', 'NL'])
+    expect(compile({ NL: '\n' }).reset('\n\n').lexAll().map(t => t.type)).toEqual(['NL', 'NL'])
+    expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.type)).toEqual(['NL', 'NL'])
   })
 
 })
@@ -34,9 +34,9 @@ describe('moo lexer', () => {
 
   test('vaguely works', () => {
     simpleLexer.reset('ducks are 123 bad')
-    expect(simpleLexer.lex()).toMatchObject({ name: 'word', value: 'ducks' })
-    expect(simpleLexer.lex()).toMatchObject({ name: 'ws', value: ' ' })
-    expect(simpleLexer.lex()).toMatchObject({ name: 'word', value: 'are' })
+    expect(simpleLexer.lex()).toMatchObject({ type: 'word', value: 'ducks' })
+    expect(simpleLexer.lex()).toMatchObject({ type: 'ws', value: ' ' })
+    expect(simpleLexer.lex()).toMatchObject({ type: 'word', value: 'are' })
   })
 
   test('accepts rules in an object', () => {
@@ -46,8 +46,8 @@ describe('moo lexer', () => {
       space: / +/,
     })
     lexer.reset('ducks are 123 bad')
-    expect(lexer.lex()).toMatchObject({name: 'word', value: 'ducks'})
-    expect(lexer.lex()).toMatchObject({name: 'space', value: ' '})
+    expect(lexer.lex()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.lex()).toMatchObject({type: 'space', value: ' '})
   })
 
   test('accepts a list of regexps', () => {
@@ -59,10 +59,10 @@ describe('moo lexer', () => {
       space: / +/,
     })
     lexer.reset('12.04 123 3.14')
-    var tokens = lexer.lexAll().filter(t => t.name !== 'space')
-    expect(tokens.shift()).toMatchObject({name: 'number', value: '12.04'})
-    expect(tokens.shift()).toMatchObject({name: 'number', value: '123'})
-    expect(tokens.shift()).toMatchObject({name: 'number', value: '3.14'})
+    var tokens = lexer.lexAll().filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '12.04'})
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '123'})
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '3.14'})
   })
 
   test('no capture groups', () => {
@@ -92,8 +92,8 @@ describe('moo lexer', () => {
       NL: /\n/,
       other: /[^ \n]+/,
     }).reset('x \n x\n yz x')
-    let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
-    expect(tokens.map(t => [t.name, t.value])).toEqual([
+    let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
+    expect(tokens.map(t => [t.type, t.value])).toEqual([
       ['x', 'x'],
       ['NL', '\n'],
       ['x_eol', 'x'],
@@ -111,8 +111,8 @@ describe('moo lexer', () => {
       NL: /\n/,
       other: /[^ \n]+/,
     }).reset('x \n x\nx yz')
-    let tokens = lexer.lexAll().filter(t => t.name !== 'WS')
-    expect(tokens.map(t => [t.name, t.value])).toEqual([
+    let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
+    expect(tokens.map(t => [t.type, t.value])).toEqual([
       ['x_bol', 'x'],
       ['NL', '\n'],
       ['x', 'x'],
