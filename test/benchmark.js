@@ -24,7 +24,7 @@ for (let [name, pat] of python.rules) {
   if (pat instanceof Array) {
     groups.push({ name: name, regexp: pat.map(reEscape).join('|') })
   } else {
-    groups.push({ name: name, regexp: reEscape(pat) })
+    groups.push({ name: name, regexp: reEscape(pat.match || pat) })
   }
 }
 
