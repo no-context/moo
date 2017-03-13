@@ -30,16 +30,16 @@ Then you can start roasting your very own lexer/tokenizer:
 ```js
     const moo = require('moo')
 
-    let lexer = moo.compile([
-      ['WS',      /[ \t]+/],
-      ['comment', /\/\/.*?$/],
-      ['number',  /(0|[1-9][0-9]*)/],
-      ['string',  /"((?:\\["\\]|[^\n"\\])*)"/],
-      ['lparen',  '('],
-      ['rparen',  ')'],
-      ['keyword', ['while', 'if', 'else', 'moo', 'cows']],
-      ['NL',      /\n/],
-    ])
+    let lexer = moo.compile({
+      WS:      /[ \t]+/,
+      comment: /\/\/.*?$/,
+      number:  /(0|[1-9][0-9]*)/,
+      string:  /"((?:\\["\\]|[^\n"\\])*)"/,
+      lparen:  '(',
+      rparen:  ')',
+      keyword: ['while', 'if', 'else', 'moo', 'cows'],
+      NL:      { match: /\n/, lineBreaks: true },
+    })
 ```
 
 And now throw some text at it:
@@ -76,10 +76,10 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 * You often want to use **non-greedy quantifiers**: e.g. `*?` instead of `*`. Otherwise your tokens will be longer than you expect:
 
 ```js
-    let lexer = moo.compile([
-      ['string', /".*"/],   // greedy quantifier *
+    let lexer = moo.compile({
+      string: /".*"/,   // greedy quantifier *
       // ...
-    ])
+    })
     // ...
     lexer.lex() // -> { type: 'string', value: '"foo" "bar"' }
 ```
@@ -87,15 +87,15 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 * The **order of your rules** matters. Earlier ones will take precedence.
 
 ```js
-    moo.compile([
-        ['word',  /[a-z]+/],
-        ['foo',   'foo'],
-    ]).reset('foo').lexAll() // -> [{ type: 'word', value: 'foo' }]
+    moo.compile({
+        word:  /[a-z]+/,
+        foo:   'foo',
+    }).reset('foo').lexAll() // -> [{ type: 'word', value: 'foo' }]
 
-    moo.compile([
-        ['foo',   'foo'],
-        ['word',  /[a-z]+/],
-    ]).reset('foo').lexAll() // -> [{ type: 'foo', value: 'foo' }]
+    moo.compile({
+        foo:   'foo',
+        word:  /[a-z]+/,
+    }).reset('foo').lexAll() // -> [{ type: 'foo', value: 'foo' }]
 ```
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, `/./` doesn't include newlines. Use `[^]` instead if you want this.
