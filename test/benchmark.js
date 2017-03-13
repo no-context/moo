@@ -8,7 +8,7 @@ let suite = new Benchmark.Suite()
 
 
 const python = require('./python')
-let pythonFactory = moo(python.rules)
+let pythonLexer = moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 
@@ -46,7 +46,7 @@ suite.add('tosh', function() {
 
 /* moo! */
 suite.add('moo', function() {
-  pythonFactory(kurtFile).lexAll()
+  pythonLexer.clone().feed(kurtFile).lexAll()
 })
 
 

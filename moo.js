@@ -107,9 +107,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return function(input) {
-      return new Lexer(regexp, groups, input)
-    }
+    return new Lexer(regexp, groups)
   }
 
 
@@ -205,6 +203,12 @@
     return this
   }
 
+  Lexer.prototype.reset = function(data) {
+    this.rewind(0)
+    if (data) { this.feed(data) }
+    return this
+  }
+
   Lexer.prototype.feed = function(data) {
     this.buffer += data
     return this
@@ -231,10 +235,7 @@
     // insert newline rule
     rules.splice(0, 0, ['NL', '\n'])
 
-    var factory = compile(rules)
-    return function(input) {
-      return new LineLexer(factory(input))
-    }
+    return new LineLexer(compile(rules))
   }
 
 
@@ -268,16 +269,23 @@
 
   LineLexer.prototype.lexAll = Lexer.prototype.lexAll
 
+  LineLexer.prototype.reset = function(data) {
+    this.rewindLine(1)
+    if (data) { this.feed(data) }
+    return this
+  }
+
   LineLexer.prototype.feed = function(data) {
     this.lexer.feed(data)
     return this
   }
 
   LineLexer.prototype.rewindLine = function(lineno) {
+    if (lineno < 1) { throw new Error("Line 0 is out-of-bounds") }
     if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
     this.lexer.rewind(this.lineIndexes[lineno])
     // TODO slice buffer
-    this.lineIndexes.splice(lineno)
+    this.lineIndexes.splice(lineno + 1)
     this.lineno = lineno
     this.col = 0
     return this
@@ -288,7 +296,8 @@
   }
 
 
-  var moo = compile
+  var moo = {} // TODO: what should moo() do?
+  moo.compile = compile
   moo.lines = compileLines
   return moo
 
