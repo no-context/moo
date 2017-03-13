@@ -36,6 +36,22 @@
     return b.length - a.length
   }
 
+  function sortPatterns(array) {
+    var regexps = []
+    var literals = []
+    // sort literals by length to ensure longest match
+    for (var i=0; i<array.length; i++) {
+      var obj = array[i]
+      ;(isRegExp(obj) ? regexps : literals).push(obj)
+    }
+    literals.sort(compareLength)
+    // append regexps to the end
+    for (var i=0; i<regexps.length; i++) {
+      literals.push(regexps[i])
+    }
+    return literals
+  }
+
   function regexpOrLiteral(obj) {
     if (typeof obj === 'string') {
       return '(?:' + reEscape(obj) + ')'
@@ -59,8 +75,7 @@
 
     } else if (Array.isArray(obj)) {
       // sort to help ensure longest match
-      var options = obj.slice()
-      options.sort(compareLength)
+      var options = sortPatterns(obj)
       return '(' + options.map(regexpOrLiteral).join('|') + ')'
 
     } else {
