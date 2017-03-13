@@ -11,6 +11,8 @@
 
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
+  function isRegExp(o) { return o && o.constructor === RegExp }
+
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -38,7 +40,7 @@
     if (typeof obj === 'string') {
       return '(?:' + reEscape(obj) + ')'
 
-    } else if (obj && obj.constructor === RegExp) {
+    } else if (isRegExp(obj)) {
       // TODO: consider /u support
       if (obj.ignoreCase) { throw new Error('RegExp /i flag not allowed') }
       if (obj.global) { throw new Error('RegExp /g flag is implied') }
