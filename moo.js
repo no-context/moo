@@ -281,10 +281,11 @@
   }
 
   LineLexer.prototype.rewindLine = function(lineno) {
+    if (lineno < 1) { throw new Error("Line 0 is out-of-bounds") }
     if (lineno > this.lineno) { throw new Error("Can't seek forwards") }
     this.lexer.rewind(this.lineIndexes[lineno])
     // TODO slice buffer
-    this.lineIndexes.splice(lineno)
+    this.lineIndexes.splice(lineno + 1)
     this.lineno = lineno
     this.col = 0
     return this

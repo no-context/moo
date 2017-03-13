@@ -160,6 +160,19 @@ describe('moo line lexer', () => {
     expect(() => moo.lines([['multiline', /q[^]*/]])).not.toThrow()
   })
 
+  test('resets', () => {
+    var lexer = moo.lines([
+      ['WS', / +/],
+      ['word', /[a-z]+/],
+    ])
+    lexer.reset('potatoes')
+    expect(lexer.lineIndexes).toEqual([-1, 0])
+    expect(lexer.lexer.buffer).toBe('potatoes')
+    lexer.reset('cheesecake')
+    expect(lexer.lineIndexes).toEqual([-1, 0])
+    expect(lexer.lexer.buffer).toBe('cheesecake')
+  })
+
   test('can rewind to line', () => {
     var lexer = testLexer.clone().feed('steak\nsauce\nparty')
     expect(lexer.lex().value).toBe('steak')
@@ -176,15 +189,21 @@ describe('moo line lexer', () => {
     expect(lexer.lex()).toBe(undefined)
   })
 
+  test("can't rewind before line 1", () => {
+    var lexer = testLexer.reset('cow')
+    expect(() => lexer.rewindLine(0)).toThrow()
+  })
+
   test("won't rewind forward", () => {
-    var lexer = testLexer.clone().feed('steak\nsauce\nparty')
-    expect(() => lexer.rewindLine(0)).not.toThrow()
-    expect(() => lexer.rewindLine(1)).toThrow()
+    var lexer = testLexer.reset('steak\nsauce\nparty')
+    expect(() => lexer.rewindLine(1)).not.toThrow()
+    expect(() => lexer.rewindLine(2)).toThrow()
+    lexer.reset('steak\nsauce\nparty')
     expect(lexer.lex().value).toBe('steak')
     expect(lexer.lex().value).toBe('\n')
     expect(lexer.lex().value).toBe('sauce')
-    lexer.rewindLine(0)
-    expect(() => lexer.rewindLine(1)).toThrow()
+    lexer.rewindLine(1)
+    expect(() => lexer.rewindLine(2)).toThrow()
   })
 
   // TODO test clone()
