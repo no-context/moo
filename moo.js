@@ -37,19 +37,16 @@
   }
 
   function sortPatterns(array) {
+    // sort literals by length to ensure longest match
     var regexps = []
     var literals = []
-    // sort literals by length to ensure longest match
     for (var i=0; i<array.length; i++) {
       var obj = array[i]
       ;(isRegExp(obj) ? regexps : literals).push(obj)
     }
     literals.sort(compareLength)
     // append regexps to the end
-    for (var i=0; i<regexps.length; i++) {
-      literals.push(regexps[i])
-    }
-    return literals
+    return literals.concat(regexps)
   }
 
   function regexpOrLiteral(obj) {

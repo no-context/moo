@@ -22,6 +22,13 @@ describe('moo compiler', () => {
     expect(compile({ NL:  /\n/ }).reset('\n\n').lexAll().map(t => t.type)).toEqual(['NL', 'NL'])
   })
 
+  test('sorts regexps and strings', () => {
+    let lexer = moo.compile({
+      tok: [/t[ok]+/, /\w/, 'tok', 'token']
+    })
+    expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
+  })
+
 })
 
 describe('moo lexer', () => {
