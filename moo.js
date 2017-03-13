@@ -36,7 +36,7 @@
 
   function regexpOrLiteral(obj) {
     if (typeof obj === 'string') {
-      return '(' + reEscape(obj) + ')'
+      return '(?:' + reEscape(obj) + ')'
 
     } else if (obj && obj.constructor === RegExp) {
       // TODO: consider /u support
@@ -46,14 +46,23 @@
       if (obj.multiline) { throw new Error('RegExp /m flag is implied') }
       return obj.source
 
-    } else if (obj && obj.constructor === Array) {
+    } else {
+      throw new Error('not a pattern: ' + obj)
+    }
+  }
+
+  function pattern(obj) {
+    if (typeof obj === 'string') {
+      return '(' + reEscape(obj) + ')'
+
+    } else if (Array.isArray(obj)) {
       // sort to help ensure longest match
       var options = obj.slice()
       options.sort(compareLength)
-      return '(' + options.map(reEscape).join('|') + ')'
+      return '(' + options.map(regexpOrLiteral).join('|') + ')'
 
     } else {
-      throw new Error('not a pattern: ' + obj)
+      return regexpOrLiteral(obj)
     }
   }
 
@@ -83,7 +92,7 @@
       var re = rule[1]
 
       // convert string literal to RegExp
-      re = regexpOrLiteral(re)
+      re = pattern(re)
 
       // validate
       if (new RegExp(re).test("")) {

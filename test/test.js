@@ -50,6 +50,21 @@ describe('moo lexer', () => {
     expect(lexer.lex()).toMatchObject({name: 'space', value: ' '})
   })
 
+  test('accepts a list of regexps', () => {
+    const lexer = compile({
+      number: [
+        /[0-9]+\.[0-9]+/,
+        /[0-9]+/,
+      ],
+      space: / +/,
+    })
+    lexer.reset('12.04 123 3.14')
+    var tokens = lexer.lexAll().filter(t => t.name !== 'space')
+    expect(tokens.shift()).toMatchObject({name: 'number', value: '12.04'})
+    expect(tokens.shift()).toMatchObject({name: 'number', value: '123'})
+    expect(tokens.shift()).toMatchObject({name: 'number', value: '3.14'})
+  })
+
   test('no capture groups', () => {
     let lexer = compile([
         ['a', /a+/],
