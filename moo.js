@@ -156,7 +156,7 @@
     var keys = Object.getOwnPropertyNames(states)
     if (!start) start = keys[0]
 
-    var map = {}
+    var map = Object.create(null)
     for (var i=0; i<keys.length; i++) {
       var key = keys[i]
       map[key] = compileRules(states[key], true)
@@ -339,7 +339,7 @@
   }
 
   Lexer.prototype.clone = function(input) {
-    var map = {}, keys = Object.getOwnPropertyNames(this.states)
+    var map = Object.create(null), keys = Object.getOwnPropertyNames(this.states)
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       var s = this.states[key]
