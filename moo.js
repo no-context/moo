@@ -91,7 +91,7 @@
     return result
   }
 
-  function compileRules(rules) {
+  function compileRules(rules, hasStates) {
     if (!Array.isArray(rules)) rules = objectToRules(rules)
     var groups = []
     var parts = []
@@ -125,6 +125,9 @@
       if (groupCount > 1) {
         throw new Error("RegExp has more than one capture group: " + regexp)
       }
+      if (!hasStates && (options.pop || options.push || options.next)) {
+        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + name + "')")
+      }
 
       // try and detect rules matching newlines
       if (!options.lineBreaks && regexp.test('\n')) {
@@ -156,7 +159,7 @@
     var map = {}
     for (var i=0; i<keys.length; i++) {
       var key = keys[i]
-      map[key] = compileRules(states[key])
+      map[key] = compileRules(states[key], true)
     }
 
     for (var i=0; i<keys.length; i++) {
