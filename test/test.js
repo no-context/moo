@@ -29,6 +29,29 @@ describe('moo compiler', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
   })
 
+  test('warns about missing states', () => {
+    const rules = [
+      {match: '=', next: 'missing'},
+      {match: '=', push: 'missing'},
+    ]
+    for (const rule of rules) {
+      expect(() => moo.states({start: {thing: rule}}))
+      .toThrow("Missing state 'missing' (in token 'thing' of state 'start')")
+    }
+  })
+
+  test('warns about inappropriate state-switching options', () => {
+    const rules = [
+      {match: '=', next: 'state'},
+      {match: '=', push: 'state'},
+      {match: '=', pop: true},
+    ]
+    for (const rule of rules) {
+      expect(() => moo.compile({thing: rule}))
+      .toThrow("State-switching options are not allowed in stateless lexers (for token 'thing')")
+    }
+  })
+
 })
 
 describe('moo lexer', () => {
@@ -139,6 +162,71 @@ describe('moo lexer', () => {
   })
 
   // TODO test clone()
+})
+
+
+describe('moo stateful lexer', () => {
+
+  test('switches states', () => {
+    const lexer = moo.states({
+      start: {
+        word: /\w+/,
+        eq: {match: '=', next: 'ab'},
+      },
+      ab: {
+        a: 'a',
+        b: 'b',
+        semi: {match: ';', next: 'start'},
+      },
+    })
+
+    lexer.reset('one=ab;two=')
+    expect(lexer.lexAll().map(({type, value}) => [type, value])).toEqual([
+      ['word', 'one'],
+      ['eq', '='],
+      ['a', 'a'],
+      ['b', 'b'],
+      ['semi', ';'],
+      ['word', 'two'],
+      ['eq', '='],
+    ])
+  })
+
+  const parens = moo.states({
+    start: {
+      word: /\w+/,
+      lpar: {match: '(', push: 'inner'},
+      rpar: ')',
+    },
+    inner: {
+      thing: /\w+/,
+      lpar: {match: '(', push: 'inner'},
+      rpar: {match: ')', pop: true},
+    },
+  })
+
+  test('maintains a stack', () => {
+    parens.reset('a(b(c)d)e')
+    expect(parens.lexAll().map(({type, value}) => [type, value])).toEqual([
+      ['word', 'a'],
+      ['lpar', '('],
+      ['thing', 'b'],
+      ['lpar', '('],
+      ['thing', 'c'],
+      ['rpar', ')'],
+      ['thing', 'd'],
+      ['rpar', ')'],
+      ['word', 'e'],
+    ])
+  })
+
+  test('allows popping too many times', () => {
+    parens.reset(')e')
+    expect(parens.lexAll().map(({type, value}) => [type, value])).toEqual([
+      ['rpar', ')'],
+      ['word', 'e'],
+    ])
+  })
 })
 
 
