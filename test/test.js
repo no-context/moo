@@ -29,6 +29,15 @@ describe('moo compiler', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
   })
 
+  test('warns about missing states', () => {
+    expect(() => moo.states({start: {
+      thing: {match: '=', next: 'missing'},
+    }})).toThrow()
+    expect(() => moo.states({start:
+      {thing: {match: '=', push: 'missing'}},
+    })).toThrow()
+  })
+
 })
 
 describe('moo lexer', () => {
