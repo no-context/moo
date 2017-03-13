@@ -152,6 +152,15 @@ describe('moo lexer', () => {
     ])
   })
 
+  test('token to string conversion', () => {
+    const lexer = compile({
+      apples: /()a/,
+      pears: /p/,
+    }).reset('ap')
+    expect(String(lexer.lex())).toBe('apples')
+    expect(String(lexer.lex())).toBe('p')
+  })
+
   // TODO test / design API for errors
   // - check the reported error location
 
