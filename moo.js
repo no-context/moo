@@ -111,6 +111,11 @@
         throw new Error("RegExp has more than one capture group: " + regexp)
       }
 
+      // try and detect rules matching newlines
+      if (!options.lineBreaks && regexp.test('\n')) {
+        throw new Error('Rule should declare lineBreaks: ' + regexp)
+      }
+
       // store regex
       var isCapture = !!groupCount
       if (!isCapture) pat = reCapture(pat)
@@ -194,8 +199,12 @@
     var lineBreaks = 0
     if (group.lineBreaks) {
       var re = /\n/g
-      var nl
-      while (re.exec(text)) { lineBreaks++; nl = re.lastIndex }
+      var nl = 1
+      if (text === '\n') {
+        lineBreaks = 1
+      } else {
+        while (re.exec(text)) { lineBreaks++; nl = re.lastIndex }
+      }
     }
 
     var size = text.length

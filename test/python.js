@@ -37,7 +37,7 @@ var TOKENS = [
   ['NAME', /([A-Za-z_][A-Za-z0-9_]*)/],
   ['OP', opPat],
   ['COMMENT', /(#.*)/],
-  ['NEWLINE', /\r|\r\n|\n/],
+  ['NEWLINE', { match: /\r|\r\n|\n/, lineBreaks: true }],
   ['Continuation', /\\/],
 
   ['ERRORTOKEN', /[\$?`]/],

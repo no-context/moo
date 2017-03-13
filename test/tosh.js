@@ -23,7 +23,7 @@ let toshLexer = moo.compile([
   ['symbol',  /[-%#+*/=^,?]/],                // single character
   ['symbol',  /[_A-Za-z][-_A-Za-z0-9:',.]*/], // word, as in a block
   ['iden',    /[^\n \t"'()<>=*\/+-]+/],     // user-defined names
-  ['NL',      /\n/],
+  ['NL',      { match: /\n/, lineBreaks: true }],
 ])
 
 function tokenize(source) {

@@ -189,6 +189,11 @@ describe('line numbers', () => {
     expect(lexer.lex()).toMatchObject({ value: ' ', col: 0, lineno: 3 })
   })
 
+  test('tries to warn if rule matches \\n', () => {
+    expect(() => compile([['whitespace', /\s+/]])).toThrow()
+    expect(() => compile([['multiline', /q[^]*/]])).not.toThrow()
+  })
+
   test('resets', () => {
     var lexer = compile({
       WS: / +/,
