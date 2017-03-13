@@ -225,7 +225,7 @@
   // TODO: try instead the |(?:) trick?
 
   function tokenToString() {
-    return this.value || this.name
+    return this.value || this.type
   }
 
   Lexer.prototype.lex = function() {
