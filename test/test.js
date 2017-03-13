@@ -38,6 +38,12 @@ describe('moo compiler', () => {
     })).toThrow()
   })
 
+  test('warns about inappropriate state-switching options', () => {
+    expect(() => moo.compile({thing: {match: '=', next: 'state'}})).toThrow()
+    expect(() => moo.compile({thing: {match: '=', push: 'state'}})).toThrow()
+    expect(() => moo.compile({thing: {match: '=', pop: true}})).toThrow()
+  })
+
 })
 
 describe('moo lexer', () => {
