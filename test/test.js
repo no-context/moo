@@ -251,7 +251,7 @@ describe('moo stateful lexer', () => {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
         strend:   {match: '`', pop: 1},
-        const:    {match: /(?:[^$]|\$(?!\{))+/, lineBreaks: true},
+        const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     }).feed('`a${{c: d}}e`')
     expect(lexer.lexAll().map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
