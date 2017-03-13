@@ -142,6 +142,63 @@ describe('moo lexer', () => {
 })
 
 
+describe('moo stateful lexer', () => {
+
+  test('switches states', () => {
+    const lexer = moo.states({
+      start: {
+        word: /\w+/,
+        eq: {match: '=', next: 'ab'},
+      },
+      ab: {
+        a: 'a',
+        b: 'b',
+        semi: {match: ';', next: 'start'},
+      },
+    })
+
+    lexer.reset('one=ab;two=')
+    expect(lexer.lexAll().map(({type, value}) => [type, value])).toEqual([
+      ['word', 'one'],
+      ['eq', '='],
+      ['a', 'a'],
+      ['b', 'b'],
+      ['semi', ';'],
+      ['word', 'two'],
+      ['eq', '='],
+    ])
+  })
+
+  test('maintains a stack', () => {
+    const lexer = moo.states({
+      start: {
+        word: /\w+/,
+        lpar: {match: '(', push: 'inner'},
+        rpar: ')',
+      },
+      inner: {
+        thing: /\w+/,
+        lpar: {match: '(', push: 'inner'},
+        rpar: {match: ')', pop: true},
+      },
+    })
+
+    lexer.reset('a(b(c)d)e')
+    expect(lexer.lexAll().map(({type, value}) => [type, value])).toEqual([
+      ['word', 'a'],
+      ['lpar', '('],
+      ['thing', 'b'],
+      ['lpar', '('],
+      ['thing', 'c'],
+      ['rpar', ')'],
+      ['thing', 'd'],
+      ['rpar', ')'],
+      ['word', 'e'],
+    ])
+  })
+})
+
+
 describe('line numbers', () => {
 
   var testLexer = compile({

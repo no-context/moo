@@ -91,7 +91,7 @@
     return result
   }
 
-  function compile(rules) {
+  function compileRules(rules) {
     if (!Array.isArray(rules)) rules = objectToRules(rules)
     var groups = []
     var parts = []
@@ -107,6 +107,9 @@
       var options = Object.assign({
         name: name,
         lineBreaks: false,
+        pop: false,
+        next: null,
+        push: null,
       }, obj)
       groups.push(options)
 
@@ -138,20 +141,69 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return new Lexer(regexp, groups)
+    return {regexp: regexp, groups: groups}
+  }
+
+  function compile(rules) {
+    var result = compileRules(rules)
+    return new Lexer({start: result}, 'start')
+  }
+
+  function compileStates(states, start) {
+    var keys = Object.getOwnPropertyNames(states)
+    if (!start) start = keys[0]
+
+    var map = {}
+    for (var i=0; i<keys.length; i++) {
+      var key = keys[i]
+      map[key] = compileRules(states[key])
+    }
+
+    for (var i=0; i<keys.length; i++) {
+      var groups = map[keys[i]].groups
+      for (var j=0; j<groups.length; j++) {
+        var g = groups[i]
+        var state = g && (g.push || g.next)
+        if (state && !map[state]) {
+          throw new Error("Missing state: " + state)
+        }
+      }
+    }
+
+    return new Lexer(map, start)
   }
 
 
-  var Lexer = function(re, groups) {
-    this.groups = groups
-    this.re = re
-
+  var Lexer = function(states, state) {
+    this.states = states
+    this.buffer = ''
+    this.stack = []
+    this.setState(state)
     this.reset()
   }
 
   Lexer.error = {
     name: 'ERRORTOKEN',
     lineBreaks: true,
+  }
+
+  Lexer.prototype.setState = function(state) {
+    if (!state || this.state === state) return
+    this.state = state
+    var index = this.re ? this.re.lastIndex : 0
+    var info = this.states[state]
+    this.groups = info.groups
+    this.re = info.regexp
+    this.re.lastIndex = index
+  }
+
+  Lexer.prototype.popState = function() {
+    this.setState(this.stack.pop())
+  }
+
+  Lexer.prototype.pushState = function(state) {
+    this.stack.push(this.state)
+    this.setState(state)
   }
 
   Lexer.prototype.eat = hasSticky ? function(re) {
@@ -229,6 +281,10 @@
       col: this.col,
     }
 
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
+
     this.line += lineBreaks
     if (lineBreaks !== 0) {
       this.col = size - nl + 1
@@ -276,13 +332,22 @@
   }
 
   Lexer.prototype.clone = function(input) {
-    var re = new RegExp(this.re.source, this.re.flags)
-    return new Lexer(re, this.groups, input)
+    var map = {}, keys = Object.getOwnPropertyNames(this.states)
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i]
+      var s = this.states[key]
+      map[key] = {
+        groups: s.groups,
+        regexp: new RegExp(s.regexp.source, s.regexp.flags),
+      }
+    }
+    return new Lexer(map, this.state, input)
   }
 
 
   var moo = {} // TODO: what should moo() do?
   moo.compile = compile
+  moo.states = compileStates
   return moo
 
 }))
