@@ -134,9 +134,7 @@
     this.groups = groups
     this.re = re
 
-    this.buffer = ''
-    this.lineno = 1
-    this.col = 0
+    this.reset()
   }
 
   Lexer.error = {
@@ -221,7 +219,7 @@
 
     this.lineno += lineBreaks
     if (lineBreaks !== 0) {
-      this.col = size - nl
+      this.col = size - nl + 1
     } else {
       this.col += size
     }
@@ -245,7 +243,7 @@
     this.buffer = data || ''
     this.re.lastIndex = 0
     this.lineno = 1
-    this.col = 0
+    this.col = 1
     return this
   }
 

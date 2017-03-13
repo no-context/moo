@@ -172,7 +172,7 @@ describe('line numbers', () => {
     expect(tokens.map(t => t.lineBreaks)).toEqual([0, 1, 0, 1, 0])
     expect(tokens.map(t => t.size)).toEqual([3, 1, 4, 1, 5])
     expect(tokens.map(t => t.lineno)).toEqual([1, 1, 2, 2, 3])
-    expect(tokens.map(t => t.col)).toEqual([0, 3, 0, 4, 0])
+    expect(tokens.map(t => t.col)).toEqual([1, 4, 1, 5, 1])
   })
 
   test('tracks columns', () => {
@@ -181,12 +181,12 @@ describe('line numbers', () => {
       thing: { match: /[a-z\n]+/, lineBreaks: true },
     })
     lexer.reset('pie cheese\nsalad what\n ')
-    expect(lexer.lex()).toMatchObject({ value: 'pie', col: 0 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 3 })
-    expect(lexer.lex()).toMatchObject({ value: 'cheese\nsalad', col: 4, lineno: 1 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 5, lineno: 2 })
-    expect(lexer.lex()).toMatchObject({ value: 'what\n', col: 6, lineno: 2 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 0, lineno: 3 })
+    expect(lexer.lex()).toMatchObject({ value: 'pie', col: 1 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 4 })
+    expect(lexer.lex()).toMatchObject({ value: 'cheese\nsalad', col: 5, lineno: 1 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 6, lineno: 2 })
+    expect(lexer.lex()).toMatchObject({ value: 'what\n', col: 7, lineno: 2 })
+    expect(lexer.lex()).toMatchObject({ value: ' ', col: 1, lineno: 3 })
   })
 
   test('tries to warn if rule matches \\n', () => {
