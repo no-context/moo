@@ -213,11 +213,11 @@
       offset: start,
       size: size,
       lineBreaks: lineBreaks,
-      lineno: this.lineno,
+      line: this.line,
       col: this.col,
     }
 
-    this.lineno += lineBreaks
+    this.line += lineBreaks
     if (lineBreaks !== 0) {
       this.col = size - nl + 1
     } else {
@@ -242,7 +242,7 @@
   Lexer.prototype.reset = function(data) {
     this.buffer = data || ''
     this.re.lastIndex = 0
-    this.lineno = 1
+    this.line = 1
     this.col = 1
     return this
   }
