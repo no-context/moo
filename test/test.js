@@ -30,18 +30,26 @@ describe('moo compiler', () => {
   })
 
   test('warns about missing states', () => {
-    expect(() => moo.states({start: {
-      thing: {match: '=', next: 'missing'},
-    }})).toThrow()
-    expect(() => moo.states({start:
-      {thing: {match: '=', push: 'missing'}},
-    })).toThrow()
+    const rules = [
+      {match: '=', next: 'missing'},
+      {match: '=', push: 'missing'},
+    ]
+    for (const rule of rules) {
+      expect(() => moo.states({start: {thing: rule}}))
+      .toThrow("Missing state 'missing' (in token 'thing' of state 'start')")
+    }
   })
 
   test('warns about inappropriate state-switching options', () => {
-    expect(() => moo.compile({thing: {match: '=', next: 'state'}})).toThrow()
-    expect(() => moo.compile({thing: {match: '=', push: 'state'}})).toThrow()
-    expect(() => moo.compile({thing: {match: '=', pop: true}})).toThrow()
+    const rules = [
+      {match: '=', next: 'state'},
+      {match: '=', push: 'state'},
+      {match: '=', pop: true},
+    ]
+    for (const rule of rules) {
+      expect(() => moo.compile({thing: rule}))
+      .toThrow("State-switching options are not allowed in stateless lexers (for token 'thing')")
+    }
   })
 
 })
