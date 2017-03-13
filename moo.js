@@ -168,7 +168,7 @@
         var g = groups[i]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
-          throw new Error("Missing state: " + state)
+          throw new Error("Missing state '" + state + "' (in token '" + g.name + "' of state '" + keys[i] + "')")
         }
       }
     }
