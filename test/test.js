@@ -171,15 +171,17 @@ describe('line numbers', () => {
     expect(() => compile([['multiline', /q[^]*/]])).not.toThrow()
   })
 
-  test('resets', () => {
+  test('resets state', () => {
     var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
     })
-    lexer.reset('potatoes')
-    expect(lexer.buffer).toBe('potatoes')
+    lexer.reset('potatoes\nsalad')
+    expect(lexer).toMatchObject({buffer: 'potatoes\nsalad', line: 1, col: 1})
+    lexer.lexAll()
+    expect(lexer).toMatchObject({line: 2, col: 6})
     lexer.reset('cheesecake')
-    expect(lexer.buffer).toBe('cheesecake')
+    expect(lexer).toMatchObject({buffer: 'cheesecake', line: 1, col: 1})
   })
 
   // TODO test clone()
