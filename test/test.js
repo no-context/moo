@@ -236,6 +236,27 @@ describe('moo stateful lexer', () => {
       ['word', 'e'],
     ])
   })
+
+  test('lexes interpolation example', () => {
+    let lexer = moo.states({
+      main: {
+        strstart: {match: '`', push: 'lit'},
+        ident:    /\w+/,
+        lbrace:   {match: '{', push: 'main'},
+        rbrace:   {match: '}', pop: 1},
+        colon:    ':',
+        space:    {match: /\s+/, lineBreaks: true},
+      },
+      lit: {
+        interp:   {match: '${', push: 'main'},
+        escape:   /\\./,
+        strend:   {match: '`', pop: 1},
+        const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+      },
+    }).feed('`a${{c: d}}e`')
+    expect(lexer.lexAll().map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
+  })
+
 })
 
 
