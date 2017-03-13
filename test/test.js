@@ -283,7 +283,7 @@ describe('line numbers', () => {
 })
 
 
-describe('state', () => {
+describe('save/restore', () => {
 
   const testLexer = compile({
     word: /[a-z]+/,
