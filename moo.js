@@ -120,15 +120,10 @@
   }
 
 
-  var Lexer = function(re, groups, data) {
-    this.buffer = data || ''
-    this.groupCount = groups.length
-    this.re = re
-
-    // reset RegExp
-    re.lastIndex = 0
-
+  var Lexer = function(re, groups) {
+    this.buffer = ''
     this.groups = groups
+    this.re = re
   }
 
   Lexer.prototype.eat = hasSticky ? function(re) {
@@ -171,7 +166,7 @@
 
     var groups = this.groups
     var group
-    for (var i = 0; i < this.groupCount; i++) {
+    for (var i = 0; i < groups.length; i++) {
       var value = match[i + 1]
       if (value !== undefined) {
         group = groups[i]
