@@ -67,7 +67,6 @@
   }
 
 
-
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
