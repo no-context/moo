@@ -188,6 +188,27 @@ describe('line numbers', () => {
 })
 
 
+describe('state', () => {
+
+  const testLexer = compile({
+    word: /[a-z]+/,
+    NL: { match: '\n', lineBreaks: true },
+  })
+
+  test('can be saved', () => {
+    testLexer.reset('one\ntwo')
+    testLexer.lexAll()
+    expect(testLexer.save()).toEqual({line: 2, col: 4})
+  })
+
+  test('can be restored', () => {
+    testLexer.reset('\nthree', {line: 2, col: 4})
+    expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+  })
+
+})
+
+
 describe('python tokenizer', () => {
 
   test("1 + 2", () => {

@@ -239,12 +239,19 @@
     return this.re.lastIndex
   }
 
-  Lexer.prototype.reset = function(data) {
+  Lexer.prototype.reset = function(data, state) {
     this.buffer = data || ''
     this.re.lastIndex = 0
-    this.line = 1
-    this.col = 1
+    this.line = state ? state.line : 1
+    this.col = state ? state.col : 1
     return this
+  }
+
+  Lexer.prototype.save = function() {
+    return {
+      line: this.line,
+      col: this.col,
+    }
   }
 
   Lexer.prototype.feed = function(data) {
