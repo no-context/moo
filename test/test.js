@@ -54,6 +54,22 @@ describe('moo compiler', () => {
     }
   })
 
+  test("deals with keyword literals", () => {
+    var keywordFirst = compile([
+      ['keyword',     ['class']],
+      ['identifier',  /[a-zA-Z]+/],
+    ])
+    expect(lexAll(keywordFirst.reset('class')).map(t => t.type)).toEqual(['keyword'])
+    expect(lexAll(keywordFirst.reset('className')).map(t => t.type)).toEqual(['identifier'])
+
+    var identifierFirst = compile([
+      ['identifier',  /[a-zA-Z]+/],
+      ['keyword',     ['class']],
+    ])
+    expect(lexAll(identifierFirst.reset('class')).map(t => t.type)).toEqual(['keyword'])
+    expect(lexAll(identifierFirst.reset('className')).map(t => t.type)).toEqual(['identifier'])
+  })
+
 })
 
 describe('capturing groups', () => {
