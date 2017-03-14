@@ -347,6 +347,7 @@ describe('line numbers', () => {
     var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
+      NL: { match: '\n', lineBreaks: true },
     })
     lexer.reset('potatoes\nsalad')
     expect(lexer).toMatchObject({buffer: 'potatoes\nsalad', line: 1, col: 1})
