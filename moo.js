@@ -9,6 +9,86 @@
 }(this, function() {
   'use strict';
 
+  var hasOwnProperty = Object.prototype.hasOwnProperty
+  var toString = Object.prototype.toString
+
+  // https://tc39.github.io/ecma262/#sec-tointeger
+  function ToInteger(argument) {
+    var number = Number(argument)
+    if (number !== number) return 0
+    return number < 0 ? Math.ceil(number) : Math.floor(number)
+  }
+  // https://tc39.github.io/ecma262/#sec-tolength
+  function ToLength(argument) {
+    var len = ToInteger(argument)
+    return len <= 0 ? 0 : len >= Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : len
+  }
+
+  if (typeof Array.isArray === 'undefined') {
+    // https://tc39.github.io/ecma262/#sec-isarray
+    Array.isArray = function(object) {
+      return toString.call(object) === '[object Array]'
+    }
+  }
+  if (typeof Number.MAX_SAFE_INTEGER === 'undefined') {
+    // https://tc39.github.io/ecma262/#sec-number.max_safe_integer
+    Number.MAX_SAFE_INTEGER = 9007199254740991
+  }
+  if (typeof Array.prototype.map === 'undefined') {
+    // https://tc39.github.io/ecma262/#sec-array.prototype.map
+    Array.prototype.map = function(callbackfn, thisArg) {
+      if (this == null) {
+        throw new TypeError('Cannot be called on null or undefined')
+      }
+      var O = Object(this)
+      var len = ToLength(O.length)
+      if (typeof callbackfn !== 'function') {
+        throw new TypeError('Callback must be callable')
+      }
+      var A = Array(len)
+      for (var k = 0; k < len; k++) {
+        if (k in O) {
+          A[k] = callbackfn.call(thisArg, O[k], k,O)
+        }
+      }
+      return A
+    }
+  }
+  if (typeof Object.getOwnPropertyNames === 'undefined') {
+    // https://tc39.github.io/ecma262/#sec-getownpropertykeys
+    Object.getOwnPropertyNames = function(target) {
+      // only enumerable properties
+      var keys = []
+      for (var key in target) {
+        if (hasOwnProperty.call(target, key)) {
+          keys.push(key)
+        }
+      }
+      return keys
+    }
+  }
+  if (typeof Object.assign === 'undefined') {
+    // https://tc39.github.io/ecma262/#sec-object.assign
+    Object.assign = function(target, sources) {
+      if (target == null) {
+        throw new TypeError('Target cannot be null or undefined');
+      }
+      target = Object(target)
+
+      for (var i = 1; i < arguments.length; i++) {
+        var source = arguments[i]
+        if (source == null) continue
+
+        for (var key in source) {
+          if (hasOwnProperty.call(source, key)) {
+            target[key] = source[key]
+          }
+        }
+      }
+      return target
+    }
+  }
+
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   function isRegExp(o) { return o && o.constructor === RegExp }
@@ -251,7 +331,8 @@
       var groups = this.groups
       for (var i = 0; i < groups.length; i++) {
         value = match[i + 1]
-        if (value !== undefined) {
+        // IE8 returns '' instead of undefined for unreached captures
+        if (value) {
           group = groups[i]
           break
         }
