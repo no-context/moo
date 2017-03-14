@@ -284,13 +284,9 @@
       col: this.col,
     }
 
-    if (group.pop) {
-      this.popState()
-    } else if (group.push) {
-      this.pushState(group.push)
-    } else if (group.next) {
-      this.setState(group.next)
-    }
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
 
     this.line += lineBreaks
     if (lineBreaks !== 0) {
