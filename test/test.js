@@ -118,6 +118,20 @@ describe('moo lexer', () => {
     expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })
 
+  test('accepts rules in an array', () => {
+    const lexer = compile([
+      ['keyword', 'bob'],
+      ['word', /[a-z]+/],
+      ['number', /[0-9]+/],
+      ['space', / +/],
+    ])
+    lexer.reset('bob ducks are 123 bad')
+    expect(lexer.next()).toMatchObject({type: 'keyword', value: 'bob'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
   test('accepts a list of regexps', () => {
     const lexer = compile({
       number: [
