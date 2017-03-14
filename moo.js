@@ -306,6 +306,21 @@
     return tokens
   }
 
+  if (typeof Symbol !== 'undefined' && Symbol.iterator) {
+    var LexerIterator = function(lexer) {
+      this.lexer = lexer
+    }
+
+    LexerIterator.prototype.next = function() {
+      var token = this.lexer.lex()
+      return {value: token, done: !token}
+    }
+
+    Lexer.prototype[Symbol.iterator] = function() {
+      return new LexerIterator(this)
+    }
+  }
+
   Lexer.prototype.index = function() {
     return this.re.lastIndex
   }

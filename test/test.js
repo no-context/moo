@@ -69,6 +69,16 @@ describe('moo lexer', () => {
     expect(simpleLexer.lex()).toMatchObject({ type: 'word', value: 'are' })
   })
 
+  test('is iterable', () => {
+    simpleLexer.reset('only 321 cows')
+    const toks = [['word', 'only'], ['ws', ' '], ['number', '321'], ['ws', ' '], ['word', 'cows']]
+    for (const t of simpleLexer) {
+      const [type, value] = toks.shift()
+      expect(t).toMatchObject({type, value})
+    }
+    expect(simpleLexer.lex()).not.toBeTruthy()
+  })
+
   test('accepts rules in an object', () => {
     const lexer = compile({
       word: /[a-z]+/,
