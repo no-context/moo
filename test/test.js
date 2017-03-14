@@ -29,6 +29,12 @@ describe('moo compiler', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
   })
 
+  test('allows list of RegExps', () => {
+    expect(() => moo.compile({
+      tok: [/(foo)/, /(bar)/]
+    })).not.toThrow()
+  })
+
   test('warns about missing states', () => {
     const rules = [
       {match: '=', next: 'missing'},
