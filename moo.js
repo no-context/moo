@@ -35,6 +35,8 @@
 
   function isRegExp(o) { return o && o.constructor === RegExp }
 
+  var ERROR = {error: true}
+  Object.freeze(ERROR)
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -99,7 +101,7 @@
     }, obj)
 
     // convert to array
-    if (!Array.isArray(options.match)) { options.match = [options.match] }
+    if (options.match && !Array.isArray(options.match)) { options.match = [options.match] }
     return options
   }
 
@@ -111,6 +113,19 @@
       // get options
       var options = ruleOptions(rule[0], rule[1])
       var match = options.match
+
+      // add error rule
+      if (options.error) {
+        var errorOptions = Object.assign({}, options)
+        delete errorOptions.match
+        result.push(errorOptions)
+
+        // error rule may also match patterns
+        if (!options.match) {
+          continue
+        }
+        delete options.error
+      }
 
       // sort literals by length to ensure longest match
       var capturingPatterns = []
@@ -145,13 +160,23 @@
 
     rules = sortRules(rules)
 
+    var errorRule = null
     var groups = []
     var parts = []
     for (var i=0; i<rules.length; i++) {
       var options = rules[i]
       groups.push(options)
 
+      if (options.error) {
+        if (errorRule) {
+          throw new Error("Cannot have multiple error rules")
+        }
+        errorRule = options
+        continue
+      }
+
       // convert to RegExp
+      if (options.match[0] === undefined) console.log(options)
       var pat = reUnion(options.match.map(regexpOrLiteral))
 
       // validate
@@ -182,7 +207,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: regexp, groups: groups}
+    return {regexp: regexp, groups: groups, error: errorRule}
   }
 
   function compile(rules) {
@@ -223,17 +248,13 @@
     this.reset()
   }
 
-  Lexer.error = {
-    name: 'ERRORTOKEN',
-    lineBreaks: true,
-  }
-
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
     var index = this.re ? this.re.lastIndex : 0
     var info = this.states[state]
     this.groups = info.groups
+    this.error = info.error
     this.re = info.regexp
     this.re.lastIndex = index
   }
@@ -278,7 +299,10 @@
     var match = this.eat(re)
     var group, value, text
     if (match === null) {
-      group = Lexer.error
+      group = this.error
+      if (!group) {
+        throw new Error('Syntax error')
+      }
 
       // consume rest of buffer
       text = value = buffer.slice(start)
@@ -393,9 +417,10 @@
   }
 
 
-  var moo = {} // TODO: what should moo() do?
-  moo.compile = compile
-  moo.states = compileStates
-  return moo
+  return {
+    compile: compile,
+    states: compileStates,
+    error: ERROR,
+  }
 
 }))

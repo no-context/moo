@@ -381,6 +381,41 @@ describe('save/restore', () => {
 })
 
 
+describe('errors', () => {
+
+  test('are thrown by default', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+    })
+    lexer.reset('123foo')
+    expect(lexer.lex()).toMatchObject({value: '123'})
+    expect(() => lexer.lex()).toThrow()
+  })
+
+  test('can be tokens', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: moo.error,
+    })
+    expect(lexer.error).toMatchObject({name: 'error'})
+    lexer.reset('123foo')
+    expect(lexer.lex()).toMatchObject({type: 'digits', value: '123'})
+    expect(lexer.lex()).toMatchObject({type: 'error', value: 'foo'})
+  })
+
+  test('can contain line breaks', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: { error: true, lineBreaks: true },
+    })
+    lexer.reset('foo\nbar')
+    expect(lexer.lex()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1})
+    expect(lexer.lex()).toBe(undefined) // consumes rest of input
+  })
+
+})
+
+
 describe('python tokenizer', () => {
 
   test("1 + 2", () => {
