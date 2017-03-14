@@ -250,7 +250,7 @@
       text = match[0]
       var groups = this.groups
       for (var i = 0; i < groups.length; i++) {
-        var value = match[i + 1]
+        value = match[i + 1]
         if (value !== undefined) {
           group = groups[i]
           break
@@ -263,12 +263,12 @@
     // count line breaks
     var lineBreaks = 0
     if (group.lineBreaks) {
-      var re = /\n/g
+      var matchNL = /\n/g
       var nl = 1
       if (text === '\n') {
         lineBreaks = 1
       } else {
-        while (re.exec(text)) { lineBreaks++; nl = re.lastIndex }
+        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
       }
     }
 
@@ -335,7 +335,8 @@
   }
 
   Lexer.prototype.clone = function(input) {
-    var map = Object.create(null), keys = Object.getOwnPropertyNames(this.states)
+    var map = Object.create(null)
+    var keys = Object.getOwnPropertyNames(this.states)
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       var s = this.states[key]
