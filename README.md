@@ -75,18 +75,31 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
 * You often want to use **non-greedy quantifiers**: e.g. `*?` instead of `*`. Otherwise your tokens will be longer than you expect:
 
-```js
+    ```js
     let lexer = moo.compile({
-      string: /".*"/,   // greedy quantifier *
+      string: /"(.*)"/,   // greedy quantifier *
+      // ...
+    })
+    lexer.reset('"foo" "bar"')
+    // ...
+    lexer.lex() // -> { type: 'string', value: 'foo" "bar' }
+    ```
+    
+    Better:
+    
+    ```js
+    let lexer = moo.compile({
+      string: /"(.*?)"/,   // non-greedy quantifier *?
       // ...
     })
     // ...
-    lexer.lex() // -> { type: 'string', value: '"foo" "bar"' }
-```
+    lexer.lex() // -> { type: 'string', value: 'foo' }
+    lexer.lex() // -> { type: 'string', value: 'bar' }
+    ```
 
 * The **order of your rules** matters. Earlier ones will take precedence.
 
-```js
+    ```js
     moo.compile({
         word:  /[a-z]+/,
         foo:   'foo',
@@ -96,21 +109,50 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
         foo:   'foo',
         word:  /[a-z]+/,
     }).reset('foo').lexAll() // -> [{ type: 'foo', value: 'foo' }]
-```
+    ```
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, `/./` doesn't include newlines. Use `[^]` instead if you want this.
 
 * Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
 
 
-Questions
----------
+States
+------
 
-* **What about Streams?**
+Sometimes you want your lexer to support different states. This is useful for string interpolation, for example: to tokenize `a${{c: d}}e`:
 
-    A Stream API would be nice. If you want such a thing, let us know and send a Pull Request!
+```js
+    let lexer = moo.states({
+      main: {
+        strstart: {match: '`', push: 'lit'},
+        ident:    /\w+/,
+        lbrace:   {match: '{', push: 'main'},
+        rbrace:   {match: '}', pop: 1},
+        colon:    ':',
+        space:    {match: /\s+/, lineBreaks: true},
+      },
+      lit: {
+        interp:   {match: '${', push: 'main'},
+        escape:   /\\./,
+        strend:   {match: '`', pop: 1},
+        const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+      },
+    })
+    // <= `a${{c: d}}e`
+    // => strstart const interp lbrace ident colon space ident rbrace rbrace const strend
+```
 
-* **What about states?**
+It's also nice to let states inherit rules from other states and be able to count things, e.g. the interpolated expression state needs a `}` rule that can tell if it's a closing brace or the end of the interpolation, but is otherwise identical to the normal expression state.
 
-    Some tokenizers (flex?) support different states. We're thinking of adding such a thing once we hear a use case for it. :-)
+To support this, moo allows annotating tokens with `push`, `pop` and `next`:
+
+* **`push`** changes the lexer state, and pushes the old state onto the stack.
+* **`pop`** returns to a previous state, by removing some number of states from the stack.
+* **`next`** switches the lexer state before the next token, but does not affect the stack.
+
+
+Contributing
+------------
+
+Before submitting an issue, [remember...](https://github.com/tjvr/moo/blob/master/.github/CONTRIBUTING.md)
 
