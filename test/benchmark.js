@@ -30,6 +30,27 @@ for (let [name, pat] of python.rules) {
 
 /*****************************************************************************/
 
+suite.add('moo.compileStates', () => {
+  moo.states({
+    main: {
+      strstart: {match: '`', push: 'lit'},
+      ident:    /\w+/,
+      lbrace:   {match: '{', push: 'main'},
+      rbrace:   {match: '}', pop: 1},
+      colon:    ':',
+      space:    {match: /\s+/, lineBreaks: true},
+    },
+    lit: {
+      interp:   {match: '${', push: 'main'},
+      escape:   /\\./,
+      strend:   {match: '`', pop: 1},
+      const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+    },
+  })
+})
+
+/*****************************************************************************/
+
 const tosh = require('./tosh')
 let toshFile = tosh.exampleFile + tosh.exampleFile  + tosh.exampleFile + tosh.exampleFile + tosh.exampleFile
 
