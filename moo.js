@@ -9,6 +9,29 @@
 }(this, function() {
   'use strict';
 
+  if (typeof Object.assign === 'undefined') {
+    var hasOwnProperty = Object.prototype.hasOwnProperty
+    // https://tc39.github.io/ecma262/#sec-object.assign
+    Object.assign = function(target, sources) {
+      if (target == null) {
+        throw new TypeError('Target cannot be null or undefined');
+      }
+      target = Object(target)
+
+      for (var i = 1; i < arguments.length; i++) {
+        var source = arguments[i]
+        if (source == null) continue
+
+        for (var key in source) {
+          if (hasOwnProperty.call(source, key)) {
+            target[key] = source[key]
+          }
+        }
+      }
+      return target
+    }
+  }
+
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   function isRegExp(o) { return o && o.constructor === RegExp }
