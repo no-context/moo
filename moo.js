@@ -36,19 +36,6 @@
     return b.length - a.length
   }
 
-  function sortPatterns(array) {
-    // sort literals by length to ensure longest match
-    var regexps = []
-    var literals = []
-    for (var i=0; i<array.length; i++) {
-      var obj = array[i]
-      ;(isRegExp(obj) ? regexps : literals).push(obj)
-    }
-    literals.sort(compareLength)
-    // append regexps to the end
-    return literals.concat(regexps)
-  }
-
   function regexpOrLiteral(obj) {
     if (typeof obj === 'string') {
       return '(?:' + reEscape(obj) + ')'
@@ -66,21 +53,6 @@
     }
   }
 
-  function pattern(obj) {
-    if (typeof obj === 'string') {
-      return '(' + reEscape(obj) + ')'
-
-    } else if (Array.isArray(obj)) {
-      // sort to help ensure longest match
-      var options = sortPatterns(obj)
-      return '(' + options.map(regexpOrLiteral).join('|') + ')'
-
-    } else {
-      return regexpOrLiteral(obj)
-    }
-  }
-
-
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
@@ -91,30 +63,74 @@
     return result
   }
 
+  function ruleOptions(name, obj) {
+    if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
+      obj = { match: obj }
+    }
+
+    var options = Object.assign({
+      name: name,
+      lineBreaks: false,
+      pop: false,
+      next: null,
+      push: null,
+    }, obj)
+
+    // convert to array
+    if (!Array.isArray(options.match)) { options.match = [options.match] }
+    return options
+  }
+
+  function sortRules(rules) {
+    var result = []
+    for (var i=0; i<rules.length; i++) {
+      var rule = rules[i]
+
+      // get options
+      var options = ruleOptions(rule[0], rule[1])
+      var match = options.match
+
+      // sort literals by length to ensure longest match
+      var capturingPatterns = []
+      var patterns = []
+      var literals = []
+      for (var j=0; j<match.length; j++) {
+        var obj = match[j]
+        if (!isRegExp(obj)) literals.push(obj)
+        else if (reGroups(obj.source) > 0) capturingPatterns.push(obj)
+        else patterns.push(obj)
+      }
+      literals.sort(compareLength)
+
+      // append regexps to the end
+      options.match = literals.concat(patterns)
+      if (options.match.length) {
+        result.push(options)
+      }
+
+      // add each capturing regexp as a separate rule
+      for (var j=0; j<capturingPatterns.length; j++) {
+        result.push(Object.assign({}, options, {
+          match: [capturingPatterns[j]],
+        }))
+      }
+    }
+    return result
+  }
+
   function compileRules(rules, hasStates) {
     if (!Array.isArray(rules)) rules = objectToRules(rules)
+
+    rules = sortRules(rules)
+
     var groups = []
     var parts = []
     for (var i=0; i<rules.length; i++) {
-      var rule = rules[i]
-      var name = rule[0]
-      var obj = rule[1]
-
-      // get options
-      if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
-        obj = { match: obj }
-      }
-      var options = Object.assign({
-        name: name,
-        lineBreaks: false,
-        pop: false,
-        next: null,
-        push: null,
-      }, obj)
+      var options = rules[i]
       groups.push(options)
 
       // convert to RegExp
-      var pat = pattern(obj.match)
+      var pat = reUnion(options.match.map(regexpOrLiteral))
 
       // validate
       var regexp = new RegExp(pat)
@@ -126,7 +142,7 @@
         throw new Error("RegExp has more than one capture group: " + regexp)
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + name + "')")
+        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.name + "')")
       }
 
       // try and detect rules matching newlines

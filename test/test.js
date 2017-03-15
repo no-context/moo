@@ -54,6 +54,32 @@ describe('moo compiler', () => {
 
 })
 
+describe('capturing groups', () => {
+
+  test('compiles list of capturing RegExps', () => {
+    expect(() => moo.compile({
+      tok: [/(foo)/, /(bar)/]
+    })).not.toThrow()
+  })
+
+  test('captures & reports correct size', () => {
+    let lexer = moo.compile({
+      fubar: /fu(bar)/,
+      string: /"(.*?)"/,
+      full: /(quxx)/,
+      moo: /moo(moo)*moo/,
+      space: / +/,
+    })
+    lexer.reset('fubar "yes" quxx moomoomoomoo')
+    let tokens = lexer.lexAll().filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
+    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
+    expect(tokens.shift()).toMatchObject({ value: 'moo', size: 12 })
+  })
+
+})
+
 describe('moo lexer', () => {
 
   var simpleLexer = compile({
