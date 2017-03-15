@@ -9,6 +9,28 @@
 }(this, function() {
   'use strict';
 
+  var hasOwnProperty = Object.prototype.hasOwnProperty
+  var assign = typeof Object.assign === 'function' ? Object.assign :
+    // https://tc39.github.io/ecma262/#sec-object.assign
+    function(target, sources) {
+      if (target == null) {
+        throw new TypeError('Target cannot be null or undefined');
+      }
+      target = Object(target)
+
+      for (var i = 1; i < arguments.length; i++) {
+        var source = arguments[i]
+        if (source == null) continue
+
+        for (var key in source) {
+          if (hasOwnProperty.call(source, key)) {
+            target[key] = source[key]
+          }
+        }
+      }
+      return target
+    }
+
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   function isRegExp(o) { return o && o.constructor === RegExp }
@@ -68,7 +90,7 @@
       obj = { match: obj }
     }
 
-    var options = Object.assign({
+    var options = assign({
       name: name,
       lineBreaks: false,
       pop: false,
@@ -110,7 +132,7 @@
 
       // add each capturing regexp as a separate rule
       for (var j=0; j<capturingPatterns.length; j++) {
-        result.push(Object.assign({}, options, {
+        result.push(assign({}, options, {
           match: [capturingPatterns[j]],
         }))
       }
