@@ -411,6 +411,7 @@
       map[key] = {
         groups: s.groups,
         regexp: new RegExp(s.regexp.source, s.regexp.flags),
+        error: this.error,
       }
     }
     return new Lexer(map, this.state, input)
