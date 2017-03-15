@@ -389,8 +389,8 @@ describe('errors', () => {
       digits: /[0-9]+/,
     })
     lexer.reset('123foo')
-    expect(lexer.lex()).toMatchObject({value: '123'})
-    expect(() => lexer.lex()).toThrow()
+    expect(lexer.next()).toMatchObject({value: '123'})
+    expect(() => lexer.next()).toThrow()
   })
 
   test('can be tokens', () => {
@@ -400,18 +400,38 @@ describe('errors', () => {
     })
     expect(lexer.error).toMatchObject({name: 'error'})
     lexer.reset('123foo')
-    expect(lexer.lex()).toMatchObject({type: 'digits', value: '123'})
-    expect(lexer.lex()).toMatchObject({type: 'error', value: 'foo'})
+    expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
   })
 
-  test('can contain line breaks', () => {
+  test('imply lineBreaks', () => {
     let lexer = compile({
       digits: /[0-9]+/,
-      error: { error: true, lineBreaks: true },
+      error: moo.error,
     })
     lexer.reset('foo\nbar')
-    expect(lexer.lex()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1})
-    expect(lexer.lex()).toBe(undefined) // consumes rest of input
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1, size: 7})
+    expect(lexer.next()).toBe(undefined) // consumes rest of input
+  })
+
+  test('may only have one rule', () => {
+    expect(() => compile({
+      myError: moo.error,
+      myError2: moo.error,
+    })).toThrow("Multiple error rules not allowed: (for token 'myError2')")
+  })
+
+  test('may also match patterns', () => {
+    let lexer = compile({
+      space: / +/,
+      error: { error: true, match: /[`$]/ },
+    })
+    lexer.reset('foo')
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
+    lexer.reset('$ foo')
+    expect(lexer.next()).toMatchObject({type: 'error', value: '$' })
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' ' })
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
   })
 
 })

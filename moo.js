@@ -35,8 +35,6 @@
 
   function isRegExp(o) { return o && o.constructor === RegExp }
 
-  var ERROR = {error: true}
-  Object.freeze(ERROR)
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -92,12 +90,14 @@
       obj = { match: obj }
     }
 
+    // nb. error implies lineBreaks
     var options = assign({
       name: name,
-      lineBreaks: false,
+      lineBreaks: !!obj.error,
       pop: false,
       next: null,
       push: null,
+      error: false,
     }, obj)
 
     // convert to array
@@ -169,14 +169,13 @@
 
       if (options.error) {
         if (errorRule) {
-          throw new Error("Cannot have multiple error rules")
+          throw new Error("Multiple error rules not allowed: (for token '" + options.name + "')")
         }
         errorRule = options
         continue
       }
 
       // convert to RegExp
-      if (options.match[0] === undefined) console.log(options)
       var pat = reUnion(options.match.map(regexpOrLiteral))
 
       // validate
@@ -301,6 +300,7 @@
     if (match === null) {
       group = this.error
       if (!group) {
+        // TODO prettier syntax errors
         throw new Error('Syntax error')
       }
 
@@ -420,7 +420,7 @@
   return {
     compile: compile,
     states: compileStates,
-    error: ERROR,
+    error: Object.freeze({error: true}),
   }
 
 }))
