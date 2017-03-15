@@ -59,7 +59,7 @@ var pythonLexer = moo.compile(TOKENS);
 
 var tokenize = function(input, emit) {
   var lexer = pythonLexer.clone().feed(input);
-  var lex = function() { return lexer.lex(); }
+  var lex = function() { return lexer.next(); }
 
   var tok = lex();
   var last;

@@ -266,7 +266,7 @@
     return this.value || this.type
   }
 
-  Lexer.prototype.lex = function() {
+  Lexer.prototype.next = function() {
     var re = this.re
     var buffer = this.buffer
 
@@ -335,22 +335,13 @@
     return token
   }
 
-  Lexer.prototype.lexAll = function() {
-    var tokens = []
-    var token
-    while ((token = this.lex())) {
-      tokens.push(token)
-    }
-    return tokens
-  }
-
   if (typeof Symbol !== 'undefined' && Symbol.iterator) {
     var LexerIterator = function(lexer) {
       this.lexer = lexer
     }
 
     LexerIterator.prototype.next = function() {
-      var token = this.lexer.lex()
+      var token = this.lexer.next()
       return {value: token, done: !token}
     }
 

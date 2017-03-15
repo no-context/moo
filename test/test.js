@@ -6,6 +6,17 @@ const compile = moo.compile
 const python = require('./python')
 
 
+function lexAll(lexer) {
+  var tokens = []
+  var token
+  while ((token = lexer.next())) {
+    tokens.push(token)
+  }
+  return tokens
+}
+
+
+
 describe('moo compiler', () => {
 
   test("warns for /g, /y, /i, /m", () => {
@@ -71,7 +82,7 @@ describe('capturing groups', () => {
       space: / +/,
     })
     lexer.reset('fubar "yes" quxx moomoomoomoo')
-    let tokens = lexer.lexAll().filter(t => t.type !== 'space')
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
     expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
     expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
     expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
@@ -90,9 +101,9 @@ describe('moo lexer', () => {
 
   test('vaguely works', () => {
     simpleLexer.reset('ducks are 123 bad')
-    expect(simpleLexer.lex()).toMatchObject({ type: 'word', value: 'ducks' })
-    expect(simpleLexer.lex()).toMatchObject({ type: 'ws', value: ' ' })
-    expect(simpleLexer.lex()).toMatchObject({ type: 'word', value: 'are' })
+    expect(simpleLexer.next()).toMatchObject({ type: 'word', value: 'ducks' })
+    expect(simpleLexer.next()).toMatchObject({ type: 'ws', value: ' ' })
+    expect(simpleLexer.next()).toMatchObject({ type: 'word', value: 'are' })
   })
 
   test('is iterable', () => {
@@ -102,7 +113,7 @@ describe('moo lexer', () => {
       const [type, value] = toks.shift()
       expect(t).toMatchObject({type, value})
     }
-    expect(simpleLexer.lex()).not.toBeTruthy()
+    expect(simpleLexer.next()).not.toBeTruthy()
   })
 
   test('accepts rules in an object', () => {
@@ -112,8 +123,8 @@ describe('moo lexer', () => {
       space: / +/,
     })
     lexer.reset('ducks are 123 bad')
-    expect(lexer.lex()).toMatchObject({type: 'word', value: 'ducks'})
-    expect(lexer.lex()).toMatchObject({type: 'space', value: ' '})
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })
 
   test('accepts a list of regexps', () => {
@@ -125,7 +136,7 @@ describe('moo lexer', () => {
       space: / +/,
     })
     lexer.reset('12.04 123 3.14')
-    var tokens = lexer.lexAll().filter(t => t.type !== 'space')
+    var tokens = lexAll(lexer).filter(t => t.type !== 'space')
     expect(tokens.shift()).toMatchObject({type: 'number', value: '12.04'})
     expect(tokens.shift()).toMatchObject({type: 'number', value: '123'})
     expect(tokens.shift()).toMatchObject({type: 'number', value: '3.14'})
@@ -137,17 +148,17 @@ describe('moo lexer', () => {
       b: /b|c/,
     })
     lexer.reset('aaaaabcbcbcbc')
-    expect(lexer.lex().value).toEqual('aaaaa')
-    expect(lexer.lex().value).toEqual('b')
-    expect(lexer.lex().value).toEqual('c')
-    expect(lexer.lex().value).toEqual('b')
+    expect(lexer.next().value).toEqual('aaaaa')
+    expect(lexer.next().value).toEqual('b')
+    expect(lexer.next().value).toEqual('c')
+    expect(lexer.next().value).toEqual('b')
   })
 
   test('multiline', () => {
     var lexer = compile({
       file: { match: /([^]+)/, lineBreaks: true },
     }).reset('I like to moo\na lot')
-    expect(lexer.lex().value).toBe('I like to moo\na lot')
+    expect(lexer.next().value).toBe('I like to moo\na lot')
   })
 
   test('match EOL $', () => {
@@ -158,7 +169,7 @@ describe('moo lexer', () => {
       NL: { match: /\n/, lineBreaks: true },
       other: /[^ \n]+/,
     }).reset('x \n x\n yz x')
-    let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
+    let tokens = lexAll(lexer).filter(t => t.type !== 'WS')
     expect(tokens.map(t => [t.type, t.value])).toEqual([
       ['x', 'x'],
       ['NL', '\n'],
@@ -177,7 +188,7 @@ describe('moo lexer', () => {
       NL: { match: /\n/, lineBreaks: true },
       other: /[^ \n]+/,
     }).reset('x \n x\nx yz')
-    let tokens = lexer.lexAll().filter(t => t.type !== 'WS')
+    let tokens = lexAll(lexer).filter(t => t.type !== 'WS')
     expect(tokens.map(t => [t.type, t.value])).toEqual([
       ['x_bol', 'x'],
       ['NL', '\n'],
@@ -193,8 +204,8 @@ describe('moo lexer', () => {
       apples: /()a/,
       pears: /p/,
     }).reset('ap')
-    expect(String(lexer.lex())).toBe('apples')
-    expect(String(lexer.lex())).toBe('p')
+    expect(String(lexer.next())).toBe('apples')
+    expect(String(lexer.next())).toBe('p')
   })
 
   // TODO test / design API for errors
@@ -202,7 +213,7 @@ describe('moo lexer', () => {
 
   test('kurt tokens', () => {
     let pythonLexer = compile(python.rules)
-    let tokens = pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')).lexAll()
+    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
     expect(tokens.length).toBe(14513)
   })
 
@@ -226,7 +237,7 @@ describe('moo stateful lexer', () => {
     })
 
     lexer.reset('one=ab;two=')
-    expect(lexer.lexAll().map(({type, value}) => [type, value])).toEqual([
+    expect(lexAll(lexer).map(({type, value}) => [type, value])).toEqual([
       ['word', 'one'],
       ['eq', '='],
       ['a', 'a'],
@@ -252,7 +263,7 @@ describe('moo stateful lexer', () => {
 
   test('maintains a stack', () => {
     parens.reset('a(b(c)d)e')
-    expect(parens.lexAll().map(({type, value}) => [type, value])).toEqual([
+    expect(lexAll(parens).map(({type, value}) => [type, value])).toEqual([
       ['word', 'a'],
       ['lpar', '('],
       ['thing', 'b'],
@@ -267,7 +278,7 @@ describe('moo stateful lexer', () => {
 
   test('allows popping too many times', () => {
     parens.reset(')e')
-    expect(parens.lexAll().map(({type, value}) => [type, value])).toEqual([
+    expect(lexAll(parens).map(({type, value}) => [type, value])).toEqual([
       ['rpar', ')'],
       ['word', 'e'],
     ])
@@ -290,7 +301,7 @@ describe('moo stateful lexer', () => {
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     }).feed('`a${{c: d}}e`')
-    expect(lexer.lexAll().map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
+    expect(lexAll(lexer).map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
   })
 
 })
@@ -305,7 +316,7 @@ describe('line numbers', () => {
   })
 
   test('counts line numbers', () => {
-    var tokens = testLexer.reset('cow\nfarm\ngrass').lexAll()
+    var tokens = lexAll(testLexer.reset('cow\nfarm\ngrass'))
     expect(tokens.map(t => t.value)).toEqual(['cow', '\n', 'farm', '\n', 'grass'])
     expect(tokens.map(t => t.lineBreaks)).toEqual([0, 1, 0, 1, 0])
     expect(tokens.map(t => t.size)).toEqual([3, 1, 4, 1, 5])
@@ -319,12 +330,12 @@ describe('line numbers', () => {
       thing: { match: /[a-z\n]+/, lineBreaks: true },
     })
     lexer.reset('pie cheese\nsalad what\n ')
-    expect(lexer.lex()).toMatchObject({ value: 'pie', col: 1 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 4 })
-    expect(lexer.lex()).toMatchObject({ value: 'cheese\nsalad', col: 5, line: 1 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 6, line: 2 })
-    expect(lexer.lex()).toMatchObject({ value: 'what\n', col: 7, line: 2 })
-    expect(lexer.lex()).toMatchObject({ value: ' ', col: 1, line: 3 })
+    expect(lexer.next()).toMatchObject({ value: 'pie', col: 1 })
+    expect(lexer.next()).toMatchObject({ value: ' ', col: 4 })
+    expect(lexer.next()).toMatchObject({ value: 'cheese\nsalad', col: 5, line: 1 })
+    expect(lexer.next()).toMatchObject({ value: ' ', col: 6, line: 2 })
+    expect(lexer.next()).toMatchObject({ value: 'what\n', col: 7, line: 2 })
+    expect(lexer.next()).toMatchObject({ value: ' ', col: 1, line: 3 })
   })
 
   test('tries to warn if rule matches \\n', () => {
@@ -339,7 +350,7 @@ describe('line numbers', () => {
     })
     lexer.reset('potatoes\nsalad')
     expect(lexer).toMatchObject({buffer: 'potatoes\nsalad', line: 1, col: 1})
-    lexer.lexAll()
+    lexAll(lexer)
     expect(lexer).toMatchObject({line: 2, col: 6})
     lexer.reset('cheesecake')
     expect(lexer).toMatchObject({buffer: 'cheesecake', line: 1, col: 1})
@@ -358,7 +369,7 @@ describe('save/restore', () => {
 
   test('can be saved', () => {
     testLexer.reset('one\ntwo')
-    testLexer.lexAll()
+    lexAll(testLexer)
     expect(testLexer.save()).toEqual({line: 2, col: 4})
   })
 
@@ -385,7 +396,7 @@ describe('python tokenizer', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     let pythonLexer = compile(python.rules)
-    expect(pythonLexer.reset(example).lexAll().map(t => t.value)).toEqual(
+    expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
       ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
     )
   })

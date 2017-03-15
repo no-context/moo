@@ -46,10 +46,10 @@ And now throw some text at it:
 
 ```js
     lexer.reset('while (10) cows\nmoo')
-    lexer.lex() // -> { type: 'keyword', value: 'while' }
-    lexer.lex() // -> { type: 'WS', value: ' ' }
-    lexer.lex() // -> { type: 'lparen', value: '(' }
-    lexer.lex() // -> { type: 'number', value: '10' }
+    lexer.next() // -> { type: 'keyword', value: 'while' }
+    lexer.next() // -> { type: 'WS', value: ' ' }
+    lexer.next() // -> { type: 'lparen', value: '(' }
+    lexer.next() // -> { type: 'number', value: '10' }
     // ...
 ```
 
@@ -59,11 +59,11 @@ You can also feed it chunks of input at a time:
     lexer.reset()
     lexer.feed('while')
     lexer.feed(' 10 cows\n')
-    lexer.lex() // -> { type: 'keyword', value: 'while' }
+    lexer.next() // -> { type: 'keyword', value: 'while' }
     // ...
 ```
 
-If you've reached the end of moo's internal buffer, lex() will return `undefined`. You can always feed() it more if that happens.
+If you've reached the end of moo's internal buffer, next() will return `undefined`. You can always feed() it more if that happens.
 
 **Errors:** if no token matches, at the moment you get an `ERRORTOKEN` containing the rest of the input. Better error handling is a work-in-progress.
 
@@ -82,7 +82,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     })
     lexer.reset('"foo" "bar"')
     // ...
-    lexer.lex() // -> { type: 'string', value: 'foo" "bar' }
+    lexer.next() // -> { type: 'string', value: 'foo" "bar' }
     ```
     
     Better:
@@ -93,8 +93,8 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
       // ...
     })
     // ...
-    lexer.lex() // -> { type: 'string', value: 'foo' }
-    lexer.lex() // -> { type: 'string', value: 'bar' }
+    lexer.next() // -> { type: 'string', value: 'foo' }
+    lexer.next() // -> { type: 'string', value: 'bar' }
     ```
 
 * The **order of your rules** matters. Earlier ones will take precedence.
