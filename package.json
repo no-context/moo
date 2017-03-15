@@ -5,9 +5,7 @@
   "main": "moo.js",
   "repository": "https://github.com/tjvr/moo",
   "author": "tjvr <tim@tjvr.org>",
-  "contributors": [
-    "nathan <qselsp@gmail.com>"
-  ],
+  "contributors": ["Nathan"],
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest",
