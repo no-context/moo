@@ -101,7 +101,8 @@
     }, obj)
 
     // convert to array
-    if (options.match && !Array.isArray(options.match)) { options.match = [options.match] }
+    var match = options.match
+    options.match = Array.isArray(match) ? match : match ? [match] : []
     return options
   }
 
@@ -113,19 +114,6 @@
       // get options
       var options = ruleOptions(rule[0], rule[1])
       var match = options.match
-
-      // add error rule
-      if (options.error) {
-        var errorOptions = Object.assign({}, options)
-        delete errorOptions.match
-        result.push(errorOptions)
-
-        // error rule may also match patterns
-        if (!options.match) {
-          continue
-        }
-        delete options.error
-      }
 
       // sort literals by length to ensure longest match
       var capturingPatterns = []
@@ -141,9 +129,7 @@
 
       // append regexps to the end
       options.match = literals.concat(patterns)
-      if (options.match.length) {
-        result.push(options)
-      }
+      result.push(options)
 
       // add each capturing regexp as a separate rule
       for (var j=0; j<capturingPatterns.length; j++) {
@@ -165,15 +151,19 @@
     var parts = []
     for (var i=0; i<rules.length; i++) {
       var options = rules[i]
-      groups.push(options)
 
       if (options.error) {
         if (errorRule) {
           throw new Error("Multiple error rules not allowed: (for token '" + options.name + "')")
         }
         errorRule = options
+      }
+
+      // skip rules with no match
+      if (options.match.length === 0) {
         continue
       }
+      groups.push(options)
 
       // convert to RegExp
       var pat = reUnion(options.match.map(regexpOrLiteral))
