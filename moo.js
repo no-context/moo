@@ -67,13 +67,18 @@
     if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
       obj = { match: obj }
     }
-    return Object.assign({
+
+    var options = Object.assign({
       name: name,
       lineBreaks: false,
       pop: false,
       next: null,
       push: null,
     }, obj)
+
+    // convert to array
+    if (!Array.isArray(options.match)) { options.match = [options.match] }
+    return options
   }
 
   function sortRules(rules) {
@@ -83,34 +88,30 @@
 
       // get options
       var options = ruleOptions(rule[0], rule[1])
-
-      // convert to array
       var match = options.match
-      if (!Array.isArray(match)) { match = [match] }
 
       // sort literals by length to ensure longest match
-      var capturingRegexps = []
-      var regexps = []
+      var capturingPatterns = []
+      var patterns = []
       var literals = []
       for (var j=0; j<match.length; j++) {
         var obj = match[j]
-        if (isRegExp(obj)) {
-          if (reGroups(obj.source) === 0) regexps.push(obj)
-          else capturingRegexps.push(obj)
-        } else literals.push(obj)
+        if (!isRegExp(obj)) literals.push(obj)
+        else if (reGroups(obj.source) > 0) capturingPatterns.push(obj)
+        else patterns.push(obj)
       }
       literals.sort(compareLength)
 
       // append regexps to the end
-      options.match = literals.concat(regexps)
+      options.match = literals.concat(patterns)
       if (options.match.length) {
         result.push(options)
       }
 
       // add each capturing regexp as a separate rule
-      for (var j=0; j<capturingRegexps.length; j++) {
+      for (var j=0; j<capturingPatterns.length; j++) {
         result.push(Object.assign({}, options, {
-          match: [capturingRegexps[j]],
+          match: [capturingPatterns[j]],
         }))
       }
     }
