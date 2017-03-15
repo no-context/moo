@@ -5,11 +5,15 @@
   "main": "moo.js",
   "repository": "https://github.com/tjvr/moo",
   "author": "tjvr <tim@tjvr.org>",
+  "contributors": [
+    "nathan <qselsp@gmail.com>"
+  ],
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest",
     "lint": "eslint moo.js",
-    "benchmark": "node test/benchmark.js"
+    "benchmark": "node test/benchmark.js",
+    "moo": "echo 'Mooooo!'"
   },
   "devDependencies": {
     "benchmark": "^2.1.3",
