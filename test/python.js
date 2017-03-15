@@ -53,6 +53,7 @@ var TOKENS = [
   ["STRING", /"((?:\\["\\rn]|[^"\\])*?)"/], // strings are backslash-escaped
   ["STRING", /'((?:\\['\\rn]|[^'\\])*?)'/],
 
+  ['ERRORTOKEN', moo.error],
 ];
 
 var pythonLexer = moo.compile(TOKENS);

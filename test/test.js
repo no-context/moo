@@ -338,6 +338,7 @@ describe('line numbers', () => {
     var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
+      NL: { match: '\n', lineBreaks: true },
     })
     lexer.reset('potatoes\nsalad')
     expect(lexer).toMatchObject({buffer: 'potatoes\nsalad', line: 1, col: 1})
@@ -367,6 +368,61 @@ describe('save/restore', () => {
   test('can be restored', () => {
     testLexer.reset('\nthree', {line: 2, col: 4})
     expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+  })
+
+})
+
+
+describe('errors', () => {
+
+  test('are thrown by default', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+    })
+    lexer.reset('123foo')
+    expect(lexer.next()).toMatchObject({value: '123'})
+    expect(() => lexer.next()).toThrow()
+  })
+
+  test('can be tokens', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: moo.error,
+    })
+    expect(lexer.error).toMatchObject({name: 'error'})
+    lexer.reset('123foo')
+    expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
+  })
+
+  test('imply lineBreaks', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: moo.error,
+    })
+    lexer.reset('foo\nbar')
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1, size: 7})
+    expect(lexer.next()).toBe(undefined) // consumes rest of input
+  })
+
+  test('may only have one rule', () => {
+    expect(() => compile({
+      myError: moo.error,
+      myError2: moo.error,
+    })).toThrow("Multiple error rules not allowed: (for token 'myError2')")
+  })
+
+  test('may also match patterns', () => {
+    let lexer = compile({
+      space: / +/,
+      error: { error: true, match: /[`$]/ },
+    })
+    lexer.reset('foo')
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
+    lexer.reset('$ foo')
+    expect(lexer.next()).toMatchObject({type: 'error', value: '$' })
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' ' })
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
   })
 
 })

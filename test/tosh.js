@@ -24,6 +24,7 @@ let toshLexer = moo.compile([
   ['symbol',  /[_A-Za-z][-_A-Za-z0-9:',.]*/], // word, as in a block
   ['iden',    /[^\n \t"'()<>=*\/+-]+/],     // user-defined names
   ['NL',      { match: /\n/, lineBreaks: true }],
+  ['ERROR',   moo.error],
 ])
 
 function tokenize(source) {

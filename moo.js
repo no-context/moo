@@ -90,16 +90,19 @@
       obj = { match: obj }
     }
 
+    // nb. error implies lineBreaks
     var options = assign({
       name: name,
-      lineBreaks: false,
+      lineBreaks: !!obj.error,
       pop: false,
       next: null,
       push: null,
+      error: false,
     }, obj)
 
     // convert to array
-    if (!Array.isArray(options.match)) { options.match = [options.match] }
+    var match = options.match
+    options.match = Array.isArray(match) ? match : match ? [match] : []
     return options
   }
 
@@ -126,9 +129,7 @@
 
       // append regexps to the end
       options.match = literals.concat(patterns)
-      if (options.match.length) {
-        result.push(options)
-      }
+      result.push(options)
 
       // add each capturing regexp as a separate rule
       for (var j=0; j<capturingPatterns.length; j++) {
@@ -145,10 +146,23 @@
 
     rules = sortRules(rules)
 
+    var errorRule = null
     var groups = []
     var parts = []
     for (var i=0; i<rules.length; i++) {
       var options = rules[i]
+
+      if (options.error) {
+        if (errorRule) {
+          throw new Error("Multiple error rules not allowed: (for token '" + options.name + "')")
+        }
+        errorRule = options
+      }
+
+      // skip rules with no match
+      if (options.match.length === 0) {
+        continue
+      }
       groups.push(options)
 
       // convert to RegExp
@@ -182,7 +196,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: regexp, groups: groups}
+    return {regexp: regexp, groups: groups, error: errorRule}
   }
 
   function compile(rules) {
@@ -223,17 +237,13 @@
     this.reset()
   }
 
-  Lexer.error = {
-    name: 'ERRORTOKEN',
-    lineBreaks: true,
-  }
-
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
     var index = this.re ? this.re.lastIndex : 0
     var info = this.states[state]
     this.groups = info.groups
+    this.error = info.error
     this.re = info.regexp
     this.re.lastIndex = index
   }
@@ -278,7 +288,11 @@
     var match = this.eat(re)
     var group, value, text
     if (match === null) {
-      group = Lexer.error
+      group = this.error
+      if (!group) {
+        // TODO prettier syntax errors
+        throw new Error('Syntax error')
+      }
 
       // consume rest of buffer
       text = value = buffer.slice(start)
@@ -387,15 +401,17 @@
       map[key] = {
         groups: s.groups,
         regexp: new RegExp(s.regexp.source, s.regexp.flags),
+        error: this.error,
       }
     }
     return new Lexer(map, this.state, input)
   }
 
 
-  var moo = {} // TODO: what should moo() do?
-  moo.compile = compile
-  moo.states = compileStates
-  return moo
+  return {
+    compile: compile,
+    states: compileStates,
+    error: Object.freeze({error: true}),
+  }
 
 }))
