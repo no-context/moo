@@ -29,12 +29,6 @@ describe('moo compiler', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
   })
 
-  test('allows list of RegExps', () => {
-    expect(() => moo.compile({
-      tok: [/(foo)/, /(bar)/]
-    })).not.toThrow()
-  })
-
   test('warns about missing states', () => {
     const rules = [
       {match: '=', next: 'missing'},
@@ -56,6 +50,32 @@ describe('moo compiler', () => {
       expect(() => moo.compile({thing: rule}))
       .toThrow("State-switching options are not allowed in stateless lexers (for token 'thing')")
     }
+  })
+
+})
+
+describe('capturing groups', () => {
+
+  test('compiles list of capturing RegExps', () => {
+    expect(() => moo.compile({
+      tok: [/(foo)/, /(bar)/]
+    })).not.toThrow()
+  })
+
+  test('captures & reports correct size', () => {
+    let lexer = moo.compile({
+      fubar: /fu(bar)/,
+      string: /"(.*?)"/,
+      full: /(quxx)/,
+      moo: /moo(moo)*moo/,
+      space: / +/,
+    })
+    lexer.reset('fubar "yes" quxx moomoomoomoo')
+    let tokens = lexer.lexAll().filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
+    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
+    expect(tokens.shift()).toMatchObject({ value: 'moo', size: 12 })
   })
 
 })
