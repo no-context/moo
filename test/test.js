@@ -5,16 +5,7 @@ const moo = require('../moo')
 const compile = moo.compile
 const python = require('./python')
 
-
-function lexAll(lexer) {
-  var tokens = []
-  var token
-  while ((token = lexer.next())) {
-    tokens.push(token)
-  }
-  return tokens
-}
-
+function lexAll(lexer) {return Array.from(lexer)}
 
 
 describe('moo compiler', () => {
