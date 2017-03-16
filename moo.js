@@ -142,17 +142,16 @@
     return result
   }
 
-  function isKeyword(literal, otherRules) {
+  function getIdentifier(literal, otherRules) {
     for (var i=0; i<otherRules.length; i++) {
       var rule = otherRules[i]
       var match = rule.match
       for (var j=0; j<match.length; j++) {
         var pat = match[j]
-        if (isRegExp(pat)) {
-          var m = pat.exec(literal)
-          if (m && m[0] === literal) {
-            return rule
-          }
+        if (!isRegExp(pat)) { continue }
+        var m = pat.exec(literal)
+        if (m && m[0] === literal) {
+          return rule
         }
       }
     }
@@ -183,7 +182,7 @@
         var word = match[j]
         if (typeof word === 'string') {
           // does it match an existing rule (e.g. identifier?)
-          var other = isKeyword(word, rules)
+          var other = getIdentifier(word, rules)
           if (other) {
             if (!other.keywords) {
               other.keywords = Object.create(null)
