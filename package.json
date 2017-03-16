@@ -1,10 +1,11 @@
 {
   "name": "moo",
   "version": "0.1.0",
-  "description": "Optimising lexer generator, using /y for performance",
+  "description": "Optimised tokenizer/lexer generator! 🐄 Uses /y for performance. Moo!",
   "main": "moo.js",
-  "repository": "https://github.com/tjvr/moo",
-  "author": "tjvr <tim@tjvr.org>",
+  "files": ["moo.js"],
+  "repository": "https://github.com/tjvr/moo.git",
+  "author": "Tim Radvan <tim@tjvr.org>",
   "contributors": ["Nathan"],
   "license": "BSD-3-Clause",
   "scripts": {
