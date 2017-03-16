@@ -50,6 +50,33 @@ suite.add('moo.compileStates', () => {
 })
 
 /*****************************************************************************/
+// tokenizing JSON
+
+let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
+// let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
+
+/* moo! */
+const json = require('./json')
+suite.add('moo JSON', function() {
+  json.reset(jsonFile)
+  var count = 0
+  while (tok = json.next()) {
+    if (tok.type !== 'space') count++
+  }
+  if (count !== jsonCount) throw 'fail'
+})
+
+/* syntax-cli
+ */
+const Syntax = require('./json-syntax')
+suite.add('syntax-cli JSON', function() {
+  Syntax.initString(jsonFile)
+  var count = 0
+  while (Syntax.getNextToken().type !== '$') { count++ }
+  if (count !== jsonCount) throw 'fail'
+})
+
+/*****************************************************************************/
 
 const tosh = require('./tosh')
 let toshFile = tosh.exampleFile + tosh.exampleFile  + tosh.exampleFile + tosh.exampleFile + tosh.exampleFile
@@ -61,6 +88,7 @@ suite.add('moo tosh', function() {
 suite.add('tosh', function() {
   let oldTokens = tosh.oldTokenizer(toshFile)
 })
+
 
 /*****************************************************************************/
 // tokenizing Python
