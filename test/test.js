@@ -8,7 +8,7 @@ const python = require('./python')
 function lexAll(lexer) {return Array.from(lexer)}
 
 
-describe('moo compiler', () => {
+describe('compiler', () => {
 
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
@@ -43,13 +43,53 @@ describe('moo compiler', () => {
     }
   })
 
+  test('accepts rules in an object', () => {
+    const lexer = compile({
+      word: /[a-z]+/,
+      number: /[0-9]+/,
+      space: / +/,
+    })
+    lexer.reset('ducks are 123 bad')
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
+  test('accepts rules in an array', () => {
+    const lexer = compile([
+      ['keyword', 'Bob'],
+      ['word', /[a-z]+/],
+      ['number', /[0-9]+/],
+      ['space', / +/],
+    ])
+    lexer.reset('Bob ducks are 123 bad')
+    expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
+  test('accepts a list of RegExps', () => {
+    const lexer = compile({
+      number: [
+        /[0-9]+\.[0-9]+/,
+        /[0-9]+/,
+      ],
+      space: / +/,
+    })
+    lexer.reset('12.04 123 3.14')
+    var tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '12.04'})
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '123'})
+    expect(tokens.shift()).toMatchObject({type: 'number', value: '3.14'})
+  })
+
 })
 
-describe('literals', () => {
+describe('compiles literals', () => {
 
   // TODO test they're escaped
 
-  test('sorts regexps and strings', () => {
+  test('sorts RegExps and strings', () => {
     let lexer = moo.compile({
       tok: [/t[ok]+/, /\w/, 'foo', 'token']
     })
@@ -82,9 +122,19 @@ describe('capturing groups', () => {
 
   // TODO warns for multiple capture groups
 
-  // TODO wraps zero capture groups
+  test('no capture groups', () => {
+    let lexer = compile({
+      a: /a+/,
+      b: /b|c/,
+    })
+    lexer.reset('aaaaabcbcbcbc')
+    expect(lexer.next().value).toEqual('aaaaa')
+    expect(lexer.next().value).toEqual('b')
+    expect(lexer.next().value).toEqual('c')
+    expect(lexer.next().value).toEqual('b')
+  })
 
-  test('compiles list of capturing RegExps', () => {
+  test('list of capturing RegExps', () => {
     expect(() => moo.compile({
       tok: [/(foo)/, /(bar)/]
     })).not.toThrow()
@@ -108,7 +158,7 @@ describe('capturing groups', () => {
 
 })
 
-describe('moo lexer', () => {
+describe('lexer', () => {
 
   var simpleLexer = compile({
     word: /[a-z]+/,
@@ -116,7 +166,7 @@ describe('moo lexer', () => {
     ws: / +/,
   })
 
-  test('vaguely works', () => {
+  test('works', () => {
     simpleLexer.reset('ducks are 123 bad')
     expect(simpleLexer.next()).toMatchObject({ type: 'word', value: 'ducks' })
     expect(simpleLexer.next()).toMatchObject({ type: 'ws', value: ' ' })
@@ -133,66 +183,14 @@ describe('moo lexer', () => {
     expect(simpleLexer.next()).not.toBeTruthy()
   })
 
-  test('accepts rules in an object', () => {
-    const lexer = compile({
-      word: /[a-z]+/,
-      number: /[0-9]+/,
-      space: / +/,
-    })
-    lexer.reset('ducks are 123 bad')
-    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
-    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
-  })
-
-  test('accepts rules in an array', () => {
-    const lexer = compile([
-      ['keyword', 'Bob'],
-      ['word', /[a-z]+/],
-      ['number', /[0-9]+/],
-      ['space', / +/],
-    ])
-    lexer.reset('Bob ducks are 123 bad')
-    expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
-    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
-    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
-    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
-  })
-
-  test('accepts a list of regexps', () => {
-    const lexer = compile({
-      number: [
-        /[0-9]+\.[0-9]+/,
-        /[0-9]+/,
-      ],
-      space: / +/,
-    })
-    lexer.reset('12.04 123 3.14')
-    var tokens = lexAll(lexer).filter(t => t.type !== 'space')
-    expect(tokens.shift()).toMatchObject({type: 'number', value: '12.04'})
-    expect(tokens.shift()).toMatchObject({type: 'number', value: '123'})
-    expect(tokens.shift()).toMatchObject({type: 'number', value: '3.14'})
-  })
-
-  test('no capture groups', () => {
-    let lexer = compile({
-      a: /a+/,
-      b: /b|c/,
-    })
-    lexer.reset('aaaaabcbcbcbc')
-    expect(lexer.next().value).toEqual('aaaaa')
-    expect(lexer.next().value).toEqual('b')
-    expect(lexer.next().value).toEqual('c')
-    expect(lexer.next().value).toEqual('b')
-  })
-
-  test('multiline', () => {
+  test('multiline RegExps', () => {
     var lexer = compile({
       file: { match: /([^]+)/, lineBreaks: true },
     }).reset('I like to moo\na lot')
     expect(lexer.next().value).toBe('I like to moo\na lot')
   })
 
-  test('match EOL $', () => {
+  test('can match EOL $', () => {
     var lexer = compile({
       x_eol: /x$/,
       x: /x/,
@@ -211,7 +209,7 @@ describe('moo lexer', () => {
     ])
   })
 
-  test('match BOL ^', () => {
+  test('can match BOL ^', () => {
     var lexer = compile({
       x_bol: /^x/,
       x: /x/,
@@ -239,20 +237,10 @@ describe('moo lexer', () => {
     expect(String(lexer.next())).toBe('p')
   })
 
-  // TODO test / design API for errors
-  // - check the reported error location
-
-  test('kurt tokens', () => {
-    let pythonLexer = compile(python.rules)
-    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
-    expect(tokens.length).toBe(14513)
-  })
-
-  // TODO test clone()
 })
 
 
-describe('moo stateful lexer', () => {
+describe('stateful lexer', () => {
 
   test('switches states', () => {
     const lexer = moo.states({
@@ -388,7 +376,6 @@ describe('line numbers', () => {
     expect(lexer).toMatchObject({buffer: 'cheesecake', line: 1, col: 1})
   })
 
-  // TODO test clone()
 })
 
 
@@ -399,13 +386,13 @@ describe('save/restore', () => {
     NL: { match: '\n', lineBreaks: true },
   })
 
-  test('can be saved', () => {
+  test('can save state', () => {
     testLexer.reset('one\ntwo')
     lexAll(testLexer)
     expect(testLexer.save()).toEqual({line: 2, col: 4})
   })
 
-  test('can be restored', () => {
+  test('can restore state', () => {
     testLexer.reset('\nthree', {line: 2, col: 4})
     expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
   })
@@ -468,7 +455,13 @@ describe('errors', () => {
 })
 
 
-describe('python tokenizer', () => {
+describe('example: python', () => {
+
+  test('kurt tokens', () => {
+    let pythonLexer = compile(python.rules)
+    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
+    expect(tokens.length).toBe(14513)
+  })
 
   test("1 + 2", () => {
     expect(python.outputTokens("1 + 2")).toEqual([
@@ -489,78 +482,7 @@ describe('python tokenizer', () => {
   })
 
   test('example python file', () => {
-    expect(python.outputTokens(python.pythonFile)).toEqual([
-      // 'ENCODING "utf-8"',
-      'COMMENT "#!/usr/local/bin/python3"',
-      'NL "\\n"',
-      'NAME "import"',
-      'NAME "sys"',
-      'NEWLINE "\\n"',
-      'NAME "from"',
-      'NAME "tokenize"',
-      'NAME "import"',
-      'NAME "tokenize"',
-      'OP ","',
-      'NAME "tok_name"',
-      'NEWLINE "\\n"',
-      'NAME "import"',
-      'NAME "json"',
-      'NEWLINE "\\n"',
-      'NAME "from"',
-      'NAME "io"',
-      'NAME "import"',
-      'NAME "BytesIO"',
-      'NEWLINE "\\n"',
-      'NL "\\n"',
-      'NAME "path"',
-      'OP "="',
-      'NAME "sys"',
-      'OP "."',
-      'NAME "argv"',
-      'OP "["',
-      'NUMBER "1"',
-      'OP "]"',
-      'NEWLINE "\\n"',
-      'NAME "for"',
-      'NAME "info"',
-      'NAME "in"',
-      'NAME "tokenize"',
-      'OP "("',
-      'NAME "open"',
-      'OP "("',
-      'NAME "path"',
-      'OP ","',
-      'STRING "rb"',
-      'OP ")"',
-      'OP "."',
-      'NAME "readline"',
-      'OP ")"',
-      'OP ":"',
-      'NEWLINE "\\n"',
-      'INDENT "    "',
-      'NAME "print"',
-      'OP "("',
-      'NAME "tok_name"',
-      'OP "["',
-      'NAME "info"',
-      'OP "."',
-      'NAME "type"',
-      'OP "]"',
-      'OP ","',
-      'NAME "json"',
-      'OP "."',
-      'NAME "dumps"',
-      'OP "("',
-      'NAME "info"',
-      'OP "."',
-      'NAME "string"',
-      'OP ")"',
-      'OP ")"',
-      'NEWLINE "\\n"',
-      // 'NL "\\n"',
-      'DEDENT ""',
-      'ENDMARKER ""',
-    ])
+    expect(python.outputTokens(python.pythonFile)).toEqual(python.pythonTokens)
   })
 
   test("kurt python", () => {
@@ -578,11 +500,11 @@ describe('python tokenizer', () => {
 })
 
 
-describe('tosh tokenizer', () => {
+describe('example: tosh', () => {
 
   const tosh = require('./tosh')
 
-  test('tosh', () => {
+  test('outputs same as tosh tokenizer', () => {
     let oldTokens = tosh.oldTokenizer(tosh.exampleFile)
     expect(tosh.tokenize(tosh.exampleFile)).toEqual(oldTokens)
   })
