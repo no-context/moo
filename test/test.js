@@ -237,6 +237,20 @@ describe('lexer', () => {
     expect(String(lexer.next())).toBe('p')
   })
 
+  test('can be cloned', () => {
+    let lexer = compile({
+      foo: /[a-z]/,
+      bar: /[0-9]/,
+    })
+    lexer.reset('abc')
+    let clone = lexer.clone()
+    clone.reset('123')
+    expect(lexer.next()).toMatchObject({value: 'a'})
+    expect(clone.next()).toMatchObject({value: '1'})
+    expect(lexer.next()).toMatchObject({value: 'b'})
+    expect(clone.next()).toMatchObject({value: '2'})
+  })
+
 })
 
 
