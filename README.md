@@ -102,6 +102,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
     lexer.reset('"foo" "bar"')
     lexer.next() // -> { type: 'string', value: 'foo' }
+    lexer.next() // -> { type: 'space', value: ' ' }
     lexer.next() // -> { type: 'string', value: 'bar' }
     ```
 
