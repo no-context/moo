@@ -429,10 +429,6 @@
     return this
   }
 
-  Lexer.prototype.remaining = function() {
-    return this.buffer.slice(this.re.lastIndex)
-  }
-
   Lexer.prototype.clone = function(input) {
     var map = Object.create(null)
     var keys = Object.getOwnPropertyNames(this.states)
