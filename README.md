@@ -5,19 +5,28 @@ Moo!
 
 Moo is a highly-optimised tokenizer/lexer generator. Use it to tokenize your strings, before parsing 'em with a parser like [nearley](https://github.com/hardmath123/nearley) or whatever else you're into.
 
-Define your tokens **using regular expressions**. Moo will compile 'em down to a **single RegExp for performance**. It uses the new ES6 **sticky flag** where possible to make things faster; otherwise it falls back to an almost-as-efficient workaround. (For more than you ever wanted to know about this, read [adventures in the land of substrings and RegExps](http://mrale.ph/blog/2016/11/23/making-less-dart-faster.html).)
-
-Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness-of-parsing-real-world-javascript-regexps-d9ee336df983#.2l8qu3l76). Because that would be horrible.
-
+* [Fast](#is-it-fast)
+* [Convenient](#usage)
+* uses [Regular Expressions](#on-regular-expressions)
+* tracks [Line Numbers](#line-numbers)
+* handles [Keywords](#keywords)
+* supports [States](#states)
+* custom [Errors](#errors)
+* is even [Iterable](#iteration)
+* Moo!
 
 Is it fast?
 -----------
 
 Yup! Flying-cows-and-singed-steak fast.
 
-It's about **~10x faster** than most of the other JS tokenizers I can find. It's about **2x faster** than a naïve RegExp-based tokenizer.
+Moo is the fastest JS tokenizer around. It's **~2–10x** faster than most other tokenizers; it's a **couple orders of magnitude** faster than some of the slower ones.
 
-You can go faster still by writing your lexer by hand, but that's icky.
+Define your tokens **using regular expressions**. Moo will compile 'em down to a **single RegExp for performance**. It uses the new ES6 **sticky flag** where possible to make things faster; otherwise it falls back to an almost-as-efficient workaround. (For more than you ever wanted to know about this, read [adventures in the land of substrings and RegExps](http://mrale.ph/blog/2016/11/23/making-less-dart-faster.html).)
+
+You _might_ be able to go faster still by writing your lexer by hand rather than using RegExps, but that's icky.
+
+Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness-of-parsing-real-world-javascript-regexps-d9ee336df983#.2l8qu3l76). Because that would be horrible.
 
 
 Usage
@@ -53,7 +62,7 @@ And now throw some text at it:
     // ...
 ```
 
-You can also feed it chunks of input at a time:
+You can also feed it chunks of input at a time.
 
 ```j
     lexer.reset()
@@ -63,9 +72,7 @@ You can also feed it chunks of input at a time:
     // ...
 ```
 
-If you've reached the end of moo's internal buffer, next() will return `undefined`. You can always feed() it more if that happens.
-
-**Errors:** if no token matches, at the moment you get an `ERRORTOKEN` containing the rest of the input. Better error handling is a work-in-progress.
+If you've reached the end of Moo's internal buffer, next() will return `undefined`. You can always feed() it more if that happens.
 
 
 On Regular Expressions
@@ -80,8 +87,8 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
       string: /"(.*)"/,   // greedy quantifier *
       // ...
     })
+
     lexer.reset('"foo" "bar"')
-    // ...
     lexer.next() // -> { type: 'string', value: 'foo" "bar' }
     ```
     
@@ -92,7 +99,8 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
       string: /"(.*?)"/,   // non-greedy quantifier *?
       // ...
     })
-    // ...
+
+    lexer.reset('"foo" "bar"')
     lexer.next() // -> { type: 'string', value: 'foo' }
     lexer.next() // -> { type: 'string', value: 'bar' }
     ```
@@ -103,17 +111,52 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     moo.compile({
         word:  /[a-z]+/,
         foo:   'foo',
-    }).reset('foo').lexAll() // -> [{ type: 'word', value: 'foo' }]
+    }).reset('foo').next() // -> { type: 'word', value: 'foo' }
 
     moo.compile({
         foo:   'foo',
         word:  /[a-z]+/,
-    }).reset('foo').lexAll() // -> [{ type: 'foo', value: 'foo' }]
+    }).reset('foo').next() // -> { type: 'foo', value: 'foo' }
     ```
 
-* Moo uses **multiline RegExps**. This has a few quirks: for example, `/./` doesn't include newlines. Use `[^]` instead if you want this.
+* Moo uses **multiline RegExps**. This has a few quirks: for example, the **dot `/./` doesn't include newlines**. Use `[^]` instead if you want to match newlines too.
 
 * Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
+
+
+Line Numbers
+------------
+
+Moo tracks detailed information about the input for you.
+
+It will track line numbers, as long as you apply the `lineBreaks: true` option to any tokens which might contain newlines. Moo will try to warn you if you forget to do this.
+
+Token objects (returned from `next()`) have the following attributes:
+
+* **`type`**: the name of the group, as passed to compile.
+* **`value`**: the contents of the capturing group (or the whole match, if the token RegExp doesn't define a capture).
+* **`size`**: the total length of the match (`value` may be shorter if you have capturing groups).
+* **`offset`**: the number of bytes from the start of the buffer where the match starts.
+* **`lineBreaks`**: the number of line breaks found in the match. (Always zero if this rule has `lineBreaks: false`.)
+* **`line`**: the line number of the beginning of the match, starting from 1.
+* **`col`**: the column where the match begins, starting from 1.
+
+
+### Reset ###
+
+Calling `reset()` on your lexer will empty its internal buffer, and set the line, column, and offset counts back to their initial value.
+
+If you don't want this, you can `save()` the state, and later pass it as the second argument to `reset()` to explicitly control the internal state of the lexer.
+
+```js
+    let state = lexer.save() // -> { line: 10 }
+    lexer.feed('some line\n')
+    lexer.next() // -> { line: 10 }
+    lexer.next() // -> { line: 11 }
+    // ...
+    lexer.reset('a different line\n', state)
+    lexer.next() // -> { line: 10 }
+```
 
 
 Keywords
@@ -122,11 +165,11 @@ Keywords
 Moo makes it convenient to define literals and keywords.
 
 ```js
-      // ...
+    moo.compile({
       ['lparen',  '('],
       ['rparen',  ')'],
       ['keyword', ['while', 'if', 'else', 'moo', 'cows']],
-      // ...
+    })
 ```
 
 It'll automatically compile them into regular expressions, escaping them where necessary.
@@ -143,7 +186,9 @@ And **not** like this:
     /while|if|else|moo|cows/
 ```
 
-The reason: moo special-cases keywords to ensure the **longest match** principle applies, even in edge cases.
+### Why? ###
+
+The reason: Moo special-cases keywords to ensure the **longest match** principle applies, even in edge cases.
 
 Imagine trying to parse the input `className` with the following rules:
 
@@ -158,7 +203,7 @@ Moo solves this by checking to see if any of your literals can be matched by one
 States
 ------
 
-Sometimes you want your lexer to support different states. This is useful for string interpolation, for example: to tokenize `a${{c: d}}e`:
+Sometimes you want your lexer to support different states. This is useful for string interpolation, for example: to tokenize `a${{c: d}}e`, you might use:
 
 ```js
     let lexer = moo.states({
@@ -183,11 +228,59 @@ Sometimes you want your lexer to support different states. This is useful for st
 
 It's also nice to let states inherit rules from other states and be able to count things, e.g. the interpolated expression state needs a `}` rule that can tell if it's a closing brace or the end of the interpolation, but is otherwise identical to the normal expression state.
 
-To support this, moo allows annotating tokens with `push`, `pop` and `next`:
+To support this, Moo allows annotating tokens with `push`, `pop` and `next`:
 
-* **`push`** changes the lexer state, and pushes the old state onto the stack.
-* **`pop`** returns to a previous state, by removing some number of states from the stack.
-* **`next`** switches the lexer state before the next token, but does not affect the stack.
+* **`push`** moves the lexer to a new state, and pushes the old state onto the stack.
+* **`pop`** returns to a previous state, by removing one or more states from the stack.
+* **`next`** moves to a new state, but does not affect the stack.
+
+
+Errors
+------
+
+If no token matches, Moo will throw an Error.
+
+If you'd rather treat errors as just another kind of token, you can ask Moo to do so.
+
+```js
+    moo.compile({
+      // ...
+      myError: moo.error,
+    })
+    
+    moo.reset('invalid')
+    moo.next() // -> { type: 'myError', value: 'invalid' }
+```
+
+
+You can have a token type that both matches tokens _and_ contains error values.
+
+```js
+    moo.compile({
+      // ...
+      myError: {match: /[\$?`]/, error: true},
+    })
+```
+
+
+Iteration
+---------
+
+Iterators: we got 'em.
+
+```js
+    for (let here of lexer) {
+      // here = { type: 'number', value: '123', ... }
+    }
+```
+
+Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
+
+```js
+    for (let [here, next] = itt(lexer).lookahead()) { // pass a number if you need more tokens
+      // enjoy!
+    }
+```
 
 
 Contributing
