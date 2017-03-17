@@ -273,6 +273,23 @@
     this.reset()
   }
 
+  if (typeof require !== 'undefined') {
+    var Transform = require('stream').Transform
+
+    Lexer.prototype.stream = function(state) {
+      var self = this.reset('', state)
+      return new Transform({
+        readableObjectMode: true,
+        transform(chunk, encoding, cb) {
+          self.feed(chunk.toString())
+          var token
+          while (token = self.next()) this.push(token)
+          cb()
+        }
+      })
+    }
+  }
+
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state

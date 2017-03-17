@@ -469,6 +469,73 @@ describe('errors', () => {
 })
 
 
+describe('streams', () => {
+  const lexer = compile({
+    word: /[a-z]+/,
+    space: {match: /\s+/, lineBreaks: true},
+  })
+  const {Readable, Writable} = require('stream')
+
+  const inputs = ['this is\n', 'a test']
+  const tokens = [
+    {type: 'word', value: 'this'},
+    {type: 'space', value: ' '},
+    {type: 'word', value: 'is'},
+    {type: 'space', value: '\n'},
+    {type: 'word', value: 'a'},
+    {type: 'space', value: ' '},
+    {type: 'word', value: 'test'},
+  ]
+
+  test('can be written and read', () => new Promise((resolve, reject) => {
+    let index = 0
+    expect.assertions(tokens.length)
+
+    const s = lexer.stream()
+    s.write(inputs[0])
+    s.end(inputs[1])
+
+    s.on('data', tok => {
+      try {
+        expect(tok).toMatchObject(tokens[index++])
+      } catch (e) {reject(e)}
+    })
+    .on('error', reject)
+    .on('end', resolve)
+  }))
+
+  test('can be piped to/from', () => new Promise((resolve, reject) => {
+    let input = 0
+    const rs = new Readable({
+      read() {
+        try {
+          this.push(input < inputs.length ?
+            Buffer.from(inputs[input++], 'ascii') : null)
+        } catch (e) {console.log('read', e) || reject(e)}
+      }
+    })
+
+    let index = 0
+    expect.assertions(tokens.length)
+    const ws = new Writable({
+      objectMode: true,
+      write(tok, _, cb) {
+        try {
+          expect(tok).toMatchObject(tokens[index++])
+          cb()
+        } catch (e) {cb(e)}
+      }
+    })
+
+    rs
+    .on('error', reject).pipe(lexer.stream())
+    .on('error', reject).pipe(ws)
+    .on('error', reject)
+    .on('finish', resolve)
+  }))
+})
+
+
 describe('example: python', () => {
 
   test('kurt tokens', () => {
