@@ -18,18 +18,7 @@ describe('moo compiler', () => {
     expect(() => compile({ word: /foo/m })).toThrow()
   })
 
-  // TODO warns for multiple capture groups
-
-  // TODO wraps zero capture groups
-
   // TODO warns if no lineBreaks: true
-
-  test('sorts regexps and strings', () => {
-    let lexer = moo.compile({
-      tok: [/t[ok]+/, /\w/, 'tok', 'token']
-    })
-    expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|tok|t[ok]+|\\w')
-  })
 
   test('warns about missing states', () => {
     const rules = [
@@ -56,7 +45,44 @@ describe('moo compiler', () => {
 
 })
 
+describe('literals', () => {
+
+  // TODO test they're escaped
+
+  test('sorts regexps and strings', () => {
+    let lexer = moo.compile({
+      tok: [/t[ok]+/, /\w/, 'foo', 'token']
+    })
+    expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|foo|t[ok]+|\\w')
+  })
+
+  test("deals with keyword literals", () => {
+    function check(lexer) {
+      lexer.reset('class')
+      expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'class' })
+      expect(lexer.next()).not.toBeTruthy()
+      lexer.reset('className')
+      expect(lexer.next()).toMatchObject({ type: 'identifier', value: 'className' })
+      expect(lexer.next()).not.toBeTruthy()
+    }
+
+    check(compile([
+      ['keyword',     ['class']],
+      ['identifier',  /[a-zA-Z]+/],
+    ]))
+    check(compile([
+      ['identifier',  /[a-zA-Z]+/],
+      ['keyword',     ['class']],
+    ]))
+  })
+
+})
+
 describe('capturing groups', () => {
+
+  // TODO warns for multiple capture groups
+
+  // TODO wraps zero capture groups
 
   test('compiles list of capturing RegExps', () => {
     expect(() => moo.compile({
@@ -114,6 +140,20 @@ describe('moo lexer', () => {
       space: / +/,
     })
     lexer.reset('ducks are 123 bad')
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
+  test('accepts rules in an array', () => {
+    const lexer = compile([
+      ['keyword', 'Bob'],
+      ['word', /[a-z]+/],
+      ['number', /[0-9]+/],
+      ['space', / +/],
+    ])
+    lexer.reset('Bob ducks are 123 bad')
+    expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
     expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
     expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })

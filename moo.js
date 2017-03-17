@@ -99,6 +99,7 @@
       push: null,
       error: false,
     }, obj)
+    options.keywords = null
 
     // convert to array
     var match = options.match
@@ -141,6 +142,21 @@
     return result
   }
 
+  function getIdentifier(literal, otherRules) {
+    for (var i=0; i<otherRules.length; i++) {
+      var rule = otherRules[i]
+      var match = rule.match
+      for (var j=0; j<match.length; j++) {
+        var pat = match[j]
+        if (!isRegExp(pat)) { continue }
+        var m = pat.exec(literal)
+        if (m && m[0] === literal) {
+          return rule
+        }
+      }
+    }
+  }
+
   function compileRules(rules, hasStates) {
     if (!Array.isArray(rules)) rules = objectToRules(rules)
 
@@ -158,6 +174,26 @@
         }
         errorRule = options
       }
+
+      // look for keywords
+      var match = options.match
+      var notKeywords = []
+      for (var j=0; j<match.length; j++) {
+        var word = match[j]
+        if (typeof word === 'string') {
+          // does it match an existing rule (e.g. identifier?)
+          var other = getIdentifier(word, rules)
+          if (other) {
+            if (!other.keywords) {
+              other.keywords = Object.create(null)
+            }
+            other.keywords[word] = options
+            continue
+          }
+        }
+        notKeywords.push(word)
+      }
+      options.match = notKeywords
 
       // skip rules with no match
       if (options.match.length === 0) {
@@ -305,11 +341,16 @@
         value = match[i + 1]
         if (value !== undefined) {
           group = groups[i]
+          // TODO is `buffer` being leaked here?
           break
         }
       }
       // assert(i < groupCount)
-      // TODO is `buffer` being leaked here?
+
+      // check for keywords
+      if (group.keywords) {
+        group = group.keywords[text] || group
+      }
     }
 
     // count line breaks
