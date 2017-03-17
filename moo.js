@@ -92,7 +92,7 @@
 
     // nb. error implies lineBreaks
     var options = assign({
-      name: name,
+      tokenType: name,
       lineBreaks: !!obj.error,
       pop: false,
       next: null,
@@ -170,7 +170,7 @@
 
       if (options.error) {
         if (errorRule) {
-          throw new Error("Multiple error rules not allowed: (for token '" + options.name + "')")
+          throw new Error("Multiple error rules not allowed: (for token '" + options.tokenType + "')")
         }
         errorRule = options
       }
@@ -214,7 +214,7 @@
         throw new Error("RegExp has more than one capture group: " + regexp)
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.name + "')")
+        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
       }
 
       // try and detect rules matching newlines
@@ -256,7 +256,7 @@
         var g = groups[i]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
-          throw new Error("Missing state '" + state + "' (in token '" + g.name + "' of state '" + keys[i] + "')")
+          throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
       }
     }
@@ -367,7 +367,7 @@
 
     var size = text.length
     var token = {
-      type: group.name,
+      type: group.tokenType,
       value: value,
       toString: tokenToString,
       offset: start,
