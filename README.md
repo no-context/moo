@@ -32,7 +32,7 @@ Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness
 Usage
 -----
 
-First, you need to do the needful: ~~`$ npm install moo`, `$ yarn install moo`, or whatever will ship this code to your computer~~ _Hold up a second; we haven't published to NPM yet!_ Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; it's completely standalone.
+First, you need to do the needful: `$ npm install moo`, `$ yarn install moo`, or whatever will ship this code to your computer. Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; it's completely standalone.
 
 Then you can start roasting your very own lexer/tokenizer:
 
