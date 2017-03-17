@@ -4,8 +4,100 @@ const Benchmark = require('benchmark')
 
 const moo = require('../moo')
 
-let suite = new Benchmark.Suite()
+function run(suite) {
+  console.log('\n' + suite.name)
+  suite.on('cycle', function(event) {
+      var bench = event.target;
+      if (bench.error) {
+          console.log('  ✘ ', bench.name)
+          console.log(bench.error.stack)
+          console.log('')
+      } else {
+          console.log('  ✔ ' + bench)
+      }
+  })
+  .on('complete', function() {
+      // TODO: report geometric mean.
+  })
+  .run()
+}
 
+/*****************************************************************************/
+
+var suite = new Benchmark.Suite('startup')
+
+suite.add('moo.compileStates', () => {
+  moo.states({
+    main: {
+      strstart: {match: '`', push: 'lit'},
+      ident:    /\w+/,
+      lbrace:   {match: '{', push: 'main'},
+      rbrace:   {match: '}', pop: 1},
+      colon:    ':',
+      space:    {match: /\s+/, lineBreaks: true},
+    },
+    lit: {
+      interp:   {match: '${', push: 'main'},
+      escape:   /\\./,
+      strend:   {match: '`', pop: 1},
+      const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+    },
+  })
+})
+
+run(suite)
+
+/*****************************************************************************/
+// tokenizing JSON
+
+var suite = new Benchmark.Suite('JSON')
+
+let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
+// let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
+
+/* moo! */
+const json = require('./json')
+suite.add('🐮 ', function() {
+  json.reset(jsonFile)
+  var count = 0
+  while (tok = json.next()) {
+    if (tok.type !== 'space') count++
+  }
+  if (count !== jsonCount) throw 'fail'
+})
+
+/* syntax-cli
+ */
+const Syntax = require('./json-syntax')
+suite.add('syntax-cli', function() {
+  Syntax.initString(jsonFile)
+  var count = 0
+  while (Syntax.getNextToken().type !== '$') { count++ }
+  if (count !== jsonCount) throw 'fail'
+})
+
+run(suite)
+
+/*****************************************************************************/
+
+suite = new Benchmark.Suite('tosh')
+
+const tosh = require('./tosh')
+let toshFile = tosh.exampleFile + tosh.exampleFile  + tosh.exampleFile + tosh.exampleFile + tosh.exampleFile
+
+suite.add('🐮 ', function() {
+  tosh.tokenize(toshFile)
+})
+
+suite.add('tosh', function() {
+  let oldTokens = tosh.oldTokenizer(toshFile)
+})
+
+run(suite)
+
+
+/*****************************************************************************/
+// tokenizing Python
 
 const python = require('./python')
 let pythonLexer = moo.compile(python.rules)
@@ -28,73 +120,10 @@ for (let [name, pat] of python.rules) {
   }
 }
 
-/*****************************************************************************/
-
-suite.add('moo.compileStates', () => {
-  moo.states({
-    main: {
-      strstart: {match: '`', push: 'lit'},
-      ident:    /\w+/,
-      lbrace:   {match: '{', push: 'main'},
-      rbrace:   {match: '}', pop: 1},
-      colon:    ':',
-      space:    {match: /\s+/, lineBreaks: true},
-    },
-    lit: {
-      interp:   {match: '${', push: 'main'},
-      escape:   /\\./,
-      strend:   {match: '`', pop: 1},
-      const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
-    },
-  })
-})
-
-/*****************************************************************************/
-// tokenizing JSON
-
-let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
-// let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
+suite = new Benchmark.Suite('Python')
 
 /* moo! */
-const json = require('./json')
-suite.add('moo JSON', function() {
-  json.reset(jsonFile)
-  var count = 0
-  while (tok = json.next()) {
-    if (tok.type !== 'space') count++
-  }
-  if (count !== jsonCount) throw 'fail'
-})
-
-/* syntax-cli
- */
-const Syntax = require('./json-syntax')
-suite.add('syntax-cli JSON', function() {
-  Syntax.initString(jsonFile)
-  var count = 0
-  while (Syntax.getNextToken().type !== '$') { count++ }
-  if (count !== jsonCount) throw 'fail'
-})
-
-/*****************************************************************************/
-
-const tosh = require('./tosh')
-let toshFile = tosh.exampleFile + tosh.exampleFile  + tosh.exampleFile + tosh.exampleFile + tosh.exampleFile
-
-suite.add('moo tosh', function() {
-  tosh.tokenize(toshFile)
-})
-
-suite.add('tosh', function() {
-  let oldTokens = tosh.oldTokenizer(toshFile)
-})
-
-
-/*****************************************************************************/
-// tokenizing Python
-
-/* moo! */
-suite.add('moo', function() {
+suite.add('🐮 ', function() {
   pythonLexer.reset(kurtFile)
   while (pythonLexer.next()) {}
 })
@@ -201,20 +230,5 @@ suite.add('lexing', function() {
 })
  */
 
-
-suite.on('cycle', function(event) {
-    var bench = event.target;
-    if (bench.error) {
-        console.log('  ✘ ', bench.name)
-        console.log(bench.error.stack)
-        console.log('')
-    } else {
-        console.log('  ✔ ' + bench)
-    }
-})
-.on('complete', function() {
-    // TODO: report geometric mean.
-})
-.run()
-
+run(suite)
 
