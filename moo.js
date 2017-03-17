@@ -273,7 +273,7 @@
     this.reset()
   }
 
-  if (typeof require !== 'undefined') {
+  if (typeof module !== 'undefined' && module.exports) {
     var Transform = require('stream').Transform
 
     Lexer.prototype.stream = function(state) {
