@@ -276,12 +276,10 @@
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
-    var index = this.re ? this.re.lastIndex : 0
     var info = this.states[state]
     this.groups = info.groups
     this.error = info.error
     this.re = info.regexp
-    this.re.lastIndex = index
   }
 
   Lexer.prototype.popState = function() {
@@ -316,11 +314,11 @@
     var re = this.re
     var buffer = this.buffer
 
-    if (re.lastIndex === buffer.length) {
+    if (this.index === buffer.length) {
       return // EOF
     }
 
-    var start = re.lastIndex
+    var index = re.lastIndex = this.index
     var match = this.eat(re)
     var group, value, text
     if (match === null) {
@@ -331,7 +329,7 @@
       }
 
       // consume rest of buffer
-      text = value = buffer.slice(start)
+      text = value = buffer.slice(index)
       re.lastIndex = buffer.length
 
     } else {
@@ -370,7 +368,7 @@
       type: group.tokenType,
       value: value,
       toString: tokenToString,
-      offset: start,
+      offset: index,
       size: size,
       lineBreaks: lineBreaks,
       line: this.line,
@@ -381,6 +379,7 @@
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
 
+    this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
       this.col = size - nl + 1
@@ -405,13 +404,9 @@
     }
   }
 
-  Lexer.prototype.index = function() {
-    return this.re.lastIndex
-  }
-
   Lexer.prototype.reset = function(data, state) {
     this.buffer = data || ''
-    this.re.lastIndex = 0
+    this.index = 0
     this.line = state ? state.line : 1
     this.col = state ? state.col : 1
     return this
@@ -437,7 +432,7 @@
       var s = this.states[key]
       map[key] = {
         groups: s.groups,
-        regexp: new RegExp(s.regexp.source, s.regexp.flags),
+        regexp: s.regexp,
         error: s.error,
       }
     }
