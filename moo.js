@@ -425,18 +425,7 @@
   }
 
   Lexer.prototype.clone = function(input) {
-    var map = Object.create(null)
-    var keys = Object.getOwnPropertyNames(this.states)
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i]
-      var s = this.states[key]
-      map[key] = {
-        groups: s.groups,
-        regexp: s.regexp,
-        error: s.error,
-      }
-    }
-    return new Lexer(map, this.state, input)
+    return new Lexer(this.states, this.state, input)
   }
 
 
