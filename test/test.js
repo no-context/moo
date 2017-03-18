@@ -491,7 +491,7 @@ describe('streams', () => {
     let index = 0
     expect.assertions(tokens.length)
 
-    const s = lexer.stream()
+    const s = lexer.clone()
     s.write(inputs[0])
     s.end(inputs[1])
 
@@ -528,7 +528,7 @@ describe('streams', () => {
     })
 
     rs
-    .on('error', reject).pipe(lexer.stream())
+    .on('error', reject).pipe(lexer.clone())
     .on('error', reject).pipe(ws)
     .on('error', reject)
     .on('finish', resolve)
