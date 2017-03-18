@@ -405,10 +405,6 @@
     }
   }
 
-  Lexer.prototype.index = function() {
-    return this.re.lastIndex
-  }
-
   Lexer.prototype.reset = function(data, state) {
     this.buffer = data || ''
     this.re.lastIndex = 0
