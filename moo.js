@@ -321,14 +321,21 @@
     var group, value, text
     if (match === null) {
       group = this.error
-      if (!group) {
-        // TODO prettier syntax errors
-        throw new Error('Syntax error')
-      }
 
       // consume rest of buffer
       text = value = buffer.slice(start)
       re.lastIndex = buffer.length
+
+      // throw, if no rule with {error: true}
+      if (!group) {
+        var index = text.indexOf('\n')
+        var firstLine = index === -1 ? text : text.slice(0, index)
+        var err = new Error("Invalid syntax: line " + this.line + ": '" + firstLine + "'")
+        throw assign(err, {
+          line: this.line,
+          col: this.col,
+        })
+      }
 
     } else {
       text = match[0]

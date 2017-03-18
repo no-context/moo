@@ -10,6 +10,8 @@ function lexAll(lexer) {return Array.from(lexer)}
 
 describe('compiler', () => {
 
+  // TODO handles empty rule set
+
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow()
@@ -420,9 +422,20 @@ describe('errors', () => {
     let lexer = compile({
       digits: /[0-9]+/,
     })
-    lexer.reset('123foo')
+    lexer.reset('123baa')
     expect(lexer.next()).toMatchObject({value: '123'})
-    expect(() => lexer.next()).toThrow()
+    expect(() => lexer.next()).toThrow("Invalid syntax: line 1: 'baa'")
+  })
+
+  test('have lots of useful attributes', () => {
+    let lexer = compile({ digit: /[0-9]+/ })
+    lexer.reset('40invalid')
+    expect(lexer.next()).toMatchObject({ value: '40' })
+    try {
+      lexer.next()
+    } catch (err) {
+      expect(err).toMatchObject({ line: 1, col: 3 })
+    }
   })
 
   test('can be tokens', () => {
