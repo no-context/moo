@@ -424,8 +424,8 @@
     return this
   }
 
-  Lexer.prototype.clone = function(input) {
-    return new Lexer(this.states, this.state, input)
+  Lexer.prototype.clone = function() {
+    return new Lexer(this.states, this.state)
   }
 
 
