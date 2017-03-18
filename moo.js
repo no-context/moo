@@ -293,20 +293,16 @@
     this.setState(state)
   }
 
-  Lexer.prototype.eat = hasSticky ? function(re) {
-    // assume re is /y
+  Lexer.prototype.eat = hasSticky ? function(re) { // assume re is /y
     return re.exec(this.buffer)
-  } : function(re) {
-    // assume re is /g
+  } : function(re) { // assume re is /g
     var match = re.exec(this.buffer)
-    // assert(match)
-    // assert(match.index === 0)
+    // will always match, since we used the |(?:) trick
     if (match[0].length === 0) {
       return null
     }
     return match
   }
-  // TODO: try instead the |(?:) trick?
 
   function tokenToString() {
     return this.value || this.type
