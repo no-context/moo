@@ -13,6 +13,7 @@ Moo is a highly-optimised tokenizer/lexer generator. Use it to tokenize your str
 * supports [States](#states)
 * custom [Errors](#errors)
 * is even [Iterable](#iteration)
+* <3KB gzipped
 * Moo!
 
 Is it fast?
