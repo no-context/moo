@@ -81,7 +81,7 @@ run(suite)
 
 var suite = new Benchmark.Suite('json')
 
-let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
+let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 4557
 // let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
 
 /* moo! */
@@ -89,10 +89,8 @@ const jsonLexer = require('./json')
 suite.add('🐮 ', function() {
   jsonLexer.reset(jsonFile)
   var count = 0
-  while (tok = jsonLexer.next()) {
-    if (tok.type !== 'space') count++
-  }
-  if (count !== jsonCount) throw 'fail'
+  while (tok = jsonLexer.next()) { count++ }
+  if (count !== jsonCount) { throw 'fail' }
 })
 
 /* syntax-cli
