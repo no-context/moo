@@ -32,6 +32,25 @@ function run(suite) {
   .run()
 }
 
+const chevrotain = require('chevrotain')
+
+function reEscape(pat) {
+  if (typeof pat === 'string') {
+    pat = pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  }
+  return pat
+}
+
+function chevrotainFromMoo(lexer) {
+  const tokens = []
+  lexer.groups.forEach(group => {
+    var options = group.match.map(pat => typeof pat === 'string' ? reEscape(pat) : pat.source)
+    var pat = new RegExp(options.join('|'))
+    tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
+  })
+  return new chevrotain.Lexer(tokens)
+}
+
 /*****************************************************************************/
 
 var suite = new Benchmark.Suite('startup')
@@ -66,11 +85,11 @@ let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
 // let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
 
 /* moo! */
-const json = require('./json')
+const jsonLexer = require('./json')
 suite.add('🐮 ', function() {
-  json.reset(jsonFile)
+  jsonLexer.reset(jsonFile)
   var count = 0
-  while (tok = json.next()) {
+  while (tok = jsonLexer.next()) {
     if (tok.type !== 'space') count++
   }
   if (count !== jsonCount) throw 'fail'
@@ -113,13 +132,6 @@ const python = require('./python')
 let pythonLexer = moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
-
-function reEscape(pat) {
-  if (typeof pat === 'string') {
-    pat = pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-  }
-  return pat
-}
 
 let pythonGroups = []
 for (let [name, pat] of python.rules) {
@@ -200,17 +212,13 @@ suite.add('tokenizer2', function() {
 
 /* chevrotain's lexer
  */
-const chev = require('chevrotain')
-let createToken = chev.createLazyToken
-let chevTokens = []
-for (let group of pythonGroups) {
-  chevTokens.push(createToken({ name: group.name, pattern: new RegExp(group.regexp) }))
-}
-let chevLexer = new chev.Lexer(chevTokens);
+let chevLexer = chevrotainFromMoo(pythonLexer)
 suite.add('chevrotain', function() {
   let count = chevLexer.tokenize(kurtFile).tokens.length
   if (count !== 14513) throw 'fail'
 })
+
+
 
 
 /* lexing
