@@ -86,6 +86,7 @@ let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 4557
 
 /* moo! */
 const jsonLexer = require('./json')
+
 suite.add('🐮 ', function() {
   jsonLexer.reset(jsonFile)
   var count = 0
@@ -93,14 +94,20 @@ suite.add('🐮 ', function() {
   if (count !== jsonCount) { throw 'fail' }
 })
 
-/* syntax-cli
- */
+/* syntax-cli */
 const Syntax = require('./json-syntax')
 suite.add('syntax-cli', function() {
   Syntax.initString(jsonFile)
   var count = 0
   while (Syntax.getNextToken().type !== '$') { count++ }
   if (count !== jsonCount) throw 'fail'
+})
+
+/* chevrotain */
+const jsonChev = chevrotainFromMoo(jsonLexer)
+suite.add('chevrotain', function() {
+  let count = jsonChev.tokenize(jsonFile).tokens.length
+  if (count !== jsonCount) { throw 'fail' }
 })
 
 run(suite)
