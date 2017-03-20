@@ -4,7 +4,17 @@ const Benchmark = require('benchmark')
 
 const moo = require('../moo')
 
+let filter
+if (process.argv.length > 2) {
+  filter = process.argv[2]
+  console.log("Running benchmarks matching '" + filter + "'\n")
+}
+
 function run(suite) {
+  if (filter && suite.name !== filter) {
+    return
+  }
+
   console.log('\n' + suite.name)
   suite.on('cycle', function(event) {
       var bench = event.target;
@@ -50,7 +60,7 @@ run(suite)
 /*****************************************************************************/
 // tokenizing JSON
 
-var suite = new Benchmark.Suite('JSON')
+var suite = new Benchmark.Suite('json')
 
 let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
 // let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
@@ -111,16 +121,16 @@ function reEscape(pat) {
   return pat
 }
 
-let groups = []
+let pythonGroups = []
 for (let [name, pat] of python.rules) {
   if (pat instanceof Array) {
-    groups.push({ name: name, regexp: pat.map(reEscape).join('|') })
+    pythonGroups.push({ name: name, regexp: pat.map(reEscape).join('|') })
   } else {
-    groups.push({ name: name, regexp: reEscape(pat.match || pat) })
+    pythonGroups.push({ name: name, regexp: reEscape(pat.match || pat) })
   }
 }
 
-suite = new Benchmark.Suite('Python')
+suite = new Benchmark.Suite('python')
 
 /* moo! */
 suite.add('🐮 ', function() {
@@ -135,7 +145,7 @@ suite.add('🐮 ', function() {
  */
 const ReMix = require('remix').ReMix
 let rm = new ReMix
-for (let group of groups) {
+for (let group of pythonGroups) {
   rm.add({ [group.name]: new RegExp(group.regexp) })
 }
 suite.add('remix', function() {
@@ -153,7 +163,7 @@ suite.add('remix', function() {
  */
 const Lexer = require('lex')
 var lexer = new Lexer
-for (let group of groups) {
+for (let group of pythonGroups) {
   lexer.addRule(new RegExp(group.regexp), () => group.name)
 }
 suite.add('lex', function() {
@@ -177,7 +187,7 @@ var t = core(token => {
   // console.log(token)
   t2count++
 })
-for (let group of groups) {
+for (let group of pythonGroups) {
   t.addRule(new RegExp('^' + group.regexp + '$'), group.name)
 }
 suite.add('tokenizer2', function() {
@@ -193,7 +203,7 @@ suite.add('tokenizer2', function() {
 const chev = require('chevrotain')
 let createToken = chev.createLazyToken
 let chevTokens = []
-for (let group of groups) {
+for (let group of pythonGroups) {
   chevTokens.push(createToken({ name: group.name, pattern: new RegExp(group.regexp) }))
 }
 let chevLexer = new chev.Lexer(chevTokens);
@@ -211,7 +221,7 @@ const lexing = require('lexing')
 let lexingRules = [
   [/^$/, function(match) { return { type: 'EOF' } }],
 ]
-for (let group of groups) {
+for (let group of pythonGroups) {
   lexingRules.push([new RegExp('^' + group.regexp), function(match) {
     return { type: group.name, value: match[1] || match[0] }
   }])
