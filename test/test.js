@@ -427,17 +427,6 @@ describe('errors', () => {
     expect(() => lexer.next()).toThrow("Invalid syntax: line 1: 'baa'")
   })
 
-  test('have lots of useful attributes', () => {
-    let lexer = compile({ digit: /[0-9]+/ })
-    lexer.reset('40invalid')
-    expect(lexer.next()).toMatchObject({ value: '40' })
-    try {
-      lexer.next()
-    } catch (err) {
-      expect(err).toMatchObject({ line: 1, col: 3 })
-    }
-  })
-
   test('can be tokens', () => {
     let lexer = compile({
       digits: /[0-9]+/,

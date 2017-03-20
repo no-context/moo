@@ -330,11 +330,7 @@
       if (!group) {
         var index = text.indexOf('\n')
         var firstLine = index === -1 ? text : text.slice(0, index)
-        var err = new Error("Invalid syntax: line " + this.line + ": '" + firstLine + "'")
-        throw assign(err, {
-          line: this.line,
-          col: this.col,
-        })
+        throw new Error("Invalid syntax: line " + this.line + ": '" + firstLine + "'")
       }
 
     } else {
