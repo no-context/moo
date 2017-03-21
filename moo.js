@@ -322,10 +322,12 @@
 
       // consume rest of buffer
       text = value = buffer.slice(index)
-      re.lastIndex = buffer.length
 
       // throw, if no rule with {error: true}
       if (!group) {
+        // seek to end
+        this.index = buffer.length
+
         var start = Math.max(0, index - this.col + 1)
         var eol = text.indexOf('\n')
         if (eol === -1) eol = text.length

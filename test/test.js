@@ -434,6 +434,15 @@ describe('errors', () => {
     )
   })
 
+  test('seek to end of buffer when thrown', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+    })
+    lexer.reset('invalid')
+    expect(() => lexer.next()).toThrow()
+    expect(lexer.next()).toBe(undefined)
+  })
+
   test('can be tokens', () => {
     let lexer = compile({
       digits: /[0-9]+/,
