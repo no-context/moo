@@ -310,11 +310,11 @@
     var re = this.re
     var buffer = this.buffer
 
-    if (this.index === buffer.length) {
+    var index = re.lastIndex = this.index
+    if (index === buffer.length) {
       return // EOF
     }
 
-    var index = re.lastIndex = this.index
     var match = this.eat(re)
     var group, value, text
     if (match === null) {
