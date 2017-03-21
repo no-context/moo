@@ -326,9 +326,19 @@
 
       // throw, if no rule with {error: true}
       if (!group) {
-        var index = text.indexOf('\n')
-        var firstLine = index === -1 ? text : text.slice(0, index)
-        throw new Error("Invalid syntax: line " + this.line + ": '" + firstLine + "'")
+        var start = Math.max(0, index - this.col + 1)
+        var eol = text.indexOf('\n')
+        if (eol === -1) eol = text.length
+        var line = buffer.slice(start, index + eol)
+        var message = ""
+        message += "invalid syntax at line " + this.line + " col " + this.col + ":\n\n"
+        message += "  " + line + "\n"
+        message += "  "
+        for (var i=this.col - 1; i--; ) {
+          message += " "
+        }
+        message += "^"
+        throw new Error(message)
       }
 
     } else {

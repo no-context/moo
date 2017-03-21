@@ -421,10 +421,17 @@ describe('errors', () => {
   test('are thrown by default', () => {
     let lexer = compile({
       digits: /[0-9]+/,
+      nl: { match: '\n', lineBreaks: true },
     })
-    lexer.reset('123baa')
+    lexer.reset('123\n456baa')
     expect(lexer.next()).toMatchObject({value: '123'})
-    expect(() => lexer.next()).toThrow("Invalid syntax: line 1: 'baa'")
+    expect(lexer.next()).toMatchObject({type: 'nl'})
+    expect(lexer.next()).toMatchObject({value: '456'})
+    expect(() => lexer.next()).toThrow(
+      "invalid syntax at line 2 col 4:\n\n" +
+      "  456baa\n" +
+      "     ^"
+    )
   })
 
   test('can be tokens', () => {
