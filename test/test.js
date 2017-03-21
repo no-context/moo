@@ -241,16 +241,16 @@ describe('lexer', () => {
 
   test('can be cloned', () => {
     let lexer = compile({
-      foo: /[a-z]/,
-      bar: /[0-9]/,
+      word: /[a-z]+/,
+      digit: /[0-9]/,
     })
-    lexer.reset('abc')
+    lexer.reset('abc9')
     let clone = lexer.clone()
     clone.reset('123')
-    expect(lexer.next()).toMatchObject({value: 'a'})
-    expect(clone.next()).toMatchObject({value: '1'})
-    expect(lexer.next()).toMatchObject({value: 'b'})
-    expect(clone.next()).toMatchObject({value: '2'})
+    expect(lexer.next()).toMatchObject({value: 'abc', offset: 0})
+    expect(clone.next()).toMatchObject({value: '1', offset: 0})
+    expect(lexer.next()).toMatchObject({value: '9', offset: 3})
+    expect(clone.next()).toMatchObject({value: '2', offset: 1})
   })
 
 })
