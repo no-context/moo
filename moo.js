@@ -276,12 +276,10 @@
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
-    var index = this.re ? this.re.lastIndex : 0
     var info = this.states[state]
     this.groups = info.groups
     this.error = info.error
     this.re = info.regexp
-    this.re.lastIndex = index
   }
 
   Lexer.prototype.popState = function() {
@@ -312,18 +310,18 @@
     var re = this.re
     var buffer = this.buffer
 
-    if (re.lastIndex === buffer.length) {
+    var index = re.lastIndex = this.index
+    if (index === buffer.length) {
       return // EOF
     }
 
-    var start = re.lastIndex
     var match = this.eat(re)
     var group, value, text
     if (match === null) {
       group = this.error
 
       // consume rest of buffer
-      text = value = buffer.slice(start)
+      text = value = buffer.slice(index)
       re.lastIndex = buffer.length
 
       // throw, if no rule with {error: true}
@@ -369,7 +367,7 @@
       type: group.tokenType,
       value: value,
       toString: tokenToString,
-      offset: start,
+      offset: index,
       size: size,
       lineBreaks: lineBreaks,
       line: this.line,
@@ -380,6 +378,7 @@
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
 
+    this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
       this.col = size - nl + 1
@@ -406,7 +405,7 @@
 
   Lexer.prototype.reset = function(data, state) {
     this.buffer = data || ''
-    this.re.lastIndex = 0
+    this.index = 0
     this.line = state ? state.line : 1
     this.col = state ? state.col : 1
     return this
@@ -424,19 +423,8 @@
     return this
   }
 
-  Lexer.prototype.clone = function(input) {
-    var map = Object.create(null)
-    var keys = Object.getOwnPropertyNames(this.states)
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i]
-      var s = this.states[key]
-      map[key] = {
-        groups: s.groups,
-        regexp: new RegExp(s.regexp.source, s.regexp.flags),
-        error: s.error,
-      }
-    }
-    return new Lexer(map, this.state, input)
+  Lexer.prototype.clone = function() {
+    return new Lexer(this.states, this.state)
   }
 
 

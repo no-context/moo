@@ -19,7 +19,7 @@ let tokenizer;
  * See `--custom-tokinzer` to skip this generation, and use a custom one.
  */
 
-const lexRules = [[/^\s+/, function() { /* skip whitespace */ }, ],
+const lexRules = [[/^\s+/, function() { return 'WHITESPACE' }, ],
 [/^-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\b/, function() { return 'NUMBER'; }, ],
 [/^"(?:\\["bfnrt\/\\]|\\u[a-fA-F0-9]{4}|[^"\\])*"/, function() { return 'STRING'; }, ],
 [/^\{/, function() { return '{' }, ],

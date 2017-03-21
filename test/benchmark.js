@@ -4,7 +4,17 @@ const Benchmark = require('benchmark')
 
 const moo = require('../moo')
 
+let filter
+if (process.argv.length > 2) {
+  filter = process.argv[2]
+  console.log("Running benchmarks matching '" + filter + "'\n")
+}
+
 function run(suite) {
+  if (filter && suite.name !== filter) {
+    return
+  }
+
   console.log('\n' + suite.name)
   suite.on('cycle', function(event) {
       var bench = event.target;
@@ -20,6 +30,25 @@ function run(suite) {
       // TODO: report geometric mean.
   })
   .run()
+}
+
+const chevrotain = require('chevrotain')
+
+function reEscape(pat) {
+  if (typeof pat === 'string') {
+    pat = pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  }
+  return pat
+}
+
+function chevrotainFromMoo(lexer) {
+  const tokens = []
+  lexer.groups.forEach(group => {
+    var options = group.match.map(pat => typeof pat === 'string' ? reEscape(pat) : pat.source)
+    var pat = new RegExp(options.join('|'))
+    tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
+  })
+  return new chevrotain.Lexer(tokens)
 }
 
 /*****************************************************************************/
@@ -50,30 +79,35 @@ run(suite)
 /*****************************************************************************/
 // tokenizing JSON
 
-var suite = new Benchmark.Suite('JSON')
+var suite = new Benchmark.Suite('json')
 
-let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 2949
+let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8'), jsonCount = 4557
 // let jsonFile = fs.readFileSync('test/sample10k.json', 'utf-8'), jsonCount = 29753
 
 /* moo! */
-const json = require('./json')
+const jsonLexer = require('./json')
+
 suite.add('🐮 ', function() {
-  json.reset(jsonFile)
+  jsonLexer.reset(jsonFile)
   var count = 0
-  while (tok = json.next()) {
-    if (tok.type !== 'space') count++
-  }
-  if (count !== jsonCount) throw 'fail'
+  while (tok = jsonLexer.next()) { count++ }
+  if (count !== jsonCount) { throw 'fail' }
 })
 
-/* syntax-cli
- */
+/* syntax-cli */
 const Syntax = require('./json-syntax')
 suite.add('syntax-cli', function() {
   Syntax.initString(jsonFile)
   var count = 0
   while (Syntax.getNextToken().type !== '$') { count++ }
   if (count !== jsonCount) throw 'fail'
+})
+
+/* chevrotain */
+const jsonChev = chevrotainFromMoo(jsonLexer)
+suite.add('chevrotain', function() {
+  let count = jsonChev.tokenize(jsonFile).tokens.length
+  if (count !== jsonCount) { throw 'fail' }
 })
 
 run(suite)
@@ -104,23 +138,16 @@ let pythonLexer = moo.compile(python.rules)
 let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
 
-function reEscape(pat) {
-  if (typeof pat === 'string') {
-    pat = pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-  }
-  return pat
-}
-
-let groups = []
+let pythonGroups = []
 for (let [name, pat] of python.rules) {
   if (pat instanceof Array) {
-    groups.push({ name: name, regexp: pat.map(reEscape).join('|') })
+    pythonGroups.push({ name: name, regexp: pat.map(reEscape).join('|') })
   } else {
-    groups.push({ name: name, regexp: reEscape(pat.match || pat) })
+    pythonGroups.push({ name: name, regexp: reEscape(pat.match || pat) })
   }
 }
 
-suite = new Benchmark.Suite('Python')
+suite = new Benchmark.Suite('python')
 
 /* moo! */
 suite.add('🐮 ', function() {
@@ -135,7 +162,7 @@ suite.add('🐮 ', function() {
  */
 const ReMix = require('remix').ReMix
 let rm = new ReMix
-for (let group of groups) {
+for (let group of pythonGroups) {
   rm.add({ [group.name]: new RegExp(group.regexp) })
 }
 suite.add('remix', function() {
@@ -153,7 +180,7 @@ suite.add('remix', function() {
  */
 const Lexer = require('lex')
 var lexer = new Lexer
-for (let group of groups) {
+for (let group of pythonGroups) {
   lexer.addRule(new RegExp(group.regexp), () => group.name)
 }
 suite.add('lex', function() {
@@ -177,7 +204,7 @@ var t = core(token => {
   // console.log(token)
   t2count++
 })
-for (let group of groups) {
+for (let group of pythonGroups) {
   t.addRule(new RegExp('^' + group.regexp + '$'), group.name)
 }
 suite.add('tokenizer2', function() {
@@ -190,17 +217,13 @@ suite.add('tokenizer2', function() {
 
 /* chevrotain's lexer
  */
-const chev = require('chevrotain')
-let createToken = chev.createLazyToken
-let chevTokens = []
-for (let group of groups) {
-  chevTokens.push(createToken({ name: group.name, pattern: new RegExp(group.regexp) }))
-}
-let chevLexer = new chev.Lexer(chevTokens);
+let chevLexer = chevrotainFromMoo(pythonLexer)
 suite.add('chevrotain', function() {
   let count = chevLexer.tokenize(kurtFile).tokens.length
   if (count !== 14513) throw 'fail'
 })
+
+
 
 
 /* lexing
@@ -211,7 +234,7 @@ const lexing = require('lexing')
 let lexingRules = [
   [/^$/, function(match) { return { type: 'EOF' } }],
 ]
-for (let group of groups) {
+for (let group of pythonGroups) {
   lexingRules.push([new RegExp('^' + group.regexp), function(match) {
     return { type: group.name, value: match[1] || match[0] }
   }])

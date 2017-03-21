@@ -3,10 +3,14 @@
   "version": "0.1.1",
   "description": "Optimised tokenizer/lexer generator! 🐄 Uses /y for performance. Moo!",
   "main": "moo.js",
-  "files": ["moo.js"],
+  "files": [
+    "moo.js"
+  ],
   "repository": "https://github.com/tjvr/moo.git",
   "author": "Tim Radvan <tim@tjvr.org>",
-  "contributors": ["Nathan"],
+  "contributors": [
+    "Nathan"
+  ],
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest",
