@@ -335,11 +335,7 @@
         var message = ""
         message += "invalid syntax at line " + this.line + " col " + this.col + ":\n\n"
         message += "  " + line + "\n"
-        message += "  "
-        for (var i=this.col - 1; i--; ) {
-          message += " "
-        }
-        message += "^"
+        message += "  " + Array(this.col).join(" ") + "^"
         throw new Error(message)
       }
 
