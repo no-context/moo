@@ -172,9 +172,25 @@
     rules = sortRules(rules)
 
     var errorRule = null
+    var fast = Object.create(null)
     var groups = []
     var parts = []
+
     for (var i=0; i<rules.length; i++) {
+      var options = rules[i]
+
+      if (options.error) { break }
+
+      var match = options.match
+      var notKeywords = []
+      while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
+        var word = match.shift()
+        fast[word.charCodeAt(0)] = options
+      }
+      if (match.length) { break }
+    }
+
+    for ( ; i<rules.length; i++) {
       var options = rules[i]
 
       if (options.error) {
@@ -241,7 +257,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var regexp = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: regexp, groups: groups, error: errorRule}
+    return {regexp: regexp, groups: groups, fast: fast, error: errorRule}
   }
 
   function compile(rules) {
@@ -289,6 +305,7 @@
     this.groups = info.groups
     this.error = info.error
     this.re = info.regexp
+    this.fast = info.fast
   }
 
   Lexer.prototype.popState = function() {
@@ -324,35 +341,41 @@
       return // EOF
     }
 
-    var match = this.eat(re)
     var group, value, text
-    if (match === null) {
-      group = this.error
-      if (!group) {
-        // TODO prettier syntax errors
-        throw new Error('Syntax error')
-      }
-
-      // consume rest of buffer
-      text = value = buffer.slice(index)
-      re.lastIndex = buffer.length
+    var group = this.fast[buffer.charCodeAt(index)]
+    if (group) {
+      value = text = buffer.charAt(index)
 
     } else {
-      text = match[0]
-      var groups = this.groups
-      for (var i = 0; i < groups.length; i++) {
-        value = match[i + 1]
-        if (value !== undefined) {
-          group = groups[i]
-          // TODO is `buffer` being leaked here?
-          break
+      var match = this.eat(re)
+      if (match === null) {
+        group = this.error
+        if (!group) {
+          // TODO prettier syntax errors
+          throw new Error('Syntax error')
         }
-      }
-      // assert(i < groupCount)
 
-      // check for keywords
-      if (group.keywords) {
-        group = group.keywords[text] || group
+        // consume rest of buffer
+        text = value = buffer.slice(index)
+        re.lastIndex = buffer.length
+
+      } else {
+        text = match[0]
+        var groups = this.groups
+        for (var i = 0; i < groups.length; i++) {
+          value = match[i + 1]
+          if (value !== undefined) {
+            group = groups[i]
+            // TODO is `buffer` being leaked here?
+            break
+          }
+        }
+        // assert(i < groupCount)
+
+        // check for keywords
+        if (group.keywords) {
+          group = group.keywords[text] || group
+        }
       }
     }
 
