@@ -21,6 +21,7 @@ function chevrotainFromMoo(lexer) {
   return new chevrotain.Lexer(tokens)
 }
 
+
 suite('startup', () => {
 
   benchmark('moo.compileStates', () => {
@@ -44,8 +45,6 @@ suite('startup', () => {
 
 })
 
-/*****************************************************************************/
-// tokenizing JSON
 
 suite('json', () => {
 
@@ -75,6 +74,7 @@ suite('json', () => {
   })
 
 })
+
 
 suite('tosh', () => {
 
