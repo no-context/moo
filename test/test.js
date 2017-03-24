@@ -56,10 +56,10 @@ describe('compiler', () => {
 
   test('accepts rules in an array', () => {
     const lexer = compile([
-      ['keyword', 'Bob'],
-      ['word', /[a-z]+/],
-      ['number', /[0-9]+/],
-      ['space', / +/],
+      { name: 'keyword', match: 'Bob'},
+      { name: 'word', match: /[a-z]+/},
+      { name: 'number', match: /[0-9]+/},
+      { name: 'space', match: / +/},
     ])
     lexer.reset('Bob ducks are 123 bad')
     expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
@@ -106,14 +106,14 @@ describe('compiles literals', () => {
       expect(lexer.next()).not.toBeTruthy()
     }
 
-    check(compile([
-      ['keyword',     ['class']],
-      ['identifier',  /[a-zA-Z]+/],
-    ]))
-    check(compile([
-      ['identifier',  /[a-zA-Z]+/],
-      ['keyword',     ['class']],
-    ]))
+    check(compile({
+      keyword:     ['class'],
+      identifier:  /[a-zA-Z]+/,
+    }))
+    check(compile({
+      identifier:  /[a-zA-Z]+/,
+      keyword:     ['class'],
+    }))
   })
 
 })
@@ -372,8 +372,8 @@ describe('line numbers', () => {
   })
 
   test('tries to warn if rule matches \\n', () => {
-    expect(() => compile([['whitespace', /\s+/]])).toThrow()
-    expect(() => compile([['multiline', /q[^]*/]])).not.toThrow()
+    expect(() => compile({whitespace: /\s+/})).toThrow()
+    expect(() => compile({multiline: /q[^]*/})).not.toThrow()
   })
 
   test('resets state', () => {
@@ -471,8 +471,9 @@ describe('errors', () => {
 
 describe('example: python', () => {
 
+  const pythonLexer = require('./python').lexer
+
   test('kurt tokens', () => {
-    let pythonLexer = compile(python.rules)
     let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
     expect(tokens.length).toBe(14513)
   })
@@ -489,7 +490,6 @@ describe('example: python', () => {
   // use non-greedy matching
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
-    let pythonLexer = compile(python.rules)
     expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
       ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
     )

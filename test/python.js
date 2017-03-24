@@ -32,31 +32,28 @@ var opPat = [
   '=',
 ];
 
-var TOKENS = [
-  ['Whitespace', /([ ]+)/], // TODO tabs
-  ['NAME', /([A-Za-z_][A-Za-z0-9_]*)/],
-  ['OP', opPat],
-  ['COMMENT', /(#.*)/],
-  ['NEWLINE', { match: /\r|\r\n|\n/, lineBreaks: true }],
-  ['Continuation', /\\/],
-
-  ['ERRORTOKEN', /[\$?`]/],
-
+var pythonLexer = moo.compile({
+  Whitespace: /([ ]+)/, // TODO tabs
+  NAME: /([A-Za-z_][A-Za-z0-9_]*)/,
+  OP: opPat,
+  COMMENT: /(#.*)/,
+  NEWLINE: { match: /\r|\r\n|\n/, lineBreaks: true },
+  Continuation: /\\/,
+  ERRORTOKEN: {match: /[\$?`]/, error: true},
   // TODO literals: str, long, float, imaginary
+  NUMBER: [
+    /(?:[0-9]+(?:\.[0-9]+)?e-?[0-9]+)/, // 123[.123]e[-]123
+    /(?:(?:0|[1-9][0-9]*)?\.[0-9]+)/,   // [123].123
+    /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/,    // 123.[123]
+    /(?:0|[1-9][0-9]*)/,              // 123
+  ],
+  STRING: [ // strings are backslash-escaped
+    /(""".*?""")/,
+    /"((?:\\["\\rn]|[^"\\])*?)"/,
+    /'((?:\\['\\rn]|[^'\\])*?)'/,
+  ],
+})
 
-  ["NUMBER", /(?:[0-9]+(?:\.[0-9]+)?e-?[0-9]+)/], // 123[.123]e[-]123
-  ["NUMBER", /(?:(?:0|[1-9][0-9]*)?\.[0-9]+)/],   // [123].123
-  ["NUMBER", /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/],    // 123.[123]
-  ["NUMBER", /(?:0|[1-9][0-9]*)/],              // 123
-
-  ["STRING", /(""".*?""")/],
-  ["STRING", /"((?:\\["\\rn]|[^"\\])*?)"/], // strings are backslash-escaped
-  ["STRING", /'((?:\\['\\rn]|[^'\\])*?)'/],
-
-  ['ERRORTOKEN', moo.error],
-];
-
-var pythonLexer = moo.compile(TOKENS);
 
 var tokenize = function(input, emit) {
   var lexer = pythonLexer.clone().feed(input);
@@ -260,6 +257,6 @@ module.exports = {
   outputTokens,
   pythonFile,
   pythonTokens,
-  rules: TOKENS,
+  lexer: pythonLexer,
 }
 

@@ -95,17 +95,19 @@ suite('tosh', () => {
 
 suite('python', () => {
 
-  const python = require('./python')
-  let pythonLexer = moo.compile(python.rules)
+  const pythonLexer = require('./python').lexer
   let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
   let pythonGroups = []
-  for (let [name, pat] of python.rules) {
-    if (pat instanceof Array) {
-      pythonGroups.push({ name: name, regexp: pat.map(reEscape).join('|') })
+  for (let options of pythonLexer.groups) {
+    let name = options.tokenType
+    let match = options.match
+    if (typeof match[0] === 'string') {
+      var regexp = new RegExp(match.map(reEscape).join('|'))
     } else {
-      pythonGroups.push({ name: name, regexp: reEscape(pat.match || pat) })
+      var regexp = new RegExp(match.map(re => re.source).join('|'))
     }
+    pythonGroups.push({name, regexp})
   }
 
   benchmark('🐮 ', function() {
