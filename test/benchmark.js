@@ -51,6 +51,15 @@ suite('json', () => {
   let jsonFile = fs.readFileSync('test/sample1k.json', 'utf-8')
   let jsonCount = 4557
 
+  const manual = require('./manual')
+  benchmark('hand-written', function() {
+    // TODO don't decode JSON strings; only recognise them
+    let next = manual(jsonFile)
+    var count = 0
+    while (tok = next()) { count++ }
+    if (count !== jsonCount) { throw 'fail' }
+  })
+
   const jsonLexer = require('./json')
   benchmark('🐮 ', function() {
     jsonLexer.reset(jsonFile)
