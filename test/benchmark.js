@@ -18,7 +18,9 @@ function chevrotainFromMoo(lexer) {
     var pat = new RegExp(options.join('|'))
     tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
   })
-  return new chevrotain.Lexer(tokens)
+  // "onlyStart" will track startOffset, startLine, startColumn.
+  // By default endOffset, endLine and endColumn will also be tracked at the cost of a few % points in performance.
+  return new chevrotain.Lexer(tokens, {positionTracking:"onlyStart"})
 }
 
 
@@ -156,7 +158,7 @@ suite('python', () => {
     if (count !== 14513) throw 'fail'
   })
 
-  /* tokenizer2 
+  /* tokenizer2
    * wrong output. Does not seem to use regexes in the way I expect
    */
   const core = require('tokenizer2/core')
