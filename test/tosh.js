@@ -31,7 +31,7 @@ let toshLexer = moo.compile([
 ])
 
 function tokenize(source) {
-  let lexer = toshLexer.clone().feed(source + '\n')
+  let lexer = toshLexer.reset(source + '\n')
   let tokens = []
   for (let tok of lexer) {
     if (tok.type !== 'WS') {
