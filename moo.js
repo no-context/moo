@@ -4,7 +4,7 @@
   } else if (typeof module === 'object' && module.exports) {
     module.exports = factory()
   } else {
-    root.Moo = factory()
+    root.moo = factory()
   }
 }(this, function() {
   'use strict';
@@ -80,7 +80,19 @@
     var result = []
     for (var i=0; i<keys.length; i++) {
       var key = keys[i]
-      result.push([key, object[key]])
+      result.push(ruleOptions(key, object[key]))
+    }
+    return result
+  }
+
+  function arrayToRules(array) {
+    var result = []
+    for (var i=0; i<array.length; i++) {
+      var obj = array[i]
+      if (!obj.name) {
+        throw new Error('Rule has no name: ' + JSON.stringify(obj))
+      }
+      result.push(ruleOptions(obj.name, obj))
     }
     return result
   }
@@ -110,10 +122,7 @@
   function sortRules(rules) {
     var result = []
     for (var i=0; i<rules.length; i++) {
-      var rule = rules[i]
-
-      // get options
-      var options = ruleOptions(rule[0], rule[1])
+      var options = rules[i]
       var match = options.match
 
       // sort literals by length to ensure longest match
@@ -158,7 +167,7 @@
   }
 
   function compileRules(rules, hasStates) {
-    if (!Array.isArray(rules)) rules = objectToRules(rules)
+    rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
     rules = sortRules(rules)
 

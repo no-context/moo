@@ -2,29 +2,32 @@
 const moo = require('../moo')
 
 let toshLexer = moo.compile([
-  ['WS',      /[ \t]+/],
-  ['ellips',  /\.{3}/],
-  ['comment', /\/{2}(.*)$/],
-  ['false',   /\<\>/],
-  ['zero',    /\(\)/],
-  ['empty',   /_( |$)/],
-  ['number',  /([0-9]+(?:\.[0-9]+)?e-?[0-9]+)/], // 123[.123]e[-]123
-  ['number',  /((?:0|[1-9][0-9]*)?\.[0-9]+)/],   // [123].123
-  ['number',  /((?:0|[1-9][0-9]*)\.[0-9]*)/],    // 123.[123]
-  ['number',  /(0|[1-9][0-9]*)/],              // 123
-  ['color',   /#([A-Fa-f0-9]{3}(?:[A-Fa-f0-9]{3})?)/],
-  ['string',  /"((?:\\["\\]|[^\n"\\])*)"/], // strings are backslash-escaped
-  ['string',  /'((?:\\['\\]|[^\n'\\])*)'/],
-  ['lparen',  /\(/],   ['rparen',  /\)/],
-  ['langle',  /\</],   ['rangle',  /\>/],
-  ['lsquare', /\[/],   ['rsquare', /\]/],
-  ['cloud',   /[☁]/],
-  ['input',   /%[a-z](?:\.[a-zA-Z]+)?/],
-  ['symbol',  /[-%#+*/=^,?]/],                // single character
-  ['symbol',  /[_A-Za-z][-_A-Za-z0-9:',.]*/], // word, as in a block
-  ['iden',    /[^\n \t"'()<>=*\/+-]+/],     // user-defined names
-  ['NL',      { match: /\n/, lineBreaks: true }],
-  ['ERROR',   moo.error],
+  {name: 'WS',      match: /[ \t]+/},
+  {name: 'ellips',  match: /\.{3}/},
+  {name: 'comment', match: /\/{2}(.*)$/},
+  {name: 'false',   match: /\<\>/},
+  {name: 'zero',    match: /\(\)/},
+  {name: 'empty',   match: /_( |$)/},
+  {name: 'number',  match: /([0-9]+(?:\.[0-9]+)?e-?[0-9]+)/}, // 123[.123]e[-]123
+  {name: 'number',  match: /((?:0|[1-9][0-9]*)?\.[0-9]+)/},   // [123].123
+  {name: 'number',  match: /((?:0|[1-9][0-9]*)\.[0-9]*)/},    // 123.[123]
+  {name: 'number',  match: /(0|[1-9][0-9]*)/},              // 123
+  {name: 'color',   match: /#([A-Fa-f0-9]{3}(?:[A-Fa-f0-9]{3})?)/},
+  {name: 'string',  match: /"((?:\\["\\]|[^\n"\\])*)"/}, // strings are backslash-escaped
+  {name: 'string',  match: /'((?:\\['\\]|[^\n'\\])*)'/},
+  {name: 'lparen',  match: /\(/},
+  {name: 'rparen',  match: /\)/},
+  {name: 'langle',  match: /\</},
+  {name: 'rangle',  match: /\>/},
+  {name: 'lsquare', match: /\[/},
+  {name: 'rsquare', match: /\]/},
+  {name: 'cloud',   match: /[☁]/},
+  {name: 'input',   match: /%[a-z](?:\.[a-zA-Z]+)?/},
+  {name: 'symbol',  match: /[-%#+*/=^,?]/},                // single character
+  {name: 'symbol',  match: /[_A-Za-z][-_A-Za-z0-9:',.]*/}, // word, as in a block
+  {name: 'iden',    match: /[^\n \t"'()<>=*\/+-]+/},     // user-defined names
+  {name: 'NL',      match: /\n/, lineBreaks: true },
+  {name: 'ERROR',   error: true},
 ])
 
 function tokenize(source) {

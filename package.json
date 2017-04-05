@@ -1,6 +1,6 @@
 {
   "name": "moo",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Optimised tokenizer/lexer generator! 🐄 Uses /y for performance. Moo!",
   "main": "moo.js",
   "files": [
@@ -15,11 +15,11 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint moo.js",
-    "benchmark": "node test/benchmark.js",
+    "benchmark": "benchr test/benchmark.js",
     "moo": "echo 'Mooooo!'"
   },
   "devDependencies": {
-    "benchmark": "^2.1.3",
+    "benchr": "^3.2.0",
     "chevrotain": "^0.23.0",
     "eslint": "^3.17.1",
     "jest": "^19.0.2",
