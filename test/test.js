@@ -251,16 +251,6 @@ describe('lexer', () => {
     expect(clone.next()).toMatchObject({value: '2'})
   })
 
-  test('remaining', () => {
-    simpleLexer.reset('lik bred')
-    simpleLexer.next()
-    expect(simpleLexer.remaining()).toBe(' bred')
-    simpleLexer.next()
-    expect(simpleLexer.remaining()).toBe('bred')
-    simpleLexer.next()
-    expect(simpleLexer.remaining()).toBe('')
-  })
-
 })
 
 

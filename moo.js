@@ -424,10 +424,6 @@
     }
   }
 
-  Lexer.prototype.remaining = function() {
-    return this.buffer.slice(this.index)
-  }
-
   Lexer.prototype.clone = function() {
     return new Lexer(this.states, this.state)
   }
