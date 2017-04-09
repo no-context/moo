@@ -63,17 +63,7 @@ And now throw some text at it:
     // ...
 ```
 
-You can also feed it chunks of input at a time.
-
-```j
-    lexer.reset()
-    lexer.feed('while')
-    lexer.feed(' 10 cows\n')
-    lexer.next() // -> { type: 'keyword', value: 'while' }
-    // ...
-```
-
-If you've reached the end of Moo's internal buffer, next() will return `undefined`. You can always feed() it more if that happens.
+When you reach the end of Moo's internal buffer, next() will return `undefined`. You can always `reset()` it and feed it more data when that happens.
 
 
 On Regular Expressions
@@ -151,12 +141,12 @@ Calling `reset()` on your lexer will empty its internal buffer, and set the line
 If you don't want this, you can `save()` the state, and later pass it as the second argument to `reset()` to explicitly control the internal state of the lexer.
 
 ```js
-    let state = lexer.save() // -> { line: 10 }
-    lexer.feed('some line\n')
+    lexer.reset('some line\n')
+    let info = lexer.save() // -> { line: 10 }
     lexer.next() // -> { line: 10 }
     lexer.next() // -> { line: 11 }
     // ...
-    lexer.reset('a different line\n', state)
+    lexer.reset('a different line\n', info)
     lexer.next() // -> { line: 10 }
 ```
 
