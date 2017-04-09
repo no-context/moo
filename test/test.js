@@ -10,6 +10,8 @@ function lexAll(lexer) {return Array.from(lexer)}
 
 describe('compiler', () => {
 
+  // TODO handles empty rule set
+
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow()
@@ -239,16 +241,16 @@ describe('lexer', () => {
 
   test('can be cloned', () => {
     let lexer = compile({
-      foo: /[a-z]/,
-      bar: /[0-9]/,
+      word: /[a-z]+/,
+      digit: /[0-9]/,
     })
-    lexer.reset('abc')
+    lexer.reset('abc9')
     let clone = lexer.clone()
     clone.reset('123')
-    expect(lexer.next()).toMatchObject({value: 'a'})
-    expect(clone.next()).toMatchObject({value: '1'})
-    expect(lexer.next()).toMatchObject({value: 'b'})
-    expect(clone.next()).toMatchObject({value: '2'})
+    expect(lexer.next()).toMatchObject({value: 'abc', offset: 0})
+    expect(clone.next()).toMatchObject({value: '1', offset: 0})
+    expect(lexer.next()).toMatchObject({value: '9', offset: 3})
+    expect(clone.next()).toMatchObject({value: '2', offset: 1})
   })
 
 })
@@ -419,10 +421,26 @@ describe('errors', () => {
   test('are thrown by default', () => {
     let lexer = compile({
       digits: /[0-9]+/,
+      nl: { match: '\n', lineBreaks: true },
     })
-    lexer.reset('123foo')
+    lexer.reset('123\n456baa')
     expect(lexer.next()).toMatchObject({value: '123'})
+    expect(lexer.next()).toMatchObject({type: 'nl'})
+    expect(lexer.next()).toMatchObject({value: '456'})
+    expect(() => lexer.next()).toThrow(
+      "invalid syntax at line 2 col 4:\n\n" +
+      "  456baa\n" +
+      "     ^"
+    )
+  })
+
+  test('seek to end of buffer when thrown', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+    })
+    lexer.reset('invalid')
     expect(() => lexer.next()).toThrow()
+    expect(lexer.next()).toBe(undefined)
   })
 
   test('can be tokens', () => {
@@ -433,7 +451,7 @@ describe('errors', () => {
     expect(lexer.error).toMatchObject({tokenType: 'error'})
     lexer.reset('123foo')
     expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
-    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo', offset: 3})
   })
 
   test('imply lineBreaks', () => {
@@ -464,6 +482,21 @@ describe('errors', () => {
     expect(lexer.next()).toMatchObject({type: 'error', value: '$' })
     expect(lexer.next()).toMatchObject({type: 'space', value: ' ' })
     expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
+  })
+
+  test("don't mess with cloned lexers", () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: moo.error,
+    })
+    lexer.reset('123foo')
+    let clone = lexer.clone()
+    clone.reset('bar')
+    expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
+    expect(clone.next()).toMatchObject({type: 'error', value: 'bar'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
+    expect(clone.next()).toBe(undefined)
+    expect(lexer.next()).toBe(undefined)
   })
 
 })

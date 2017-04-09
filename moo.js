@@ -328,14 +328,25 @@
     var group, value, text
     if (match === null) {
       group = this.error
-      if (!group) {
-        // TODO prettier syntax errors
-        throw new Error('Syntax error')
-      }
 
       // consume rest of buffer
       text = value = buffer.slice(index)
-      re.lastIndex = buffer.length
+
+      // throw, if no rule with {error: true}
+      if (!group) {
+        // seek to end
+        this.index = buffer.length
+
+        var start = Math.max(0, index - this.col + 1)
+        var eol = text.indexOf('\n')
+        if (eol === -1) eol = text.length
+        var line = buffer.slice(start, index + eol)
+        var message = ""
+        message += "invalid syntax at line " + this.line + " col " + this.col + ":\n\n"
+        message += "  " + line + "\n"
+        message += "  " + Array(this.col).join(" ") + "^"
+        throw new Error(message)
+      }
 
     } else {
       text = match[0]
