@@ -424,11 +424,6 @@
     }
   }
 
-  Lexer.prototype.feed = function(data) {
-    this.buffer += data
-    return this
-  }
-
   Lexer.prototype.clone = function() {
     return new Lexer(this.states, this.state)
   }
