@@ -258,21 +258,21 @@ describe('lexer', () => {
 
 describe('stateful lexer', () => {
 
-  test('switches states', () => {
-    const lexer = moo.states({
-      start: {
-        word: /\w+/,
-        eq: {match: '=', next: 'ab'},
-      },
-      ab: {
-        a: 'a',
-        b: 'b',
-        semi: {match: ';', next: 'start'},
-      },
-    })
+  const statefulLexer = moo.states({
+    start: {
+      word: /\w+/,
+      eq: {match: '=', next: 'ab'},
+    },
+    ab: {
+      a: 'a',
+      b: 'b',
+      semi: {match: ';', next: 'start'},
+    },
+  })
 
-    lexer.reset('one=ab;two=')
-    expect(lexAll(lexer).map(({type, value}) => [type, value])).toEqual([
+  test('switches states', () => {
+    statefulLexer.reset('one=ab;two=')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
       ['word', 'one'],
       ['eq', '='],
       ['a', 'a'],
@@ -317,6 +317,19 @@ describe('stateful lexer', () => {
       ['rpar', ')'],
       ['word', 'e'],
     ])
+  })
+
+  test('resets state', () => {
+    statefulLexer.reset('one=a')
+    expect(statefulLexer.state).toBe('start')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
+      ['word', 'one'],
+      ['eq', '='],
+      ['a', 'a'],
+    ])
+    expect(statefulLexer.state).toBe('ab')
+    statefulLexer.reset('one=ab;two=')
+    expect(statefulLexer.state).toBe('start')
   })
 
   test('lexes interpolation example', () => {
@@ -378,7 +391,7 @@ describe('line numbers', () => {
     expect(() => compile({multiline: /q[^]*/})).not.toThrow()
   })
 
-  test('resets state', () => {
+  test('resets line/col', () => {
     var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
@@ -402,15 +415,43 @@ describe('save/restore', () => {
     NL: { match: '\n', lineBreaks: true },
   })
 
-  test('can save state', () => {
+  test('can save info', () => {
     testLexer.reset('one\ntwo')
     lexAll(testLexer)
-    expect(testLexer.save()).toEqual({line: 2, col: 4})
+    expect(testLexer.save()).toMatchObject({line: 2, col: 4})
+  })
+
+  test('can restore info', () => {
+    testLexer.reset('\nthree', {line: 2, col: 4})
+    expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+  })
+
+  const statefulLexer = moo.states({
+    start: {
+      word: /\w+/,
+      eq: {match: '=', next: 'ab'},
+    },
+    ab: {
+      a: 'a',
+      b: 'b',
+      semi: {match: ';', next: 'start'},
+    },
+  })
+
+  test('info includes state', () => {
+    statefulLexer.reset('one=ab')
+    statefulLexer.next()
+    expect(statefulLexer.state).toBe('start')
+    expect(statefulLexer.save()).toMatchObject({state: 'start'})
+    statefulLexer.next()
+    expect(statefulLexer.state).toBe('ab')
+    expect(statefulLexer.save()).toMatchObject({state: 'ab'})
   })
 
   test('can restore state', () => {
-    testLexer.reset('\nthree', {line: 2, col: 4})
-    expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+    statefulLexer.reset('ab', {line: 0, col: 0, state: 'ab'})
+    expect(statefulLexer.state).toBe('ab')
+    expect(lexAll(statefulLexer).length).toBe(2)
   })
 
 })

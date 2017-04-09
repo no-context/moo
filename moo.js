@@ -275,10 +275,10 @@
 
 
   var Lexer = function(states, state) {
+    this.startState = state
     this.states = states
     this.buffer = ''
     this.stack = []
-    this.setState(state)
     this.reset()
   }
 
@@ -420,11 +420,12 @@
     }
   }
 
-  Lexer.prototype.reset = function(data, state) {
+  Lexer.prototype.reset = function(data, info) {
     this.buffer = data || ''
     this.index = 0
-    this.line = state ? state.line : 1
-    this.col = state ? state.col : 1
+    this.line = info ? info.line : 1
+    this.col = info ? info.col : 1
+    this.setState(info ? info.state : this.startState)
     return this
   }
 
@@ -432,6 +433,7 @@
     return {
       line: this.line,
       col: this.col,
+      state: this.state,
     }
   }
 
