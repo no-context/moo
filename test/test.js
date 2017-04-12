@@ -462,7 +462,7 @@ describe('errors', () => {
   test('are thrown by default', () => {
     let lexer = compile({
       digits: /[0-9]+/,
-      nl: { match: '\n', lineBreaks: true },
+      nl: {match: '\n', lineBreaks: true},
     })
     lexer.reset('123\n456baa')
     expect(lexer.next()).toMatchObject({value: '123'})
@@ -472,6 +472,22 @@ describe('errors', () => {
       "invalid syntax at line 2 col 4:\n\n" +
       "  456baa\n" +
       "     ^"
+    )
+  })
+
+  test('can be externally formatted', () => {
+    let lexer = compile({
+      letters: {match: /[a-z\n]+/, lineBreaks: true},
+      error: moo.error,
+    })
+    lexer.reset('abc\ndef\ng 12\n345\n6')
+    expect(lexer.next()).toMatchObject({type: 'letters', value: 'abc\ndef\ng'})
+    const tok = lexer.next()
+    expect(tok).toMatchObject({type: 'error', value: ' 12\n345\n6', lineBreaks: 2})
+    expect(lexer.formatError(tok, "numbers!")).toBe(
+      "numbers! at line 3 col 2:\n\n" +
+      "  g 12\n" +
+      "   ^"
     )
   })
 

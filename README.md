@@ -254,6 +254,21 @@ You can have a token type that both matches tokens _and_ contains error values.
     })
 ```
 
+If you want to throw an error from your parser, you might find `formatError` helpful. Call it with the offending token:
+
+```js
+throw new Error(lexer.formatError(token, "invalid syntax"))
+```
+
+And it returns a string with a pretty error message.
+
+```
+Error: invalid syntax at line 2 col 15:
+
+  totally valid `syntax`
+                ^
+```
+
 
 Iteration
 ---------

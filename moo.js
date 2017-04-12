@@ -332,22 +332,6 @@
       // consume rest of buffer
       text = value = buffer.slice(index)
 
-      // throw, if no rule with {error: true}
-      if (!group) {
-        // seek to end
-        this.index = buffer.length
-
-        var start = Math.max(0, index - this.col + 1)
-        var eol = text.indexOf('\n')
-        if (eol === -1) eol = text.length
-        var line = buffer.slice(start, index + eol)
-        var message = ""
-        message += "invalid syntax at line " + this.line + " col " + this.col + ":\n\n"
-        message += "  " + line + "\n"
-        message += "  " + Array(this.col).join(" ") + "^"
-        throw new Error(message)
-      }
-
     } else {
       text = match[0]
       var groups = this.groups
@@ -369,7 +353,7 @@
 
     // count line breaks
     var lineBreaks = 0
-    if (group.lineBreaks) {
+    if (!group || group.lineBreaks) {
       var matchNL = /\n/g
       var nl = 1
       if (text === '\n') {
@@ -381,7 +365,7 @@
 
     var size = text.length
     var token = {
-      type: group.tokenType,
+      type: group && group.tokenType,
       value: value,
       toString: tokenToString,
       offset: index,
@@ -391,10 +375,6 @@
       col: this.col,
     }
 
-    if (group.pop) this.popState()
-    else if (group.push) this.pushState(group.push)
-    else if (group.next) this.setState(group.next)
-
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
@@ -402,6 +382,14 @@
     } else {
       this.col += size
     }
+    // throw, if no rule with {error: true}
+    if (!group) {
+      throw new Error(this.formatError(token, "invalid syntax"))
+    }
+
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
     return token
   }
 
@@ -418,6 +406,18 @@
     Lexer.prototype[Symbol.iterator] = function() {
       return new LexerIterator(this)
     }
+  }
+
+  Lexer.prototype.formatError = function(token, message) {
+    var value = token.value
+    var index = token.offset
+    var eol = token.lineBreaks ? value.indexOf('\n') : value.length
+    var start = Math.max(0, index - token.col + 1)
+    var firstLine = this.buffer.substring(start, index + eol)
+    message += " at line " + token.line + " col " + token.col + ":\n\n"
+    message += "  " + firstLine + "\n"
+    message += "  " + Array(token.col).join(" ") + "^"
+    return message
   }
 
   Lexer.prototype.reset = function(data, info) {
