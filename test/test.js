@@ -255,6 +255,22 @@ describe('lexer', () => {
 
 })
 
+describe('API', () => {
+
+  const lexer = compile({
+    quxx: 'a',
+    space: / +/,
+  })
+
+  test('supports has()', () => {
+    expect(lexer.has('quxx')).toBe(true)
+    expect(lexer.has('space')).toBe(true)
+    expect(lexer.has('random')).toBe(false)
+    expect(lexer.has('hasOwnProperty')).toBe(false)
+  })
+
+})
+
 
 describe('stateful lexer', () => {
 

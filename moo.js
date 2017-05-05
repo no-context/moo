@@ -441,6 +441,14 @@
     return new Lexer(this.states, this.state)
   }
 
+  Lexer.prototype.has = function(tokenType) {
+    var groups = this.groups;
+    for (var i=groups.length; i--; ) {
+      if (groups[i].tokenType === tokenType) return true
+    }
+    return false
+  }
+
 
   return {
     compile: compile,
