@@ -281,6 +281,12 @@ Iterators: we got 'em.
     }
 ```
 
+Create an array of tokens.
+
+```js
+    let tokens = [...lexer];
+```
+
 Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
 
 ```js
