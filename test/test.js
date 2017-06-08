@@ -257,16 +257,63 @@ describe('lexer', () => {
 
 describe('API', () => {
 
-  const lexer = compile({
-    quxx: 'a',
-    space: / +/,
-  })
+  describe('Lexer#has', () => {
 
-  test('supports has()', () => {
-    expect(lexer.has('quxx')).toBe(true)
-    expect(lexer.has('space')).toBe(true)
-    expect(lexer.has('random')).toBe(false)
-    expect(lexer.has('hasOwnProperty')).toBe(false)
+    const basicLexer = compile({
+      keyword: 'foo',
+      identifier: /[a-z]+/
+    })
+
+    test('supports has()', () => {
+      expect(basicLexer.has('identifier')).toBe(true)
+    })
+
+    test('works with keyword tokens', () => {
+      expect(basicLexer.has('keyword')).toBe(true)
+    })
+
+    test('returns false for nonexistent junk', () => {
+      expect(basicLexer.has('random')).toBe(false)
+    })
+
+    test('returns false for stuff inherited from Object', () => {
+      expect(basicLexer.has('hasOwnProperty')).toBe(false)
+    })
+
+    // Example from the readme.
+    const statefulLexer = moo.states({
+      main: {
+        strstart: {match: '`', push: 'lit'},
+        ident:    /\w+/,
+        lbrace:   {match: '{', push: 'main'},
+        rbrace:   {match: '}', pop: 1},
+        colon:    ':',
+        space:    {match: /\s+/, lineBreaks: true},
+      },
+      lit: {
+        interp:   {match: '${', push: 'main'},
+        escape:   /\\./,
+        strend:   {match: '`', pop: 1},
+        const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+      },
+    })
+
+    test('works with multiple states - for first state', () => {
+      expect(statefulLexer.has('ident')).toEqual(true)
+    })
+
+    test('works with multiple states - for second state', () => {
+      expect(statefulLexer.has('interp')).toEqual(true)
+    })
+
+    test('returns false for the state names themselves', () => {
+      expect(statefulLexer.has('main')).toEqual(false)
+    })
+
+    test('returns false for stuff inherited from Object when using states', () => {
+      expect(statefulLexer.has('toString')).toEqual(false)
+    })
+
   })
 
 })

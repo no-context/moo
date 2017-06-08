@@ -442,11 +442,20 @@
   }
 
   Lexer.prototype.has = function(tokenType) {
-    var groups = this.groups;
-    for (var i=groups.length; i--; ) {
-      if (groups[i].tokenType === tokenType) return true
+    var result = false
+
+    for (var s in this.states) {
+      this.states[s].groups.forEach(function(group) {
+        if (group.tokenType === tokenType) result = true
+        if (group.keywords) {
+          for (var k in group.keywords) {
+            if (group.keywords[k].tokenType === tokenType) result = true
+          }
+        }
+      })
     }
-    return false
+
+    return result
   }
 
 
