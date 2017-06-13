@@ -10,6 +10,8 @@
   'use strict';
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
+
+  // polyfill assign(), so we support IE9+
   var assign = typeof Object.assign === 'function' ? Object.assign :
     // https://tc39.github.io/ecma262/#sec-object.assign
     function(target, sources) {
@@ -33,8 +35,9 @@
 
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
-  function isRegExp(o) { return o && o.constructor === RegExp }
+  /***************************************************************************/
 
+  function isRegExp(o) { return o && o.constructor === RegExp }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -52,7 +55,6 @@
     }).join('|')
     return "(?:" + source + ")"
   }
-
 
   function compareLength(a, b) {
     return b.length - a.length
@@ -273,6 +275,7 @@
     return new Lexer(map, start)
   }
 
+  /***************************************************************************/
 
   var Lexer = function(states, state) {
     this.startState = state
@@ -300,7 +303,7 @@
     this.setState(state)
   }
 
-  Lexer.prototype.eat = hasSticky ? function(re) { // assume re is /y
+  Lexer.prototype._eat = hasSticky ? function(re) { // assume re is /y
     return re.exec(this.buffer)
   } : function(re) { // assume re is /g
     var match = re.exec(this.buffer)
@@ -309,6 +312,20 @@
       return null
     }
     return match
+  }
+
+  Lexer.prototype._getGroup = function(match) {
+    if (match === null) {
+      return -1
+    }
+
+    var groupCount = this.groups.length
+    for (var i = 0; i < groupCount; i++) {
+      if (match[i + 1] !== undefined) {
+        return i
+      }
+    }
+    throw new Error('oops')
   }
 
   function tokenToString() {
@@ -324,9 +341,11 @@
       return // EOF
     }
 
-    var match = this.eat(re)
+    var match = this._eat(re)
+    var i = this._getGroup(match)
+
     var group, value, text
-    if (match === null) {
+    if (i === -1) {
       group = this.error
 
       // consume rest of buffer
@@ -334,16 +353,8 @@
 
     } else {
       text = match[0]
-      var groups = this.groups
-      for (var i = 0; i < groups.length; i++) {
-        value = match[i + 1]
-        if (value !== undefined) {
-          group = groups[i]
-          // TODO is `buffer` being leaked here?
-          break
-        }
-      }
-      // assert(i < groupCount)
+      value = match[i + 1]
+      group = this.groups[i]
 
       // check for keywords
       if (group.keywords) {
