@@ -98,7 +98,11 @@ describe('compiles literals', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|foo|t[ok]+|\\w')
   })
 
-  test("deals with keyword literals", () => {
+})
+
+describe('keywords', () => {
+
+  test('supports explicit keywords', () => {
     function check(lexer) {
       lexer.reset('class')
       expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'class' })
@@ -109,13 +113,24 @@ describe('compiles literals', () => {
     }
 
     check(compile({
-      keyword:     ['class'],
-      identifier:  /[a-zA-Z]+/,
+      identifier: moo.keywords(/[a-zA-Z]+/, 'keyword', ['class'])
     }))
     check(compile({
-      identifier:  /[a-zA-Z]+/,
-      keyword:     ['class'],
+      identifier: moo.keywords({match: /[a-zA-Z]+/}, 'keyword', ['class'])
     }))
+  })
+
+  test('keywords can have individual tokenTypes', () => {
+    let lexer = compile({
+      identifier: moo.keywords({match: /[a-zA-Z]+/}, n => 'kw-' + n, ['class', 'def', 'if']),
+      space: {match: /\s+/, lineBreaks: true},
+    })
+    lexer.reset('foo def')
+    expect(Array.from(lexer).map(t => t.type)).toEqual([
+        'identifier',
+        'space',
+        'kw-def',
+    ])
   })
 
 })

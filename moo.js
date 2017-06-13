@@ -113,7 +113,6 @@
       push: null,
       error: false,
     }, obj)
-    options.keywords = null
 
     // convert to array
     var match = options.match
@@ -153,21 +152,6 @@
     return result
   }
 
-  function getIdentifier(literal, otherRules) {
-    for (var i=0; i<otherRules.length; i++) {
-      var rule = otherRules[i]
-      var match = rule.match
-      for (var j=0; j<match.length; j++) {
-        var pat = match[j]
-        if (!isRegExp(pat)) { continue }
-        var m = pat.exec(literal)
-        if (m && m[0] === literal) {
-          return rule
-        }
-      }
-    }
-  }
-
   function compileRules(rules, hasStates) {
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
@@ -185,26 +169,6 @@
         }
         errorRule = options
       }
-
-      // look for keywords
-      var match = options.match
-      var notKeywords = []
-      for (var j=0; j<match.length; j++) {
-        var word = match[j]
-        if (typeof word === 'string') {
-          // does it match an existing rule (e.g. identifier?)
-          var other = getIdentifier(word, rules)
-          if (other) {
-            if (!other.keywords) {
-              other.keywords = Object.create(null)
-            }
-            other.keywords[word] = options
-            continue
-          }
-        }
-        notKeywords.push(word)
-      }
-      options.match = notKeywords
 
       // skip rules with no match
       if (options.match.length === 0) {
@@ -372,11 +336,6 @@
       text = match[0]
       value = match[i + 1]
       group = this.groups[i]
-
-      // check for keywords
-      if (group.keywords) {
-        group = group.keywords[text] || group
-      }
     }
 
     // count line breaks
@@ -401,6 +360,11 @@
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
+    }
+
+    // check for keywords
+    if (group && group.transform) {
+      token = group.transform(token)
     }
 
     this.index += size
@@ -469,10 +433,55 @@
   }
 
 
+  function keywords(rule, namer, keywordList) {
+    if (typeof namer !== 'function') {
+      var type = namer
+      namer = function() { return type }
+    }
+
+    function str(x) { return JSON.stringify(x) }
+
+    var byLength = Object.create(null)
+    keywordList.forEach(function(keyword) {
+      (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+    })
+
+    // fast string lookup
+    var source = ''
+    source += '(function(value) {\n'
+    source += 'switch (value.length) {\n'
+    for (var length in byLength) {
+      var keywords = byLength[length]
+      source += 'case ' + length + ':\n'
+      source += 'switch (value) {\n'
+      keywords.forEach(function(keyword) {
+        var tokenType = namer(keyword)
+        if (typeof tokenType !== 'string') {
+          throw new Error('keyword type must be string: ' + name)
+        }
+        source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
+      })
+      source += '}\n'
+    }
+    source += '}\n'
+    source += '})'
+    var getType = eval(source)
+
+    var rule = ruleOptions(null, rule)
+    delete rule.tokenType
+    rule.transform = function(token) {
+      token.type = getType(token.value) || token.type
+      return token
+    }
+    return rule
+  }
+
+
   return {
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
+    keywords: keywords,
   }
 
 }))

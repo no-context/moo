@@ -112,8 +112,6 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     }).reset('42').next() // -> { type: 'number', value: '42' }
     ```
 
-    (Note: moo [special-cases keywords](#keywords); in which case order is ignored.)
-
 * Moo uses **multiline RegExps**. This has a few quirks: for example, the **dot `/./` doesn't include newlines**. Use `[^]` instead if you want to match newlines too.
 
 * Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
@@ -157,7 +155,7 @@ If you don't want this, you can `save()` the state, and later pass it as the sec
 Keywords
 --------
 
-Moo makes it convenient to define literals and keywords.
+Moo makes it convenient to define literals.
 
 ```js
     moo.compile({
@@ -169,30 +167,42 @@ Moo makes it convenient to define literals and keywords.
 
 It'll automatically compile them into regular expressions, escaping them where necessary.
 
-Important! **Always write your literals like this:**
+**Keywords** should be written using the `keywords` helper.
 
 ```js
-    ['while', 'if', 'else', 'moo', 'cows']
+    moo.compile({
+      identifier: moo.keywords(/[a-zA-Z]+/, 'keyword', ['while', 'if', 'else', 'moo', 'cows']),
+      space: {match: /\s+/, lineBreaks: true},
+    })
 ```
 
-And **not** like this:
-
-```js
-    /while|if|else|moo|cows/
-```
-
-### Why? ###
-
-The reason: Moo special-cases keywords to ensure the **longest match** principle applies, even in edge cases.
+You need to do this to ensure the **longest match** principle applies, even in edge cases.
 
 Imagine trying to parse the input `className` with the following rules:
 
-      ['keyword',     ['class']],
-      ['identifier',  /[a-zA-Z]+/],
+```js
+    ['keyword',     ['class']],
+    ['identifier',  /[a-zA-Z]+/],
+```
 
 You'll get _two_ tokens — `['class', 'Name']` -- which is _not_ what you want! If you swap the order of the rules, you'll fix this example; but now you'll lex `class` wrong (as an `identifier`).
 
-Moo solves this by checking to see if any of your literals can be matched by one of your other rules; if so, it doesn't lex the keyword separately, but instead handles it at a later stage (by checking identifiers against a list of keywords).
+The keywords helper checks matches against the list of keywords; if any of them match, it uses the type `'keyword'` instead of `'identifier'` (for this example).
+
+Keywords can also have **individual types**.
+
+```js
+    let lexer = moo.compile({
+      name: moo.keywords({
+        match: /[a-zA-Z]+/
+      }, n => 'kw-' + n, ['class', 'def', 'if']),
+      // ...
+    })
+    lexer.reset('def foo')
+    lexer.next() // -> { type: 'kw-def', value: 'def' }
+    lexer.next() // space
+    lexer.next() // -> { type: 'name', value: 'foo' }
+```
 
 
 States
