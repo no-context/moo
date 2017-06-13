@@ -1,6 +1,6 @@
 {
   "name": "moo",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Optimised tokenizer/lexer generator! 🐄 Uses /y for performance. Moo!",
   "main": "moo.js",
   "files": [
