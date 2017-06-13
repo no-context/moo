@@ -285,6 +285,23 @@
     this.reset()
   }
 
+  Lexer.prototype.reset = function(data, info) {
+    this.buffer = data || ''
+    this.index = 0
+    this.line = info ? info.line : 1
+    this.col = info ? info.col : 1
+    this.setState(info ? info.state : this.startState)
+    return this
+  }
+
+  Lexer.prototype.save = function() {
+    return {
+      line: this.line,
+      col: this.col,
+      state: this.state,
+    }
+  }
+
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
@@ -429,23 +446,6 @@
     message += "  " + firstLine + "\n"
     message += "  " + Array(token.col).join(" ") + "^"
     return message
-  }
-
-  Lexer.prototype.reset = function(data, info) {
-    this.buffer = data || ''
-    this.index = 0
-    this.line = info ? info.line : 1
-    this.col = info ? info.col : 1
-    this.setState(info ? info.state : this.startState)
-    return this
-  }
-
-  Lexer.prototype.save = function() {
-    return {
-      line: this.line,
-      col: this.col,
-      state: this.state,
-    }
   }
 
   Lexer.prototype.clone = function() {
