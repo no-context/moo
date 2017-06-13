@@ -13,6 +13,7 @@ Moo is a highly-optimised tokenizer/lexer generator. Use it to tokenize your str
 * supports [States](#states)
 * custom [Errors](#errors)
 * is even [Iterable](#iteration)
+* has no dependencies
 * <3KB gzipped
 * Moo!
 
@@ -33,7 +34,7 @@ Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness
 Usage
 -----
 
-First, you need to do the needful: `$ npm install moo`, `$ yarn install moo`, or whatever will ship this code to your computer. Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; it's completely standalone.
+First, you need to do the needful: `$ npm install moo`, or whatever will ship this code to your computer. Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; moo is completely standalone.
 
 Then you can start roasting your very own lexer/tokenizer:
 
@@ -101,15 +102,17 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
     ```js
     moo.compile({
-        word:  /[a-z]+/,
-        foo:   'foo',
-    }).reset('foo').next() // -> { type: 'word', value: 'foo' }
+        identifier:  /[a-z0-9]+/,
+        number:  /[0-9]+/,
+    }).reset('42').next() // -> { type: 'identifier', value: '42' }
 
     moo.compile({
-        foo:   'foo',
-        word:  /[a-z]+/,
-    }).reset('foo').next() // -> { type: 'foo', value: 'foo' }
+        number:  /[0-9]+/,
+        identifier:  /[a-z0-9]+/,
+    }).reset('42').next() // -> { type: 'number', value: '42' }
     ```
+
+    (Note: moo [special-cases keywords](#keywords); in which case order is ignored.)
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, the **dot `/./` doesn't include newlines**. Use `[^]` instead if you want to match newlines too.
 
@@ -158,9 +161,9 @@ Moo makes it convenient to define literals and keywords.
 
 ```js
     moo.compile({
-      ['lparen',  '('],
-      ['rparen',  ')'],
-      ['keyword', ['while', 'if', 'else', 'moo', 'cows']],
+      lparen:  '(',
+      rparen:  ')',
+      keyword: ['while', 'if', 'else', 'moo', 'cows'],
     })
 ```
 
