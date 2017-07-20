@@ -10,6 +10,10 @@ function reEscape(pat) {
   return pat
 }
 
+function randomChoice(array) {
+  return array[Math.floor(Math.random() * array.length)]
+}
+
 const chevrotain = require('chevrotain')
 function chevrotainFromMoo(lexer) {
   const tokens = []
@@ -43,6 +47,39 @@ suite('startup', () => {
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     })
+  })
+
+})
+
+suite('keywords', () => {
+
+  const keywords = 'cow moo bovine udder hoof cheese milk cud grass moo moo bull calf friesian jersey alderney angus beef highland cattle'.split(' ')
+  const words = keywords.concat('orange fruit apple pear kiwi fire pineapple pirahna kale kumquat starfruit dragonfruit passion sharon physalis gooseberry'.split(' '))
+  var source = ''
+  for (var i=2000; i--; ) {
+    source += randomChoice(words) + ' '
+  }
+
+  const lexer = moo.compile({
+    name: {match: /[a-z]+/},
+    cowword: keywords,
+    space: {match: /\s+/, lineBreaks: true},
+  })
+  lexer.reset(source)
+
+  // test
+  for (let tok in lexer) {
+    switch (tok.type) {
+      case 'space': continue
+      case 'cowword': expect(keywords.indexOf(tok.value) !== -1); continue
+      case 'name': expect(keywords.indexOf(tok.value) === -1); continue
+    }
+  }
+
+  benchmark('🐮 ', () => {
+    lexer.reset(source)
+    var count = 0
+    while (tok = lexer.next()) { count++ }
   })
 
 })
