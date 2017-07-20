@@ -208,6 +208,14 @@ Keywords can also have **individual types**.
     lexer.next() // -> { type: 'name', value: 'foo' }
 ```
 
+Use [itt](https://github.com/nathan/itt)'s iterator adapters to make constructing keyword objects easier:
+
+```js
+    itt(['class', 'def', 'if'])
+    .map(k => ['kw-' + k, k])
+    .toObject()
+```
+
 
 States
 ------
