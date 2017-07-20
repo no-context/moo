@@ -112,11 +112,15 @@
       next: null,
       push: null,
       error: false,
+      keywords: null,
     }, obj)
 
     // convert to array
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
+    if (options.keywords) {
+      options.transform = compileKeywords(options.keywords)
+    }
     return options
   }
 
@@ -433,20 +437,23 @@
   }
 
 
-  function keywords(rule, namer, keywordList) {
-    if (typeof namer !== 'function') {
-      var type = namer
-      namer = function() { return type }
+  function compileKeywords(map) {
+    var reverseMap = Object.create(null)
+    var byLength = Object.create(null)
+    var types = Object.getOwnPropertyNames(map)
+    for (var i=0; i<types.length; i++) {
+      var tokenType = types[i]
+      var item = map[tokenType]
+      var keywordList = Array.isArray(item) ? item : [item]
+      keywordList.forEach(function(keyword) {
+        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        reverseMap[keyword] = tokenType
+      })
     }
 
-    function str(x) { return JSON.stringify(x) }
-
-    var byLength = Object.create(null)
-    keywordList.forEach(function(keyword) {
-      (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
-    })
-
     // fast string lookup
+    // https://jsperf.com/string-lookups
+    function str(x) { return JSON.stringify(x) }
     var source = ''
     source += '(function(value) {\n'
     source += 'switch (value.length) {\n'
@@ -455,7 +462,7 @@
       source += 'case ' + length + ':\n'
       source += 'switch (value) {\n'
       keywords.forEach(function(keyword) {
-        var tokenType = namer(keyword)
+        var tokenType = reverseMap[keyword]
         if (typeof tokenType !== 'string') {
           throw new Error('keyword type must be string: ' + name)
         }
@@ -467,13 +474,10 @@
     source += '})'
     var getType = eval(source)
 
-    var rule = ruleOptions(null, rule)
-    delete rule.tokenType
-    rule.transform = function(token) {
+    return function(token) {
       token.type = getType(token.value) || token.type
       return token
     }
-    return rule
   }
 
 
@@ -481,7 +485,6 @@
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
-    keywords: keywords,
   }
 
 }))

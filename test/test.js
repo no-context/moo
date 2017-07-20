@@ -113,16 +113,23 @@ describe('keywords', () => {
     }
 
     check(compile({
-      identifier: moo.keywords(/[a-zA-Z]+/, 'keyword', ['class'])
+      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: 'class'}},
     }))
     check(compile({
-      identifier: moo.keywords({match: /[a-zA-Z]+/}, 'keyword', ['class'])
+      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: ['class']}},
     }))
   })
 
   test('keywords can have individual tokenTypes', () => {
     let lexer = compile({
-      identifier: moo.keywords({match: /[a-zA-Z]+/}, n => 'kw-' + n, ['class', 'def', 'if']),
+      identifier: {
+        match: /[a-zA-Z]+/,
+        keywords: {
+          'kw-class': 'class',
+          'kw-def': 'def',
+          'kw-if': 'if',
+        },
+      },
       space: {match: /\s+/, lineBreaks: true},
     })
     lexer.reset('foo def')
