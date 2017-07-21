@@ -106,18 +106,18 @@ suite('json', () => {
     if (count !== jsonCount) { throw 'fail' }
   })
 
+  const jsonChev = chevrotainFromMoo(jsonLexer)
+  benchmark('chevrotain', function() {
+    let count = jsonChev.tokenize(jsonFile).tokens.length
+    if (count !== jsonCount) { throw 'fail' }
+  })
+
   const Syntax = require('./json-syntax')
   benchmark('syntax-cli', function() {
     Syntax.initString(jsonFile)
     var count = 0
     while (Syntax.getNextToken().type !== '$') { count++ }
     if (count !== jsonCount) throw 'fail'
-  })
-
-  const jsonChev = chevrotainFromMoo(jsonLexer)
-  benchmark('chevrotain', function() {
-    let count = jsonChev.tokenize(jsonFile).tokens.length
-    if (count !== jsonCount) { throw 'fail' }
   })
 
 })
@@ -164,7 +164,6 @@ suite('python', () => {
 
   /* ReMix
    * not strictly a tokenizer, but definitely interesting
-   */
   const ReMix = require('remix').ReMix
   let rm = new ReMix
   for (let group of pythonGroups) {
@@ -176,11 +175,11 @@ suite('python', () => {
     while (token = rm.exec(kurtFile)) { count++ }
     if (count !== 14513) throw 'fail'
   })
+   */
 
 
   /* lex
    * I do not know why this one is so slow
-   */
   const Lexer = require('lex')
   var lexer = new Lexer
   for (let group of pythonGroups) {
@@ -193,10 +192,10 @@ suite('python', () => {
     while (token = lexer.lex()) { count++ }
     if (count !== 14513) throw 'fail'
   })
+   */
 
   /* tokenizer2
    * wrong output. Does not seem to use regexes in the way I expect
-   */
   const core = require('tokenizer2/core')
   var t2count
   var t = core(token => {
@@ -212,6 +211,7 @@ suite('python', () => {
     t.end()
     // if (t2count !== 14513) throw 'fail'
   })
+   */
 
   /* chevrotain's lexer
    */
