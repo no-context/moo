@@ -98,6 +98,26 @@ describe('compiles literals', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|foo|t[ok]+|\\w')
   })
 
+  test('sorts literals by length', () => {
+    let lexer = moo.compile({
+      op: ['=', '==', '===', '+', '+='],
+      space: / +/,
+    })
+    lexer.reset('=== +=')
+    expect(lexer.next()).toMatchObject({value: '==='})
+    expect(lexer.next()).toMatchObject({type: 'space'})
+    expect(lexer.next()).toMatchObject({value: '+='})
+  })
+
+  test('but doesn\'t sort literals across rules', () => {
+    let lexer = moo.compile({
+      one: 'moo',
+      two: 'moomintroll',
+    })
+    lexer.reset('moomintroll')
+    expect(lexer.next()).toMatchObject({value: 'moo'})
+  })
+
   test("deals with keyword literals", () => {
     function check(lexer) {
       lexer.reset('class')
