@@ -307,7 +307,7 @@
     this.state = state
     var info = this.states[state]
     if (!info) {
-      throw new Error('No state with name ' + state + ' is defined.')
+      throw new Error('No state with name "' + state + '" is defined.')
     }
     this.groups = info.groups
     this.error = info.error
