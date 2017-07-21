@@ -693,14 +693,11 @@ describe('example: python', () => {
 
   test("kurt python", () => {
     let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
+    expect(tokens).toMatchSnapshot()
     expect(tokens[100]).toBe('NAME "def"')
     expect(tokens.pop()).toBe('ENDMARKER ""')
     tokens.pop()
     expect(tokens.pop()).not.toBe('ERRORTOKEN ""')
-    expect(tokens.length).toBe(11616)
-
-    // let expected = fs.readFileSync('test/kurt-tokens.txt', 'utf-8').split('\n')
-    // expect(tokens).toEqual(expected)
   })
 
 })
