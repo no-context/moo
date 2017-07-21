@@ -33,10 +33,10 @@ var opPat = [
 ];
 
 var pythonLexer = moo.compile({
-  Whitespace: /([ ]+)/, // TODO tabs
-  NAME: /([A-Za-z_][A-Za-z0-9_]*)/,
+  Whitespace: /[ ]+/, // TODO tabs
+  NAME: /[A-Za-z_][A-Za-z0-9_]*/,
   OP: opPat,
-  COMMENT: /(#.*)/,
+  COMMENT: /#.*/,
   NEWLINE: { match: /\r|\r\n|\n/, lineBreaks: true },
   Continuation: /\\/,
   ERRORTOKEN: {match: /[\$?`]/, error: true},
@@ -47,10 +47,12 @@ var pythonLexer = moo.compile({
     /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/,    // 123.[123]
     /(?:0|[1-9][0-9]*)/,              // 123
   ],
+  TRIPLE_STRING: [
+    /""".*?"""/,
+  ],
   STRING: [ // strings are backslash-escaped
-    /(""".*?""")/,
-    /"((?:\\["\\rn]|[^"\\])*?)"/,
-    /'((?:\\['\\rn]|[^'\\])*?)'/,
+    /"(?:\\["\\rn]|[^"\\])*?"/,
+    /'(?:\\['\\rn]|[^'\\])*?'/,
   ],
 })
 
@@ -146,6 +148,13 @@ var tokenize = function(input, emit) {
               }
             }
             indent = null;
+          }
+          if (tok.type === 'TRIPLE_STRING') {
+            // TODO uncomment this
+            //tok.value = tok.value.slice(3, tok.value.length - 3)
+            tok.type = 'STRING'
+          } else if (tok.type === 'STRING') {
+            tok.value = tok.value.slice(1, tok.value.length - 1)
           }
           emit(tok);
           next();

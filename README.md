@@ -44,8 +44,8 @@ Then you can start roasting your very own lexer/tokenizer:
     let lexer = moo.compile({
       WS:      /[ \t]+/,
       comment: /\/\/.*?$/,
-      number:  /(0|[1-9][0-9]*)/,
-      string:  /"((?:\\["\\]|[^\n"\\])*)"/,
+      number:  /0|[1-9][0-9]*/,
+      string:  /"(?:\\["\\]|[^\n"\\])*"/,
       lparen:  '(',
       rparen:  ')',
       keyword: ['while', 'if', 'else', 'moo', 'cows'],
@@ -76,7 +76,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
     ```js
     let lexer = moo.compile({
-      string: /"(.*)"/,   // greedy quantifier *
+      string: /".*"/,   // greedy quantifier *
       // ...
     })
 
@@ -88,7 +88,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     
     ```js
     let lexer = moo.compile({
-      string: /"(.*?)"/,   // non-greedy quantifier *?
+      string: /".*?"/,   // non-greedy quantifier *?
       // ...
     })
 
@@ -114,7 +114,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, the **dot `/./` doesn't include newlines**. Use `[^]` instead if you want to match newlines too.
 
-* Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
+* Since an excluding character ranges like `/[^ ]/` (which matches anything but a space) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
 
 
 Line Numbers
@@ -127,8 +127,7 @@ It will track line numbers, as long as you apply the `lineBreaks: true` option t
 Token objects (returned from `next()`) have the following attributes:
 
 * **`type`**: the name of the group, as passed to compile.
-* **`value`**: the contents of the capturing group (or the whole match, if the token RegExp doesn't define a capture).
-* **`size`**: the total length of the match (`value` may be shorter if you have capturing groups).
+* **`value`**: the match contents.
 * **`offset`**: the number of bytes from the start of the buffer where the match starts.
 * **`lineBreaks`**: the number of line breaks found in the match. (Always zero if this rule has `lineBreaks: false`.)
 * **`line`**: the line number of the beginning of the match, starting from 1.
