@@ -119,7 +119,7 @@
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
     if (options.keywords) {
-      options.transform = keywordTransform(options.keywords)
+      options.getType = keywordTransform(options.keywords)
     }
     return options
   }
@@ -278,12 +278,7 @@
     }
     source += '}\n'
     source += '})'
-    var getType = eval(source)
-
-    return function(token) {
-      token.type = getType(token.value) || token.type
-      return token
-    }
+    return eval(source) // getType
   }
 
   /***************************************************************************/
@@ -399,7 +394,7 @@
 
     var size = text.length
     var token = {
-      type: group && group.tokenType,
+      type: group && ((group.getType && group.getType(text)) || group.tokenType),
       value: value,
       toString: tokenToString,
       offset: index,
@@ -407,11 +402,6 @@
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
-    }
-
-    // check for keywords
-    if (group && group.transform) {
-      token = group.transform(token)
     }
 
     this.index += size
