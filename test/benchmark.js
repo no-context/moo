@@ -70,8 +70,8 @@ suite('keywords', () => {
   for (let tok in lexer) {
     switch (tok.type) {
       case 'space': continue
-      case 'cowword': expect(keywords.indexOf(tok.value) !== -1); continue
-      case 'name': expect(keywords.indexOf(tok.value) === -1); continue
+      case 'cowword': expect(keywords.indexOf(tok.value)).not.toBe(-1); continue
+      case 'name': expect(keywords.indexOf(tok.value)).toBe(-1); continue
     }
   }
 
