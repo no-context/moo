@@ -445,7 +445,8 @@ describe('stateful lexer', () => {
   })
 
   test('warns for non-numeric pop', () => {
-    expect(() => moo.states({start: {bar: [{match: 'bar', pop: 'cow'}]}})).toThrow("Can't pop non-number 'cow' (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("Can't pop non-number 'cow' (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: true}}})).not.toThrow()
   })
 
 })
