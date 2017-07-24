@@ -438,6 +438,12 @@ describe('stateful lexer', () => {
     expect(lexAll(lexer).map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
   })
 
+  test('warns for non-existent states', () => {
+    expect(() => moo.states({start: {bar: {match: 'bar', next: 'foo'}}})).toThrow("Missing state 'foo'")
+    expect(() => moo.states({start: {bar: {match: 'bar', push: 'foo'}}})).toThrow("Missing state 'foo'")
+    expect(() => moo.states({start: {foo: 'fish', bar: {match: 'bar', push: 'foo'}}})).toThrow("Missing state 'foo'")
+  })
+
 })
 
 

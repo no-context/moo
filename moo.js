@@ -200,7 +200,7 @@
     for (var i=0; i<keys.length; i++) {
       var groups = map[keys[i]].groups
       for (var j=0; j<groups.length; j++) {
-        var g = groups[i]
+        var g = groups[j]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
           throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
