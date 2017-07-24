@@ -84,10 +84,18 @@
     for (var i=0; i<keys.length; i++) {
       var key = keys[i]
       var thing = object[key]
-      var rules = Array.isArray(thing) && (thing.length === 0 || isObject(thing[0])) ? thing : [thing]
+      var rules = Array.isArray(thing) ? thing : [thing]
+      var match = []
       rules.forEach(function(rule) {
-        result.push(ruleOptions(key, rule))
+        if (isObject(rule)) {
+          if (match.length) result.push(ruleOptions(key, match))
+          result.push(ruleOptions(key, rule))
+          match = []
+        } else {
+          match.push(rule)
+        }
       })
+      if (match.length) result.push(ruleOptions(key, match))
     }
     return result
   }
