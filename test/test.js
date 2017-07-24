@@ -207,6 +207,8 @@ describe('lexer', () => {
       expect(t).toMatchObject({type, value})
     }
     expect(simpleLexer.next()).not.toBeTruthy()
+    expect(typeof simpleLexer[Symbol.iterator]).toBe("function")
+    expect(typeof simpleLexer[Symbol.iterator]()[Symbol.iterator]).toBe("function")
   })
 
   test('multiline RegExps', () => {
