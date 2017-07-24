@@ -72,8 +72,8 @@
 
   Indented.prototype._nextIndent = function() {
     for (var tok; tok = this._peek(); ) {
-      if (tok.type === this.options.newline) {
-        if (!this.options.ignoreNewline) this.queue.push(tok)
+      if (tok.type === this.options.newline || tok.type === this.options.comment) {
+        if (tok.type !== this.options.newline || !this.options.ignoreNewline) this.queue.push(tok)
         this._next()
         continue
       }
@@ -83,7 +83,8 @@
 
         var next = this._peek()
         if (!next) return
-        if (next.type === this.options.newline) {
+        if (next.type === this.options.newline || next.type === this.options.comment) {
+          if (next.type === this.options.comment) this.queue.push(next)
           this._next()
           continue
         }
@@ -99,7 +100,7 @@
       this.indent = this._nextIndent()
     }
     if (this.queue.length) {
-      return this.queue.shift()
+      return this.queue.shift() // TODO optimize
     }
 
     var tok
