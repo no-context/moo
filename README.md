@@ -320,6 +320,23 @@ Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
 ```
 
 
+Transform
+---------
+
+Moo doesn't allow capturing groups, but you can supply a transform function, `value()`, which will be called on the value before storing it in the Token object.
+
+```js
+    moo.compile({
+      STRING: [
+        {match: /"""[^]*?"""/, lineBreaks: true, value: x => x.slice(3, -3)},
+        {match: /"(?:\\["\\rn]|[^"\\])*?"/, lineBreaks: true, value: x => x.slice(1, -1)},
+        {match: /'(?:\\['\\rn]|[^'\\])*?'/, lineBreaks: true, value: x => x.slice(1, -1)},
+      ],
+      // ...
+    })
+```
+
+
 Contributing
 ------------
 

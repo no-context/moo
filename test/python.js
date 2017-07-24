@@ -48,9 +48,9 @@ var pythonLexer = moo.compile({
     /(?:0|[1-9][0-9]*)/,              // 123
   ],
   STRING: [
-    {match: /"""[^]*?"""/, lineBreaks: true, getValue: v => v.slice(3, v.length - 3)},
-    {match: /"(?:\\["\\rn]|[^"\\\n])*?"/, getValue: v => v.slice(1, v.length - 1)},
-    {match: /'(?:\\['\\rn]|[^'\\\n])*?'/, getValue: v => v.slice(1, v.length - 1)},
+    {match: /"""[^]*?"""/, lineBreaks: true, value: x => x.slice(3, -3)},
+    {match: /"(?:\\["\\rn]|[^"\\\n])*?"/, value: x => x.slice(1, -1)},
+    {match: /'(?:\\['\\rn]|[^'\\\n])*?'/, value: x => x.slice(1, -1)},
   ],
 })
 

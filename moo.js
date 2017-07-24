@@ -117,7 +117,7 @@
       next: null,
       push: null,
       error: false,
-      getValue: null,
+      value: null,
       getType: null,
     }, obj)
 
@@ -372,7 +372,7 @@
     var size = value.length
     var token = {
       type: (group.getType && group.getType(value)) || group.tokenType,
-      value: (group.getValue && group.getValue(value)) || value,
+      value: (group.value && group.value(value)) || value,
       toString: tokenToString,
       offset: index,
       size: size,
