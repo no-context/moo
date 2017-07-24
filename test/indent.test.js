@@ -13,8 +13,7 @@ describe('indent', () => {
       ws: /[ \t]+/,
       nl: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
       id: /\w+/,
-    })
-
+    }))
 
     lexer.reset(`
     if this

@@ -15,6 +15,11 @@
     }
   }
 
+  function token(name) {
+    return {type: name, value: ""}
+  }
+
+
   function Indented(lexer, options) {
     this.options = Object.assign({
       // TODO
@@ -40,6 +45,7 @@
     this.queue = info ? info.queue.slice() : []
     this.lexer.reset(data, info)
     this.here = info ? info.here : null
+    return this
   }
 
   Indented.prototype.save = function() {
@@ -103,17 +109,17 @@
 
         if (newIndent === this.indent) {
           this.indent = newIndent
-          return {type: 'nl'} // TODO tok?
+          return token('nl') // TODO tok?
 
         } else if (newIndent > this.indent) {
           this.stack.push(this.indent)
           this.indent = newIndent
-          return {type: 'indent'}
+          return token('indent')
 
         } else {
           while (newIndent < this.indent) {
             this.indent = this.stack.pop()
-            this.queue.push({type: 'dedent'})
+            this.queue.push(token('dedent'))
           }
           if (newIndent !== this.indent) {
             throw new Error('inconsistent indentation')
@@ -130,7 +136,7 @@
 
     // dedent remaining blocks at eof
     for (let i = this.stack.length; i--; ) {
-      this.queue.push({type: 'dedent'})
+      this.queue.push(token('dedent'))
     }
     this.stack = []
     if (this.queue.length) return this.queue.shift()

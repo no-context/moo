@@ -22,6 +22,7 @@ Array [
   },
   Object {
     "type": "indent",
+    "value": "",
   },
   Object {
     "col": 7,
@@ -43,6 +44,7 @@ Array [
   },
   Object {
     "type": "indent",
+    "value": "",
   },
   Object {
     "col": 9,
@@ -55,9 +57,11 @@ Array [
   },
   Object {
     "type": "dedent",
+    "value": "",
   },
   Object {
     "type": "dedent",
+    "value": "",
   },
   Object {
     "col": 5,
@@ -70,6 +74,7 @@ Array [
   },
   Object {
     "type": "indent",
+    "value": "",
   },
   Object {
     "col": 7,
@@ -82,6 +87,7 @@ Array [
   },
   Object {
     "type": "dedent",
+    "value": "",
   },
 ]
 `;
