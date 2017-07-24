@@ -125,7 +125,8 @@
       next: null,
       push: null,
       error: false,
-      keywords: null,
+      value: null,
+      getType: null,
     }, obj)
 
     // convert to array
@@ -298,7 +299,7 @@
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error
+    this.error = info.error || {lineBreaks: true, shouldThrow: true}
     this.re = info.regexp
   }
 
@@ -366,7 +367,7 @@
 
     // count line breaks
     var lineBreaks = 0
-    if (!group || group.lineBreaks) {
+    if (group.lineBreaks) {
       var matchNL = /\n/g
       var nl = 1
       if (value === '\n') {
@@ -376,17 +377,18 @@
       }
     }
 
+    var size = value.length
     var token = {
-      type: group && ((group.getType && group.getType(value)) || group.tokenType),
-      value: value,
+      type: (group.getType && group.getType(value)) || group.tokenType,
+      value: (group.value && group.value(value)) || value,
       toString: tokenToString,
       offset: index,
+      size: size,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
     }
 
-    var size = value.length
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
@@ -395,7 +397,7 @@
       this.col += size
     }
     // throw, if no rule with {error: true}
-    if (!group) {
+    if (group.shouldThrow) {
       throw new Error(this.formatError(token, "invalid syntax"))
     }
 

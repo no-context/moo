@@ -188,24 +188,28 @@ describe('keywords', () => {
 
 })
 
-describe('capture groups', () => {
+describe('value transforms', () => {
 
-  test('allow no capture groups', () => {
-    let lexer = compile({
-      a: /a+/,
-      b: /b|c/,
-    })
-    lexer.reset('aaaaabcbcbcbc')
-    expect(lexer.next().value).toEqual('aaaaa')
-    expect(lexer.next().value).toEqual('b')
-    expect(lexer.next().value).toEqual('c')
-    expect(lexer.next().value).toEqual('b')
-  })
-
-  test('are not allowed', () => {
+  test('forbid capture groups', () => {
     expect(() => moo.compile({
       tok: [/(foo)/, /(bar)/]
     })).toThrow("has capture groups")
+  })
+
+  test('transform & report correct size', () => {
+    let lexer = moo.compile({
+      fubar: {match: /fubar/, value: x => x.slice(2)},
+      string: {match: /".*?"/, value: x => x.slice(1, -1)},
+      full: {match: /quxx/, value: x => x},
+      moo: {match: /moo(?:moo)*moo/, value: x => x.slice(3, -3)},
+      space: / +/,
+    })
+    lexer.reset('fubar "yes" quxx moomoomoomoo')
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
+    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
+    expect(tokens.shift()).toMatchObject({ value: 'moomoo', size: 12 })
   })
 
 })
@@ -687,11 +691,6 @@ describe('example: python', () => {
 
   const pythonLexer = require('./python').lexer
 
-  test('kurt tokens', () => {
-    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
-    expect(tokens.length).toBe(14513)
-  })
-
   test("1 + 2", () => {
     expect(python.outputTokens("1 + 2")).toEqual([
       'NUMBER "1"',
@@ -705,7 +704,7 @@ describe('example: python', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
-      ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
+      ['abc', " ", "1", "+", "1", " ", 'def']
     )
   })
 
@@ -716,7 +715,6 @@ describe('example: python', () => {
   test("kurt python", () => {
     let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
     expect(tokens).toMatchSnapshot()
-    expect(tokens[100]).toBe('NAME "def"')
     expect(tokens.pop()).toBe('ENDMARKER ""')
     tokens.pop()
     expect(tokens.pop()).not.toBe('ERRORTOKEN ""')

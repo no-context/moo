@@ -47,12 +47,10 @@ var pythonLexer = moo.compile({
     /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/,    // 123.[123]
     /(?:0|[1-9][0-9]*)/,              // 123
   ],
-  TRIPLE_STRING: [
-    /""".*?"""/,
-  ],
-  STRING: [ // strings are backslash-escaped
-    /"(?:\\["\\rn]|[^"\\])*?"/,
-    /'(?:\\['\\rn]|[^'\\])*?'/,
+  STRING: [
+    {match: /"""[^]*?"""/, lineBreaks: true, value: x => x.slice(3, -3)},
+    {match: /"(?:\\["\\rn]|[^"\\\n])*?"/, value: x => x.slice(1, -1)},
+    {match: /'(?:\\['\\rn]|[^'\\\n])*?'/, value: x => x.slice(1, -1)},
   ],
 })
 
@@ -148,13 +146,6 @@ var tokenize = function(input, emit) {
               }
             }
             indent = null;
-          }
-          if (tok.type === 'TRIPLE_STRING') {
-            // TODO uncomment this
-            //tok.value = tok.value.slice(3, tok.value.length - 3)
-            tok.type = 'STRING'
-          } else if (tok.type === 'STRING') {
-            tok.value = tok.value.slice(1, tok.value.length - 1)
           }
           emit(tok);
           next();
