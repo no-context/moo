@@ -162,11 +162,9 @@ describe('keywords', () => {
 
 })
 
-describe('capturing groups', () => {
+describe('capture groups', () => {
 
-  // TODO warns for multiple capture groups
-
-  test('no capture groups', () => {
+  test('allow no capture groups', () => {
     let lexer = compile({
       a: /a+/,
       b: /b|c/,
@@ -178,26 +176,10 @@ describe('capturing groups', () => {
     expect(lexer.next().value).toEqual('b')
   })
 
-  test('list of capturing RegExps', () => {
+  test('are not allowed', () => {
     expect(() => moo.compile({
       tok: [/(foo)/, /(bar)/]
-    })).not.toThrow()
-  })
-
-  test('captures & reports correct size', () => {
-    let lexer = moo.compile({
-      fubar: /fu(bar)/,
-      string: /"(.*?)"/,
-      full: /(quxx)/,
-      moo: /moo(moo)*moo/,
-      space: / +/,
-    })
-    lexer.reset('fubar "yes" quxx moomoomoomoo')
-    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
-    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
-    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
-    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
-    expect(tokens.shift()).toMatchObject({ value: 'moo', size: 12 })
+    })).toThrow("has capture groups")
   })
 
 })
@@ -229,7 +211,7 @@ describe('lexer', () => {
 
   test('multiline RegExps', () => {
     var lexer = compile({
-      file: { match: /([^]+)/, lineBreaks: true },
+      file: { match: /[^]+/, lineBreaks: true },
     }).reset('I like to moo\na lot')
     expect(lexer.next().value).toBe('I like to moo\na lot')
   })
@@ -272,13 +254,15 @@ describe('lexer', () => {
     ])
   })
 
-  test('token to string conversion', () => {
+  test('Token#toString', () => {
+    // TODO: why does toString() return the value?
     const lexer = compile({
-      apples: /()a/,
-      pears: /p/,
-    }).reset('ap')
-    expect(String(lexer.next())).toBe('apples')
-    expect(String(lexer.next())).toBe('p')
+      apples: 'a',
+      name: {match: /[a-z]/, keywords: { kw: ['m'] }},
+    }).reset('azm')
+    expect(String(lexer.next())).toBe('a')
+    expect(String(lexer.next())).toBe('z')
+    expect(String(lexer.next())).toBe('m')
   })
 
   test('can be cloned', () => {
@@ -469,7 +453,6 @@ describe('line numbers', () => {
     var tokens = lexAll(testLexer.reset('cow\nfarm\ngrass'))
     expect(tokens.map(t => t.value)).toEqual(['cow', '\n', 'farm', '\n', 'grass'])
     expect(tokens.map(t => t.lineBreaks)).toEqual([0, 1, 0, 1, 0])
-    expect(tokens.map(t => t.size)).toEqual([3, 1, 4, 1, 5])
     expect(tokens.map(t => t.line)).toEqual([1, 1, 2, 2, 3])
     expect(tokens.map(t => t.col)).toEqual([1, 4, 1, 5, 1])
   })
@@ -619,7 +602,7 @@ describe('errors', () => {
       error: moo.error,
     })
     lexer.reset('foo\nbar')
-    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1, size: 7})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1})
     expect(lexer.next()).toBe(undefined) // consumes rest of input
   })
 

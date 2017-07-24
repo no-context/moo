@@ -118,48 +118,18 @@
     // convert to array
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
+    options.match.sort(function(a, b) {
+      return isRegExp(a) && isRegExp(b) ? 0
+           : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
+    })
     if (options.keywords) {
       options.getType = keywordTransform(options.keywords)
     }
     return options
   }
 
-  function sortRules(rules) {
-    var result = []
-    for (var i=0; i<rules.length; i++) {
-      var options = rules[i]
-      var match = options.match
-
-      // sort literals by length to ensure longest match
-      var capturingPatterns = []
-      var patterns = []
-      var literals = []
-      for (var j=0; j<match.length; j++) {
-        var obj = match[j]
-        if (!isRegExp(obj)) literals.push(obj)
-        else if (reGroups(obj.source) > 0) capturingPatterns.push(obj)
-        else patterns.push(obj)
-      }
-      literals.sort(compareLength)
-
-      // append regexps to the end
-      options.match = literals.concat(patterns)
-      result.push(options)
-
-      // add each capturing regexp as a separate rule
-      for (var j=0; j<capturingPatterns.length; j++) {
-        result.push(assign({}, options, {
-          match: [capturingPatterns[j]],
-        }))
-      }
-    }
-    return result
-  }
-
   function compileRules(rules, hasStates) {
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
-
-    rules = sortRules(rules)
 
     var errorRule = null
     var groups = []
@@ -189,8 +159,8 @@
         throw new Error("RegExp matches empty string: " + regexp)
       }
       var groupCount = reGroups(pat)
-      if (groupCount > 1) {
-        throw new Error("RegExp has more than one capture group: " + regexp)
+      if (groupCount > 0) {
+        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
         throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
@@ -202,9 +172,7 @@
       }
 
       // store regex
-      var isCapture = !!groupCount
-      if (!isCapture) pat = reCapture(pat)
-      parts.push(pat)
+      parts.push(reCapture(pat))
     }
 
     var suffix = hasSticky ? '' : '|(?:)'
@@ -352,7 +320,7 @@
   }
 
   function tokenToString() {
-    return this.value || this.type
+    return this.value
   }
 
   Lexer.prototype.next = function() {
@@ -367,16 +335,15 @@
     var match = this._eat(re)
     var i = this._getGroup(match)
 
-    var group, value, text
+    var group, value
     if (i === -1) {
       group = this.error
 
       // consume rest of buffer
-      text = value = buffer.slice(index)
+      value = buffer.slice(index)
 
     } else {
-      text = match[0]
-      value = match[i + 1]
+      value = match[0] // i+1
       group = this.groups[i]
     }
 
@@ -385,25 +352,24 @@
     if (!group || group.lineBreaks) {
       var matchNL = /\n/g
       var nl = 1
-      if (text === '\n') {
+      if (value === '\n') {
         lineBreaks = 1
       } else {
-        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
+        while (matchNL.exec(value)) { lineBreaks++; nl = matchNL.lastIndex }
       }
     }
 
-    var size = text.length
     var token = {
-      type: group && ((group.getType && group.getType(text)) || group.tokenType),
+      type: group && ((group.getType && group.getType(value)) || group.tokenType),
       value: value,
       toString: tokenToString,
       offset: index,
-      size: size,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
     }
 
+    var size = value.length
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
