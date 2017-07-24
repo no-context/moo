@@ -173,24 +173,28 @@ describe('keywords', () => {
 
 })
 
-describe('capture groups', () => {
+describe('value transforms', () => {
 
-  test('allow no capture groups', () => {
-    let lexer = compile({
-      a: /a+/,
-      b: /b|c/,
-    })
-    lexer.reset('aaaaabcbcbcbc')
-    expect(lexer.next().value).toEqual('aaaaa')
-    expect(lexer.next().value).toEqual('b')
-    expect(lexer.next().value).toEqual('c')
-    expect(lexer.next().value).toEqual('b')
-  })
-
-  test('are not allowed', () => {
+  test('forbid capture groups', () => {
     expect(() => moo.compile({
       tok: [/(foo)/, /(bar)/]
     })).toThrow("has capture groups")
+  })
+
+  test('transform & report correct size', () => {
+    let lexer = moo.compile({
+      fubar: {match: /fubar/, value: x => x.slice(2)},
+      string: {match: /".*?"/, value: x => x.slice(1, -1)},
+      full: {match: /quxx/, value: x => x},
+      moo: {match: /moo(?:moo)*moo/, value: x => x.slice(3, -3)},
+      space: / +/,
+    })
+    lexer.reset('fubar "yes" quxx moomoomoomoo')
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
+    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
+    expect(tokens.shift()).toMatchObject({ value: 'moomoo', size: 12 })
   })
 
 })
