@@ -143,8 +143,31 @@ suite('tosh', () => {
 suite('python', () => {
 
   const pythonLexer = require('./python').lexer
+  const pythonTokenize = require('./python').tokenize
   let kurtFile = fs.readFileSync('test/kurt.py', 'utf-8')
 
+  benchmark('🐮 lex', function() {
+    pythonLexer.reset(kurtFile)
+    while (pythonLexer.next()) {}
+  })
+
+  benchmark('🐮 full tokenize', function() {
+    pythonTokenize(kurtFile, () => {
+    })
+  })
+
+
+  /* chevrotain's lexer
+   */
+  /*
+  let chevLexer = chevrotainFromMoo(pythonLexer)
+  benchmark('chevrotain', function() {
+    let count = chevLexer.tokenize(kurtFile).tokens.length
+    if (count !== 14513) throw 'fail'
+  })
+  */
+
+  /*
   let pythonGroups = []
   for (let options of pythonLexer.groups) {
     let name = options.tokenType
@@ -157,13 +180,8 @@ suite('python', () => {
     pythonGroups.push({name, regexp})
   }
 
-  benchmark('🐮 ', function() {
-    pythonLexer.reset(kurtFile)
-    while (pythonLexer.next()) {}
-  })
-
-  /* ReMix
-   * not strictly a tokenizer, but definitely interesting
+  // ReMix
+  // not strictly a tokenizer, but definitely interesting
   const ReMix = require('remix').ReMix
   let rm = new ReMix
   for (let group of pythonGroups) {
@@ -175,11 +193,9 @@ suite('python', () => {
     while (token = rm.exec(kurtFile)) { count++ }
     if (count !== 14513) throw 'fail'
   })
-   */
 
-
-  /* lex
-   * I do not know why this one is so slow
+  // lex
+  // I do not know why this one is so slow
   const Lexer = require('lex')
   var lexer = new Lexer
   for (let group of pythonGroups) {
@@ -192,7 +208,7 @@ suite('python', () => {
     while (token = lexer.lex()) { count++ }
     if (count !== 14513) throw 'fail'
   })
-   */
+  */
 
   /* tokenizer2
    * wrong output. Does not seem to use regexes in the way I expect
@@ -212,14 +228,6 @@ suite('python', () => {
     // if (t2count !== 14513) throw 'fail'
   })
    */
-
-  /* chevrotain's lexer
-   */
-  let chevLexer = chevrotainFromMoo(pythonLexer)
-  benchmark('chevrotain', function() {
-    let count = chevLexer.tokenize(kurtFile).tokens.length
-    if (count !== 14513) throw 'fail'
-  })
 
   /* lexing
    *
