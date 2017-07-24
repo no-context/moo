@@ -38,6 +38,7 @@
   /***************************************************************************/
 
   function isRegExp(o) { return o && o.constructor === RegExp }
+  function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -82,7 +83,11 @@
     var result = []
     for (var i=0; i<keys.length; i++) {
       var key = keys[i]
-      result.push(ruleOptions(key, object[key]))
+      var thing = object[key]
+      var rules = Array.isArray(thing) && (thing.length === 0 || isObject(thing[0])) ? thing : [thing]
+      rules.forEach(function(rule) {
+        result.push(ruleOptions(key, rule))
+      })
     }
     return result
   }

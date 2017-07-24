@@ -56,6 +56,17 @@ describe('compiler', () => {
     expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })
 
+  test('accepts a list of match objects', () => {
+    const lexer = compile({
+      op: [
+        {match: '('},
+        {match: ')'},
+      ],
+    })
+    lexer.reset('())(')
+    expect(Array.from(lexer).map(x => x.value)).toEqual(['(', ')', ')', '('])
+  })
+
   test('accepts rules in an array', () => {
     const lexer = compile([
       { name: 'keyword', match: 'Bob'},
