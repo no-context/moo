@@ -369,17 +369,18 @@
       }
     }
 
+    var size = value.length
     var token = {
       type: (group.getType && group.getType(value)) || group.tokenType,
       value: (group.getValue && group.getValue(value)) || value,
       toString: tokenToString,
       offset: index,
+      size: size,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
     }
 
-    var size = value.length
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
