@@ -56,6 +56,32 @@ describe('compiler', () => {
     expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })
 
+  test('accepts a list of match objects', () => {
+    const lexer = compile({
+      op: [
+        {match: '('},
+        {match: ')'},
+      ],
+    })
+    lexer.reset('())(')
+    expect(Array.from(lexer).map(x => x.value)).toEqual(['(', ')', ')', '('])
+  })
+
+  test('accepts mixed rules and match objects', () => {
+    const lexer = compile({
+      op: [
+        /regexp/,
+        'string',
+        {match: /something/},
+        'lol',
+      ],
+    })
+    expect(lexer.groups.length).toBe(3)
+    expect(lexer.reset('string').next()).toMatchObject({type: 'op', value: 'string'})
+    expect(lexer.reset('regexp').next()).toMatchObject({type: 'op', value: 'regexp'})
+    expect(lexer.reset('something').next()).toMatchObject({type: 'op', value: 'something'})
+  })
+
   test('accepts rules in an array', () => {
     const lexer = compile([
       { name: 'keyword', match: 'Bob'},
