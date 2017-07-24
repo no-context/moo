@@ -117,7 +117,8 @@
       next: null,
       push: null,
       error: false,
-      keywords: null,
+      getValue: null,
+      getType: null,
     }, obj)
 
     // convert to array
@@ -370,7 +371,7 @@
 
     var token = {
       type: group && ((group.getType && group.getType(value)) || group.tokenType),
-      value: value,
+      value: (group && group.getValue && group.getValue(value)) || value,
       toString: tokenToString,
       offset: index,
       lineBreaks: lineBreaks,
