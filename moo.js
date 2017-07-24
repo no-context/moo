@@ -402,6 +402,10 @@
       return {value: token, done: !token}
     }
 
+    LexerIterator.prototype[Symbol.iterator] = function() {
+      return this
+    }
+
     Lexer.prototype[Symbol.iterator] = function() {
       return new LexerIterator(this)
     }
