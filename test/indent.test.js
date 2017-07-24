@@ -9,13 +9,14 @@ describe('indent', () => {
 
   test("example", () => {
 
-    const lexer = moo.compile({
+    const lexer = indented(moo.compile({
       ws: /[ \t]+/,
       nl: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
       id: /\w+/,
     })
 
-    const tokens = indented(lexer, `
+
+    lexer.reset(`
     if this
       if that
         another
@@ -23,7 +24,7 @@ describe('indent', () => {
       there
     `)
 
-    const output = Array.from(tokens)
+    const output = Array.from(lexer)
     //for (const tok of output) console.log(tok)
     expect(output).toMatchSnapshot()
 
