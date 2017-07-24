@@ -220,8 +220,8 @@
           throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
         var pop = g && g.pop
-        if (pop && typeof pop !== 'number' && typeof pop !== 'boolean') {
-          throw new Error("Can't pop non-number '" + pop + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
+        if (pop && typeof pop !== 'boolean') {
+          throw new Error("pop must be true (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
       }
     }

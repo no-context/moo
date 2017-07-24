@@ -343,14 +343,14 @@ describe('Lexer#has', () => {
       strstart: {match: '`', push: 'lit'},
       ident:    /\w+/,
       lbrace:   {match: '{', push: 'main'},
-      rbrace:   {match: '}', pop: 1},
+      rbrace:   {match: '}', pop: true},
       colon:    ':',
       space:    {match: /\s+/, lineBreaks: true},
     },
     lit: {
       interp:   {match: '${', push: 'main'},
       escape:   /\\./,
-      strend:   {match: '`', pop: 1},
+      strend:   {match: '`', pop: true},
       const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
     },
   })
@@ -456,14 +456,14 @@ describe('stateful lexer', () => {
         strstart: {match: '`', push: 'lit'},
         ident:    /\w+/,
         lbrace:   {match: '{', push: 'main'},
-        rbrace:   {match: '}', pop: 1},
+        rbrace:   {match: '}', pop: true},
         colon:    ':',
         space:    {match: /\s+/, lineBreaks: true},
       },
       lit: {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
-        strend:   {match: '`', pop: 1},
+        strend:   {match: '`', pop: true},
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     }).reset('`a${{c: d}}e`')
@@ -476,8 +476,9 @@ describe('stateful lexer', () => {
     expect(() => moo.states({start: {foo: 'fish', bar: {match: 'bar', push: 'foo'}}})).toThrow("Missing state 'foo'")
   })
 
-  test('warns for non-numeric pop', () => {
-    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("Can't pop non-number 'cow' (in token 'bar' of state 'start')")
+  test('warns for non-boolean pop', () => {
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be true (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).toThrow("pop must be true (in token 'bar' of state 'start')")
     expect(() => moo.states({start: {bar: {match: 'bar', pop: true}}})).not.toThrow()
   })
 

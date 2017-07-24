@@ -227,14 +227,14 @@ Sometimes you want your lexer to support different states. This is useful for st
         strstart: {match: '`', push: 'lit'},
         ident:    /\w+/,
         lbrace:   {match: '{', push: 'main'},
-        rbrace:   {match: '}', pop: 1},
+        rbrace:   {match: '}', pop: true},
         colon:    ':',
         space:    {match: /\s+/, lineBreaks: true},
       },
       lit: {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
-        strend:   {match: '`', pop: 1},
+        strend:   {match: '`', pop: true},
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     })
