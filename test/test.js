@@ -670,11 +670,6 @@ describe('example: python', () => {
 
   const pythonLexer = require('./python').lexer
 
-  test('kurt tokens', () => {
-    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
-    expect(tokens.length).toBe(14513)
-  })
-
   test("1 + 2", () => {
     expect(python.outputTokens("1 + 2")).toEqual([
       'NUMBER "1"',
@@ -688,7 +683,7 @@ describe('example: python', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
-      ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
+      ['abc', " ", "1", "+", "1", " ", 'def']
     )
   })
 
@@ -699,7 +694,6 @@ describe('example: python', () => {
   test("kurt python", () => {
     let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
     expect(tokens).toMatchSnapshot()
-    expect(tokens[100]).toBe('NAME "def"')
     expect(tokens.pop()).toBe('ENDMARKER ""')
     tokens.pop()
     expect(tokens.pop()).not.toBe('ERRORTOKEN ""')
