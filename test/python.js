@@ -34,7 +34,7 @@ var opPat = [
 ];
 
 var rules = {
-  Whitespace: /[ ]+/, // TODO tabs
+  ws: /[ \t]+/,
   NAME: /[A-Za-z_][A-Za-z0-9_]*/,
   OP: [
     {match: ['(', '[', '{'], push: 'paren'},
@@ -43,7 +43,7 @@ var rules = {
   ],
   COMMENT: /#.*/,
   // TODO "unexpected character after line continuation character"
-  Continuation: {match: /\\(?:\r|\r\n|\n)/, lineBreaks: true}, // Continuation
+  continuation: {match: /\\(?:\r|\r\n|\n)/, lineBreaks: true},
   ERRORTOKEN: {match: /[\$?`]/, error: true},
   // TODO literals: str, long, float, imaginary
   NUMBER: [
@@ -69,7 +69,7 @@ var base = moo.states({
 })
 
 var pythonLexer = indented(base, {
-  whitespace: 'Whitespace',
+  whitespace: 'ws',
   newline: 'NEWLINE',
   indent: 'INDENT',
   dedent: 'DEDENT',
@@ -81,36 +81,21 @@ var pythonLexer = indented(base, {
 var tokenize = function(input, emit) {
   var lexer = pythonLexer.reset(input);
 
-  var parens = 0
   var isLine = false
   var tok
   while (tok = lexer.next()) {
-
     switch (tok.type) {
+      case 'NEWLINE':
+        if (!isLine) tok.type = 'NL'
+        isLine = false
+        break
       case 'COMMENT':
         emit(tok)
         tok = lexer.next()
         if (tok.type === 'NEWLINE') tok.type = 'NL'
         break
-      case 'Continuation':
+      case 'continuation':
         continue
-      case 'NEWLINE':
-        if (parens) {
-          tok.type = 'NL'
-        } else if (isLine) {
-          tok.type = 'NEWLINE'
-          isLine = false
-        } else {
-          tok.type = 'NL'
-        }
-        break
-      case 'OP':
-        if (/[([{]/.test(tok.value[0])) {
-          parens++
-        } else if (/[)\]}]/.test(tok.value[0])) {
-          parens = Math.max(0, parens - 1)
-        }
-        // FALL-THRU
       default:
         isLine = true
     }
