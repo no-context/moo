@@ -9,11 +9,15 @@ describe('indent', () => {
 
   test("example", () => {
 
-    const lexer = indented(moo.compile({
+    const base = moo.compile({
       ws: /[ \t]+/,
       nl: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
       id: /\w+/,
-    }))
+    })
+
+    const lexer = indented(base, {
+      ignoreNewline: true,
+    })
 
     lexer.reset(`
     if this

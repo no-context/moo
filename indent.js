@@ -22,11 +22,11 @@
 
   function Indented(lexer, options) {
     this.options = Object.assign({
-      // TODO
-      // whitespace: 'ws',
-      // newline: 'nl',
-      // indent: 'indent',
-      // dedent: 'dedent',
+      whitespace: 'ws',
+      newline: 'nl',
+      indent: 'indent',
+      dedent: 'dedent',
+      ignoreNewline: false,
     }, options)
     this.lexer = lexer
     this.reset()
@@ -72,17 +72,18 @@
 
   Indented.prototype._nextIndent = function() {
     for (var tok; tok = this._peek(); ) {
-      if (tok.type === 'nl') {
+      if (tok.type === this.options.newline) {
+        if (!this.options.ignoreNewline) this.queue.push(tok)
         this._next()
         continue
       }
-      if (tok.type === 'ws') {
+      if (tok.type === this.options.whitespace) {
         var indent = tok.value.length
         this._next()
 
         var next = this._peek()
         if (!next) return
-        if (next.type === 'nl') {
+        if (next.type === this.options.newline) {
           this._next()
           continue
         }
@@ -103,40 +104,41 @@
 
     var tok
     while (tok = this._next()) {
-      if (tok.type === 'nl') {
+      if (tok.type === this.options.newline) {
+        if (!this.options.ignoreNewline) this.queue.push(tok)
         var newIndent = this._nextIndent()
         if (newIndent == null) break // eof
 
         if (newIndent === this.indent) {
-          this.indent = newIndent
-          return token('nl') // TODO tok?
+          if (this.options.ignoreNewline) {
+            this.queue.push(tok)
+          }
 
         } else if (newIndent > this.indent) {
           this.stack.push(this.indent)
-          this.indent = newIndent
-          return token('indent')
+          this.queue.push(token(this.options.indent))
 
         } else {
           while (newIndent < this.indent) {
             this.indent = this.stack.pop()
-            this.queue.push(token('dedent'))
+            this.queue.push(token(this.options.dedent))
           }
           if (newIndent !== this.indent) {
-            throw new Error('inconsistent indentation')
+            throw new Error(this.formatError(tok, 'inconsistent indentation'))
           }
-          this.indent = newIndent
-          return this.queue.shift()
         }
+        this.indent = newIndent
+        return this.queue.shift()
 
       // ignore whitespace within lines
-      } else if (tok.type !== 'ws') {
+      } else if (tok.type !== this.options.whitespace) {
         return tok
       }
     }
 
     // dedent remaining blocks at eof
     for (let i = this.stack.length; i--; ) {
-      this.queue.push(token('dedent'))
+      this.queue.push(token(this.options.dedent))
     }
     this.stack = []
     if (this.queue.length) return this.queue.shift()
