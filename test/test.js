@@ -477,9 +477,12 @@ describe('stateful lexer', () => {
   })
 
   test('warns for non-boolean pop', () => {
-    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be true (in token 'bar' of state 'start')")
-    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).toThrow("pop must be true (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
     expect(() => moo.states({start: {bar: {match: 'bar', pop: true}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 1}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: false}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 0}}})).not.toThrow()
   })
 
 })

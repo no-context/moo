@@ -219,9 +219,8 @@
         if (state && !map[state]) {
           throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
-        var pop = g && g.pop
-        if (pop && typeof pop !== 'boolean') {
-          throw new Error("pop must be true (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
+        if (g && g.pop && +g.pop !== 1) {
+          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
       }
     }
