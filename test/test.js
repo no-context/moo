@@ -196,7 +196,7 @@ describe('value transforms', () => {
     })).toThrow("has capture groups")
   })
 
-  test('transform & report correct size', () => {
+  test('transform & keep original', () => {
     let lexer = moo.compile({
       fubar: {match: /fubar/, value: x => x.slice(2)},
       string: {match: /".*?"/, value: x => x.slice(1, -1)},
@@ -206,10 +206,10 @@ describe('value transforms', () => {
     })
     lexer.reset('fubar "yes" quxx moomoomoomoo')
     let tokens = lexAll(lexer).filter(t => t.type !== 'space')
-    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
-    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
-    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
-    expect(tokens.shift()).toMatchObject({ value: 'moomoo', size: 12 })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'bar' })
+    expect(tokens.shift()).toMatchObject({ type: 'string', text: '"yes"', value: 'yes' })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx' })
+    expect(tokens.shift()).toMatchObject({ value: 'moomoo' })
   })
 
 })
@@ -650,6 +650,7 @@ describe('errors', () => {
     })
     lexer.reset('foo\nbar')
     expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1})
+    expect(lexer.save()).toMatchObject({line: 2})
     expect(lexer.next()).toBe(undefined) // consumes rest of input
   })
 

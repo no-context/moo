@@ -352,15 +352,15 @@
     var match = this._eat(re)
     var i = this._getGroup(match)
 
-    var group, value
+    var group, text
     if (i === -1) {
       group = this.error
 
       // consume rest of buffer
-      value = buffer.slice(index)
+      text = buffer.slice(index)
 
     } else {
-      value = match[0] // i+1
+      text = match[0]
       group = this.groups[i]
     }
 
@@ -369,25 +369,26 @@
     if (group.lineBreaks) {
       var matchNL = /\n/g
       var nl = 1
-      if (value === '\n') {
+      if (text === '\n') {
         lineBreaks = 1
       } else {
-        while (matchNL.exec(value)) { lineBreaks++; nl = matchNL.lastIndex }
+        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
       }
     }
 
-    var size = value.length
     var token = {
-      type: (group.getType && group.getType(value)) || group.tokenType,
-      value: (group.value && group.value(value)) || value,
+      type: (group.getType && group.getType(text)) || group.tokenType,
+      value: (group.value && group.value(text)) || text,
+      text: text,
       toString: tokenToString,
       offset: index,
-      size: size,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
     }
+    // nb. adding more props to token object will make V8 sad!
 
+    var size = text.length
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
