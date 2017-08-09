@@ -13,7 +13,7 @@
   ],
   "license": "BSD-3-Clause",
   "scripts": {
-    "test": "jest",
+    "test": "jest .",
     "lint": "eslint moo.js",
     "benchmark": "benchr test/benchmark.js",
     "moo": "echo 'Mooooo!'"
