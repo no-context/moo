@@ -340,5 +340,7 @@ Moo doesn't allow capturing groups, but you can supply a transform function, `va
 Contributing
 ------------
 
+Do check the [FAQ](https://github.com/tjvr/moo/issues?q=label%3Aquestion).
+
 Before submitting an issue, [remember...](https://github.com/tjvr/moo/blob/master/.github/CONTRIBUTING.md)
 
