@@ -238,6 +238,9 @@
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
         (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        if (typeof keyword !== 'string') {
+          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
+        }
         reverseMap[keyword] = tokenType
       })
     }
@@ -254,9 +257,6 @@
       source += 'switch (value) {\n'
       keywords.forEach(function(keyword) {
         var tokenType = reverseMap[keyword]
-        if (typeof tokenType !== 'string') {
-          throw new Error('keyword type must be string: ' + name)
-        }
         source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
       })
       source += '}\n'

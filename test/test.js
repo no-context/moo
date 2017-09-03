@@ -186,6 +186,17 @@ describe('keywords', () => {
     ])
   })
 
+  test('must be strings', () => {
+    expect(() => compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        keywords: {
+          'kw-class': {foo: 'bar'},
+        },
+      },
+    })).toThrow("keyword must be string (in keyword 'kw-class')")
+  })
+
 })
 
 describe('value transforms', () => {
@@ -336,6 +347,8 @@ describe('Lexer#has', () => {
   test('returns false for stuff inherited from Object', () => {
     expect(basicLexer.has('hasOwnProperty')).toBe(false)
   })
+
+  // TODO test keywords
 
   // Example from the readme.
   const statefulLexer = moo.states({
