@@ -448,10 +448,8 @@
       for (var i=0; i<groups.length; i++) {
         var group = groups[i]
         if (group.tokenType === tokenType) return true
-        if (group.keywords) {
-          for (var k in group.keywords) {
-            if (group.keywords[k].tokenType === tokenType) return true
-          }
+        if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
+          return true
         }
       }
     }

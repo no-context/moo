@@ -336,7 +336,7 @@ describe('Lexer#has', () => {
     expect(basicLexer.has('identifier')).toBe(true)
   })
 
-  test('works with keyword tokens', () => {
+  test('works with literals', () => {
     expect(basicLexer.has('keyword')).toBe(true)
   })
 
@@ -348,7 +348,21 @@ describe('Lexer#has', () => {
     expect(basicLexer.has('hasOwnProperty')).toBe(false)
   })
 
-  // TODO test keywords
+  const keywordLexer = compile({
+    identifier: {
+      match: /[a-zA-Z]+/,
+      keywords: {
+        'kw-class': 'class',
+        'kw-def': 'def',
+        'kw-if': 'if',
+      },
+    },
+  })
+
+  test('works with keywords', () => {
+    expect(keywordLexer.has('identifier')).toBe(true)
+    expect(keywordLexer.has('kw-class')).toBe(true)
+  })
 
   // Example from the readme.
   const statefulLexer = moo.states({
