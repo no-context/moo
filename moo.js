@@ -57,10 +57,6 @@
     return "(?:" + source + ")"
   }
 
-  function compareLength(a, b) {
-    return b.length - a.length
-  }
-
   function regexpOrLiteral(obj) {
     if (typeof obj === 'string') {
       return '(?:' + reEscape(obj) + ')'
@@ -191,9 +187,9 @@
 
     var suffix = hasSticky ? '' : '|(?:)'
     var flags = hasSticky ? 'ym' : 'gm'
-    var regexp = new RegExp(reUnion(parts) + suffix, flags)
+    var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: regexp, groups: groups, error: errorRule}
+    return {regexp: combined, groups: groups, error: errorRule}
   }
 
   function compile(rules) {
