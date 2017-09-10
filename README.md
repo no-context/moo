@@ -122,7 +122,16 @@ Line Numbers
 
 Moo tracks detailed information about the input for you.
 
-It will track line numbers, as long as you apply the `lineBreaks: true` option to any tokens which might contain newlines. Moo will try to warn you if you forget to do this.
+It will track line numbers, as long as you **apply the `lineBreaks: true` option to any rules which might contain newlines**. Moo will try to warn you if you forget to do this.
+
+Note that this is `false` by default, for performance reasons: counting the number of lines in a matched token has a small cost. For optimal performance, only match newlines inside a dedicated token:
+
+```js
+    newline: {match: '\n', lineBreaks: true},
+```
+
+
+### Token Info ###
 
 Token objects (returned from `next()`) have the following attributes:
 
