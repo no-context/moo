@@ -186,18 +186,24 @@ It'll automatically compile them into regular expressions, escaping them where n
     })
 ```
 
+
+### Why? ###
+
 You need to do this to ensure the **longest match** principle applies, even in edge cases.
 
 Imagine trying to parse the input `className` with the following rules:
 
 ```js
-    ['keyword',     ['class']],
-    ['identifier',  /[a-zA-Z]+/],
+    keyword: ['class'],
+    identifier: /[a-zA-Z]+/,
 ```
 
 You'll get _two_ tokens — `['class', 'Name']` -- which is _not_ what you want! If you swap the order of the rules, you'll fix this example; but now you'll lex `class` wrong (as an `identifier`).
 
 The keywords helper checks matches against the list of keywords; if any of them match, it uses the type `'keyword'` instead of `'identifier'` (for this example).
+
+
+### Keyword Types ###
 
 Keywords can also have **individual types**.
 
@@ -216,7 +222,7 @@ Keywords can also have **individual types**.
     lexer.next() // -> { type: 'name', value: 'foo' }
 ```
 
-Use [itt](https://github.com/nathan/itt)'s iterator adapters to make constructing keyword objects easier:
+You can use [itt](https://github.com/nathan/itt)'s iterator adapters to make constructing keyword objects easier:
 
 ```js
     itt(['class', 'def', 'if'])
