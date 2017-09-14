@@ -223,6 +223,14 @@ describe('value transforms', () => {
     expect(tokens.shift()).toMatchObject({ value: 'moomoo' })
   })
 
+  test('empty transform result', () => {
+    let lexer = moo.compile({
+      string: {match: /".*?"/, value: x => x.slice(1, -1)},
+    })
+    lexer.reset('""')
+    expect(lexer.next()).toMatchObject({text: '""', value: ''})
+  })
+
 })
 
 describe('lexer', () => {

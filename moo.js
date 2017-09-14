@@ -374,7 +374,7 @@
 
     var token = {
       type: (group.getType && group.getType(text)) || group.tokenType,
-      value: (group.value && group.value(text)) || text,
+      value: group.value ? group.value(text) : text,
       text: text,
       toString: tokenToString,
       offset: index,
