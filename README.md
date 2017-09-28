@@ -281,8 +281,10 @@ If you'd rather treat errors as just another kind of token, you can ask Moo to d
     
     moo.reset('invalid')
     moo.next() // -> { type: 'myError', value: 'invalid' }
+    moo.next() // -> undefined
 ```
 
+Error tokens consume the whole of the rest of the buffer.
 
 You can have a token type that both matches tokens _and_ contains error values.
 
