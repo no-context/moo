@@ -269,9 +269,9 @@ To support this, Moo allows annotating tokens with `push`, `pop` and `next`:
 Errors
 ------
 
-If no token matches, Moo will throw an Error.
+If none of your rules match, Moo will throw an Error; since it doesn't know what else to do.
 
-If you'd rather treat errors as just another kind of token, you can ask Moo to do so.
+If you prefer, you can have moo return an error token instead of throwing an exception. The error token will contain the whole of the rest of the buffer.
 
 ```js
     moo.compile({
@@ -284,8 +284,6 @@ If you'd rather treat errors as just another kind of token, you can ask Moo to d
     moo.next() // -> undefined
 ```
 
-Error tokens consume the whole of the rest of the buffer.
-
 You can have a token type that both matches tokens _and_ contains error values.
 
 ```js
@@ -295,13 +293,15 @@ You can have a token type that both matches tokens _and_ contains error values.
     })
 ```
 
+### Formatting errors ###
+
 If you want to throw an error from your parser, you might find `formatError` helpful. Call it with the offending token:
 
 ```js
 throw new Error(lexer.formatError(token, "invalid syntax"))
 ```
 
-And it returns a string with a pretty error message.
+It returns a string with a pretty error message.
 
 ```
 Error: invalid syntax at line 2 col 15:
