@@ -337,7 +337,8 @@ describe('Lexer#has', () => {
 
   const basicLexer = compile({
     keyword: 'foo',
-    identifier: /[a-z]+/
+    identifier: /[a-z]+/,
+    error: moo.error
   })
 
   test('supports has()', () => {
@@ -346,6 +347,10 @@ describe('Lexer#has', () => {
 
   test('works with literals', () => {
     expect(basicLexer.has('keyword')).toBe(true)
+  })
+
+  test('finds the error token', () => {
+    expect(basicLexer.has('error')).toBe(true)
   })
 
   test('returns false for nonexistent junk', () => {
@@ -381,12 +386,14 @@ describe('Lexer#has', () => {
       rbrace:   {match: '}', pop: true},
       colon:    ':',
       space:    {match: /\s+/, lineBreaks: true},
+      mainErr:  moo.error,
     },
     lit: {
       interp:   {match: '${', push: 'main'},
       escape:   /\\./,
       strend:   {match: '`', pop: true},
       const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+			litErr:   moo.error,
     },
   })
 
@@ -397,6 +404,14 @@ describe('Lexer#has', () => {
   test('works with multiple states - for second state', () => {
     expect(statefulLexer.has('interp')).toEqual(true)
   })
+
+	test('works with error tokens - for first state', () => {
+		expect(statefulLexer.has('mainErr')).toEqual(true)
+	})
+
+	test('works with error tokens - for second state', () => {
+		expect(statefulLexer.has('litErr')).toEqual(true)
+	})
 
   test('returns false for the state names themselves', () => {
     expect(statefulLexer.has('main')).toEqual(false)
