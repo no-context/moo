@@ -40,10 +40,10 @@
 
     } else if (isRegExp(obj)) {
       // TODO: consider /u support
-      if (obj.ignoreCase) { throw new Error('RegExp /i flag not allowed') }
-      if (obj.global) { throw new Error('RegExp /g flag is implied') }
-      if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
-      if (obj.multiline) { throw new Error('RegExp /m flag is implied') }
+      if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
+      if (obj.global) throw new Error('RegExp /g flag is implied')
+      if (obj.sticky) throw new Error('RegExp /y flag is implied')
+      if (obj.multiline) throw new Error('RegExp /m flag is implied')
       return obj.source
 
     } else {
