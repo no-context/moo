@@ -10,29 +10,6 @@
   'use strict';
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
-
-  // polyfill assign(), so we support IE9+
-  var assign = typeof Object.assign === 'function' ? Object.assign :
-    // https://tc39.github.io/ecma262/#sec-object.assign
-    function(target, sources) {
-      if (target == null) {
-        throw new TypeError('Target cannot be null or undefined');
-      }
-      target = Object(target)
-
-      for (var i = 1; i < arguments.length; i++) {
-        var source = arguments[i]
-        if (source == null) continue
-
-        for (var key in source) {
-          if (hasOwnProperty.call(source, key)) {
-            target[key] = source[key]
-          }
-        }
-      }
-      return target
-    }
-
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   /***************************************************************************/
@@ -114,7 +91,7 @@
     }
 
     // nb. error implies lineBreaks
-    var options = assign({
+    var options = {
       tokenType: name,
       lineBreaks: !!obj.error,
       pop: false,
@@ -123,7 +100,14 @@
       error: false,
       value: null,
       getType: null,
-    }, obj)
+    }
+
+    // Avoid Object.assign(), so we support IE9+
+    for (var key in obj) {
+      if (hasOwnProperty.call(obj, key)) {
+        options[key] = obj[key]
+      }
+    }
 
     // convert to array
     var match = options.match
