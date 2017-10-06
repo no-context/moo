@@ -1,53 +1,53 @@
 (function(root, factory) {
-  if (typeof define === 'function' && define.amd) {
+  if (typeof define === "function" && define.amd) {
     define([], factory) /* global define */
-  } else if (typeof module === 'object' && module.exports) {
+  } else if (typeof module === "object" && module.exports) {
     module.exports = factory()
   } else {
     root.moo = factory()
   }
 }(this, function() {
-  'use strict';
+  "use strict";
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
-  var hasSticky = typeof new RegExp().sticky === 'boolean'
+  var hasSticky = typeof new RegExp().sticky === "boolean"
 
   /***************************************************************************/
 
   function isRegExp(o) { return o && o.constructor === RegExp }
-  function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
+  function isObject(o) { return o && typeof o === "object" && o.constructor !== RegExp && !Array.isArray(o) }
 
   function reEscape(s) {
-    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")
   }
   function reGroups(s) {
-    var re = new RegExp('|' + s)
-    return re.exec('').length - 1
+    var re = new RegExp("|" + s)
+    return re.exec("").length - 1
   }
   function reCapture(s) {
-    return '(' + s + ')'
+    return "(" + s + ")"
   }
   function reUnion(regexps) {
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")"
-    }).join('|')
+    }).join("|")
     return "(?:" + source + ")"
   }
 
   function regexpOrLiteral(obj) {
-    if (typeof obj === 'string') {
-      return '(?:' + reEscape(obj) + ')'
+    if (typeof obj === "string") {
+      return "(?:" + reEscape(obj) + ")"
 
     } else if (isRegExp(obj)) {
       // TODO: consider /u support
-      if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
-      if (obj.global) throw new Error('RegExp /g flag is implied')
-      if (obj.sticky) throw new Error('RegExp /y flag is implied')
-      if (obj.multiline) throw new Error('RegExp /m flag is implied')
+      if (obj.ignoreCase) throw new Error("RegExp /i flag not allowed")
+      if (obj.global) throw new Error("RegExp /g flag is implied")
+      if (obj.sticky) throw new Error("RegExp /y flag is implied")
+      if (obj.multiline) throw new Error("RegExp /m flag is implied")
       return obj.source
 
     } else {
-      throw new Error('not a pattern: ' + obj)
+      throw new Error("not a pattern: " + obj)
     }
   }
 
@@ -78,7 +78,7 @@
     for (var i = 0; i < array.length; i++) {
       var obj = array[i]
       if (!obj.name) {
-        throw new Error('Rule has no name: ' + JSON.stringify(obj))
+        throw new Error("Rule has no name: " + JSON.stringify(obj))
       }
       result.push(ruleOptions(obj.name, obj))
     }
@@ -86,7 +86,7 @@
   }
 
   function ruleOptions(name, obj) {
-    if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
+    if (typeof obj !== "object" || Array.isArray(obj) || isRegExp(obj)) {
       obj = { match: obj }
     }
 
@@ -161,16 +161,16 @@
       }
 
       // try and detect rules matching newlines
-      if (!options.lineBreaks && regexp.test('\n')) {
-        throw new Error('Rule should declare lineBreaks: ' + regexp)
+      if (!options.lineBreaks && regexp.test("\n")) {
+        throw new Error("Rule should declare lineBreaks: " + regexp)
       }
 
       // store regex
       parts.push(reCapture(pat))
     }
 
-    var suffix = hasSticky ? '' : '|(?:)'
-    var flags = hasSticky ? 'ym' : 'gm'
+    var suffix = hasSticky ? "" : "|(?:)"
+    var flags = hasSticky ? "ym" : "gm"
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
     return {regexp: combined, groups: groups, error: errorRule}
@@ -178,7 +178,7 @@
 
   function compile(rules) {
     var result = compileRules(rules)
-    return new Lexer({start: result}, 'start')
+    return new Lexer({start: result}, "start")
   }
 
   function compileStates(states, start) {
@@ -218,7 +218,7 @@
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
         (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
-        if (typeof keyword !== 'string') {
+        if (typeof keyword !== "string") {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
         reverseMap[keyword] = tokenType
@@ -228,21 +228,21 @@
     // fast string lookup
     // https://jsperf.com/string-lookups
     function str(x) { return JSON.stringify(x) }
-    var source = ''
-    source += '(function(value) {\n'
-    source += 'switch (value.length) {\n'
+    var source = ""
+    source += "(function(value) {\n"
+    source += "switch (value.length) {\n"
     for (var length in byLength) {
       var keywords = byLength[length]
-      source += 'case ' + length + ':\n'
-      source += 'switch (value) {\n'
+      source += "case " + length + ":\n"
+      source += "switch (value) {\n"
       keywords.forEach(function(keyword) {
         var tokenType = reverseMap[keyword]
-        source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
+        source += "case " + str(keyword) + ": return " + str(tokenType) + "\n"
       })
-      source += '}\n'
+      source += "}\n"
     }
-    source += '}\n'
-    source += '})'
+    source += "}\n"
+    source += "})"
     return eval(source) // getType
   }
 
@@ -251,13 +251,13 @@
   var Lexer = function(states, state) {
     this.startState = state
     this.states = states
-    this.buffer = ''
+    this.buffer = ""
     this.stack = []
     this.reset()
   }
 
   Lexer.prototype.reset = function(data, info) {
-    this.buffer = data || ''
+    this.buffer = data || ""
     this.index = 0
     this.line = info ? info.line : 1
     this.col = info ? info.col : 1
@@ -313,7 +313,7 @@
         return i
       }
     }
-    throw new Error('oops')
+    throw new Error("oops")
   }
 
   function tokenToString() {
@@ -349,7 +349,7 @@
     if (group.lineBreaks) {
       var matchNL = /\n/g
       var nl = 1
-      if (text === '\n') {
+      if (text === "\n") {
         lineBreaks = 1
       } else {
         while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
@@ -387,7 +387,7 @@
     return token
   }
 
-  if (typeof Symbol !== 'undefined' && Symbol.iterator) {
+  if (typeof Symbol !== "undefined" && Symbol.iterator) {
     var LexerIterator = function(lexer) {
       this.lexer = lexer
     }
@@ -409,7 +409,7 @@
   Lexer.prototype.formatError = function(token, message) {
     var value = token.value
     var index = token.offset
-    var eol = token.lineBreaks ? value.indexOf('\n') : value.length
+    var eol = token.lineBreaks ? value.indexOf("\n") : value.length
     var start = Math.max(0, index - token.col + 1)
     var firstLine = this.buffer.substring(start, index + eol)
     message += " at line " + token.line + " col " + token.col + ":\n\n"
