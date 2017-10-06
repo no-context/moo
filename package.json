@@ -14,7 +14,7 @@
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest .",
-    "lint": "eslint moo.js",
+    "lint": "prettier --no-semi --trailing-comma es5 --write moo.js",
     "benchmark": "benchr test/benchmark.js",
     "moo": "echo 'Mooooo!'"
   },
@@ -25,6 +25,7 @@
     "jest": "^19.0.2",
     "lex": "^1.7.9",
     "lexing": "^0.8.0",
+    "prettier": "1.7.4",
     "remix": "^0.1.4",
     "tokenizer2": "^2.0.0"
   }

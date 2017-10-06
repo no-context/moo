@@ -1,4 +1,4 @@
-(function(root, factory) {
+;(function(root, factory) {
   if (typeof define === "function" && define.amd) {
     define([], factory) /* global define */
   } else if (typeof module === "object" && module.exports) {
@@ -6,16 +6,20 @@
   } else {
     root.moo = factory()
   }
-}(this, function() {
-  "use strict";
+})(this, function() {
+  "use strict"
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
   var hasSticky = typeof new RegExp().sticky === "boolean"
 
   /***************************************************************************/
 
-  function isRegExp(o) { return o && o.constructor === RegExp }
-  function isObject(o) { return o && typeof o === "object" && o.constructor !== RegExp && !Array.isArray(o) }
+  function isRegExp(o) {
+    return o && o.constructor === RegExp
+  }
+  function isObject(o) {
+    return o && typeof o === "object" && o.constructor !== RegExp && !Array.isArray(o)
+  }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")
@@ -28,16 +32,17 @@
     return "(" + s + ")"
   }
   function reUnion(regexps) {
-    var source =  regexps.map(function(s) {
-      return "(?:" + s + ")"
-    }).join("|")
+    var source = regexps
+      .map(function(s) {
+        return "(?:" + s + ")"
+      })
+      .join("|")
     return "(?:" + source + ")"
   }
 
   function regexpOrLiteral(obj) {
     if (typeof obj === "string") {
       return "(?:" + reEscape(obj) + ")"
-
     } else if (isRegExp(obj)) {
       // TODO: consider /u support
       if (obj.ignoreCase) throw new Error("RegExp /i flag not allowed")
@@ -45,7 +50,6 @@
       if (obj.sticky) throw new Error("RegExp /y flag is implied")
       if (obj.multiline) throw new Error("RegExp /m flag is implied")
       return obj.source
-
     } else {
       throw new Error("not a pattern: " + obj)
     }
@@ -113,8 +117,9 @@
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
     options.match.sort(function(a, b) {
-      return isRegExp(a) && isRegExp(b) ? 0
-           : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
+      return isRegExp(a) && isRegExp(b)
+        ? 0
+        : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
     })
     if (options.keywords) {
       options.getType = keywordTransform(options.keywords)
@@ -133,7 +138,9 @@
 
       if (options.error) {
         if (errorRule) {
-          throw new Error("Multiple error rules not allowed: (for token '" + options.tokenType + "')")
+          throw new Error(
+            "Multiple error rules not allowed: (for token '" + options.tokenType + "')"
+          )
         }
         errorRule = options
       }
@@ -154,10 +161,14 @@
       }
       var groupCount = reGroups(pat)
       if (groupCount > 0) {
-        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
+        throw new Error(
+          "RegExp has capture groups: " + regexp + "\nUse (?: … ) instead"
+        )
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+        throw new Error(
+          "State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')"
+        )
       }
 
       // try and detect rules matching newlines
@@ -173,12 +184,12 @@
     var flags = hasSticky ? "ym" : "gm"
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule}
+    return { regexp: combined, groups: groups, error: errorRule }
   }
 
   function compile(rules) {
     var result = compileRules(rules)
-    return new Lexer({start: result}, "start")
+    return new Lexer({ start: result }, "start")
   }
 
   function compileStates(states, start) {
@@ -197,10 +208,14 @@
         var g = groups[j]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
-          throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
+          throw new Error(
+            "Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')"
+          )
         }
         if (g && g.pop && +g.pop !== 1) {
-          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
+          throw new Error(
+            "pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')"
+          )
         }
       }
     }
@@ -217,9 +232,13 @@
       var item = map[tokenType]
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
-        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        ;(byLength[keyword.length] = byLength[keyword.length] || []).push(
+          keyword
+        )
         if (typeof keyword !== "string") {
-          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
+          throw new Error(
+            "keyword must be string (in keyword '" + tokenType + "')"
+          )
         }
         reverseMap[keyword] = tokenType
       })
@@ -227,7 +246,9 @@
 
     // fast string lookup
     // https://jsperf.com/string-lookups
-    function str(x) { return JSON.stringify(x) }
+    function str(x) {
+      return JSON.stringify(x)
+    }
     var source = ""
     source += "(function(value) {\n"
     source += "switch (value.length) {\n"
@@ -278,7 +299,7 @@
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error || {lineBreaks: true, shouldThrow: true}
+    this.error = info.error || { lineBreaks: true, shouldThrow: true }
     this.re = info.regexp
   }
 
@@ -291,16 +312,20 @@
     this.setState(state)
   }
 
-  Lexer.prototype._eat = hasSticky ? function(re) { // assume re is /y
-    return re.exec(this.buffer)
-  } : function(re) { // assume re is /g
-    var match = re.exec(this.buffer)
-    // will always match, since we used the |(?:) trick
-    if (match[0].length === 0) {
-      return null
-    }
-    return match
-  }
+  Lexer.prototype._eat = hasSticky
+    ? function(re) {
+        // assume re is /y
+        return re.exec(this.buffer)
+      }
+    : function(re) {
+        // assume re is /g
+        var match = re.exec(this.buffer)
+        // will always match, since we used the |(?:) trick
+        if (match[0].length === 0) {
+          return null
+        }
+        return match
+      }
 
   Lexer.prototype._getGroup = function(match) {
     if (match === null) {
@@ -338,7 +363,6 @@
 
       // consume rest of buffer
       text = buffer.slice(index)
-
     } else {
       text = match[0]
       group = this.groups[i]
@@ -352,7 +376,10 @@
       if (text === "\n") {
         lineBreaks = 1
       } else {
-        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
+        while (matchNL.exec(text)) {
+          lineBreaks++
+          nl = matchNL.lastIndex
+        }
       }
     }
 
@@ -394,7 +421,7 @@
 
     LexerIterator.prototype.next = function() {
       var token = this.lexer.next()
-      return {value: token, done: !token}
+      return { value: token, done: !token }
     }
 
     LexerIterator.prototype[Symbol.iterator] = function() {
@@ -438,11 +465,9 @@
     return false
   }
 
-
   return {
     compile: compile,
     states: compileStates,
-    error: Object.freeze({error: true}),
+    error: Object.freeze({ error: true }),
   }
-
-}))
+})
