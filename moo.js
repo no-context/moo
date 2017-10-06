@@ -161,13 +161,13 @@
       }
       var groupCount = reGroups(pat)
       if (groupCount > 0) {
-        throw new Error(
-          "RegExp has capture groups: " + regexp + "\nUse (?: … ) instead"
-        )
+        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
         throw new Error(
-          "State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')"
+          "State-switching options are not allowed in stateless lexers (for token '" +
+            options.tokenType +
+            "')"
         )
       }
 
@@ -209,7 +209,13 @@
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
           throw new Error(
-            "Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')"
+            "Missing state '" +
+              state +
+              "' (in token '" +
+              g.tokenType +
+              "' of state '" +
+              keys[i] +
+              "')"
           )
         }
         if (g && g.pop && +g.pop !== 1) {
@@ -232,13 +238,9 @@
       var item = map[tokenType]
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
-        ;(byLength[keyword.length] = byLength[keyword.length] || []).push(
-          keyword
-        )
+        ;(byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
         if (typeof keyword !== "string") {
-          throw new Error(
-            "keyword must be string (in keyword '" + tokenType + "')"
-          )
+          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
         reverseMap[keyword] = tokenType
       })
@@ -349,7 +351,7 @@
     var re = this.re
     var buffer = this.buffer
 
-    var index = re.lastIndex = this.index
+    var index = (re.lastIndex = this.index)
     if (index === buffer.length) {
       return // EOF
     }

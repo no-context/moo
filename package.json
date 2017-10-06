@@ -14,7 +14,7 @@
   "license": "BSD-3-Clause",
   "scripts": {
     "test": "jest .",
-    "lint": "prettier --no-semi --trailing-comma es5 --write moo.js",
+    "lint": "prettier --print-width=100 --no-semi --trailing-comma es5 --write moo.js",
     "benchmark": "benchr test/benchmark.js",
     "moo": "echo 'Mooooo!'"
   },
