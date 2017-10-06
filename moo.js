@@ -54,7 +54,7 @@
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       var thing = object[key]
       var rules = Array.isArray(thing) ? thing : [thing]
@@ -75,7 +75,7 @@
 
   function arrayToRules(array) {
     var result = []
-    for (var i=0; i<array.length; i++) {
+    for (var i = 0; i < array.length; i++) {
       var obj = array[i]
       if (!obj.name) {
         throw new Error('Rule has no name: ' + JSON.stringify(obj))
@@ -128,7 +128,7 @@
     var errorRule = null
     var groups = []
     var parts = []
-    for (var i=0; i<rules.length; i++) {
+    for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
       if (options.error) {
@@ -186,14 +186,14 @@
     if (!start) start = keys[0]
 
     var map = Object.create(null)
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       map[key] = compileRules(states[key], true)
     }
 
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var groups = map[keys[i]].groups
-      for (var j=0; j<groups.length; j++) {
+      for (var j = 0; j < groups.length; j++) {
         var g = groups[j]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
@@ -212,7 +212,7 @@
     var reverseMap = Object.create(null)
     var byLength = Object.create(null)
     var types = Object.getOwnPropertyNames(map)
-    for (var i=0; i<types.length; i++) {
+    for (var i = 0; i < types.length; i++) {
       var tokenType = types[i]
       var item = map[tokenType]
       var keywordList = Array.isArray(item) ? item : [item]
@@ -427,7 +427,7 @@
       var state = this.states[s]
       if (state.error && state.error.tokenType === tokenType) return true
       var groups = state.groups
-      for (var i=0; i<groups.length; i++) {
+      for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
         if (group.tokenType === tokenType) return true
         if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
