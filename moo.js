@@ -100,6 +100,7 @@
       error: false,
       value: null,
       getType: null,
+      keywordsCaseInsensitive: false
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -117,7 +118,7 @@
            : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
     })
     if (options.keywords) {
-      options.getType = keywordTransform(options.keywords)
+      options.getType = keywordTransform(options.keywords, options.keywordsCaseInsensitive)
     }
     return options
   }
@@ -208,7 +209,7 @@
     return new Lexer(map, start)
   }
 
-  function keywordTransform(map) {
+  function keywordTransform(map, caseInsensitive) {
     var reverseMap = Object.create(null)
     var byLength = Object.create(null)
     var types = Object.getOwnPropertyNames(map)
@@ -217,10 +218,12 @@
       var item = map[tokenType]
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
-        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
         if (typeof keyword !== 'string') {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
+        if(caseInsensitive) keyword = keyword.toUpperCase();
+        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        
         reverseMap[keyword] = tokenType
       })
     }
@@ -230,6 +233,7 @@
     function str(x) { return JSON.stringify(x) }
     var source = ''
     source += '(function(value) {\n'
+    if(caseInsensitive) source += 'value = value.toUpperCase(); \n';
     source += 'switch (value.length) {\n'
     for (var length in byLength) {
       var keywords = byLength[length]

@@ -197,6 +197,40 @@ describe('keywords', () => {
     })).toThrow("keyword must be string (in keyword 'kw-class')")
   })
 
+  test('suports case insensitive keywords', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        keywordsCaseInsensitive: true,
+        keywords: {
+          'kw-class': 'class',
+          'kw-def': 'def',
+          'kw-if': 'if',
+        },
+      },
+      space: {match: /\s+/, lineBreaks: true},
+    })
+    const input = 'foo def class className FOO Def clAss CLassNaME';
+    lexer.reset(input);
+    expect(Array.from(lexer).map(t => ({ type: t.type, value: t.value }))).toEqual([
+      { type: 'identifier', value: 'foo'},
+      { type: 'space', value: ' '},
+      { type: 'kw-def', value: 'def'},
+      { type: 'space', value: ' '},
+      { type: 'kw-class', value: 'class'},
+      { type: 'space', value: ' '},
+      { type: 'identifier', value: 'className'},
+      { type: 'space', value: ' '},
+      { type: 'identifier', value: 'FOO'},
+      { type: 'space', value: ' '},
+      { type: 'kw-def', value: 'Def'},
+      { type: 'space', value: ' '},
+      { type: 'kw-class', value: 'clAss'},
+      { type: 'space', value: ' '},
+      { type: 'identifier', value: 'CLassNaME'}
+    ])
+  })
+
 })
 
 describe('value transforms', () => {
