@@ -438,11 +438,9 @@
     return false
   }
 
-
   return {
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
   }
-
-}))
+}));
