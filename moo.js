@@ -1,9 +1,11 @@
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory) /* global define */
-  } else if (typeof module === 'object' && module.exports) {
+  }
+  else if (typeof module === 'object' && module.exports) {
     module.exports = factory()
-  } else {
+  }
+  else {
     root.moo = factory()
   }
 }(this, function() {
@@ -13,6 +15,11 @@
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   /***************************************************************************/
+
+  function toArray(possiblyArray) {
+    if (!possiblyArray) return []
+    return Array.isArray(possiblyArray) ? possiblyArray : [possiblyArray]
+  }
 
   function isRegExp(o) { return o && o.constructor === RegExp }
   function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
@@ -38,7 +45,8 @@
     if (typeof obj === 'string') {
       return '(?:' + reEscape(obj) + ')'
 
-    } else if (isRegExp(obj)) {
+    }
+    else if (isRegExp(obj)) {
       // TODO: consider /u support
       if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
       if (obj.global) throw new Error('RegExp /g flag is implied')
@@ -46,7 +54,8 @@
       if (obj.multiline) throw new Error('RegExp /m flag is implied')
       return obj.source
 
-    } else {
+    }
+    else {
       throw new Error('not a pattern: ' + obj)
     }
   }
@@ -57,14 +66,15 @@
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       var thing = object[key]
-      var rules = Array.isArray(thing) ? thing : [thing]
+      var rules = toArray(thing)
       var match = []
       rules.forEach(function(rule) {
         if (isObject(rule)) {
           if (match.length) result.push(ruleOptions(key, match))
           result.push(ruleOptions(key, rule))
           match = []
-        } else {
+        }
+        else {
           match.push(rule)
         }
       })
@@ -85,6 +95,22 @@
     return result
   }
 
+  function flattenCategories(categories) {
+    if (categories.length == 0) return null
+    else {
+      var finalCategories = []
+      for (var j = 0; j < categories.length; j++) {
+        var category = categories[j]
+
+        finalCategories.push(category.categoryName)
+        // since the parent categories have already been flattened, this works
+        if (category.categories) finalCategories.push.apply(finalCategories, category.categories.map((parentCategory) => parentCategory.categoryName))
+      }
+
+      return finalCategories
+    }
+  }
+
   function ruleOptions(name, obj) {
     if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
       obj = { match: obj }
@@ -99,7 +125,9 @@
       push: null,
       error: false,
       value: null,
-      getType: null,
+      getTypeAndCategories: null,
+      categories: null,
+      keywords: null,
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -116,10 +144,149 @@
       return isRegExp(a) && isRegExp(b) ? 0
            : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
     })
+
+    function normalizeCategories(optionsObject) {
+      if (optionsObject.categories) {
+        var categories = toArray(optionsObject.categories)
+        validateCategories(categories)
+        optionsObject.categories = flattenCategories(categories)
+      }
+      else optionsObject.categories = null
+    }
+
+    // coerce undefined or empty arrays to null
+    normalizeCategories(options)
+
     if (options.keywords) {
-      options.getType = keywordTransform(options.keywords)
+      if (!Array.isArray(options.keywords)) {
+        var typeList = []
+        for (var [tokenType, keywords] of Object.entries(options.keywords)) {
+          keywords = toArray(keywords)
+          typeList.push({ type: tokenType, values: keywords, categories: options.categories })
+        }
+        options.keywords = typeList
+      }
+      else {
+        for (var keywordObject of options.keywords) {
+          normalizeCategories(keywordObject)
+
+          if (options.categories) {
+            if (keywordObject.categories) keywordObject.categories = keywordObject.categories.concat(options.categories)
+            else keywordObject.categories = options.categories
+          }
+        }
+      }
+
+      options.keywordMap = {}
+      for (var keywordObject of options.keywords) {
+        options.keywordMap[keywordObject.type] = keywordObject
+      }
+
+      options.getTypeAndCategories = keywordTransform(options.keywords, options.categories)
     }
     return options
+  }
+
+  function keywordTransform(types, categories) {
+    categories = categories || []
+
+    var reverseMap = Object.create(null)
+    var byLength = Object.create(null)
+    for (var i = 0; i < types.length; i++) {
+      var item = types[i]
+      var keywordList = toArray(item.values)
+      var tokenType = item.type
+
+      var tokenCategories = toArray(item.categories)
+
+      for (var keyword of keywordList) {
+        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        if (typeof keyword !== 'string') {
+          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
+        }
+        reverseMap[keyword] = { tokenType: tokenType, categories: tokenCategories.length == 0 ? null : tokenCategories }
+      }
+    }
+
+    // fast string lookup
+    // https://jsperf.com/string-lookups
+    function str(x) { return JSON.stringify(x) }
+    var source = ''
+    source += '(function(value) {\n'
+    source += 'switch (value.length) {\n'
+    for (var length in byLength) {
+      var keywords = byLength[length]
+      source += 'case ' + length + ':\n'
+      source += 'switch (value) {\n'
+      for (var keyword of keywords) {
+        var tokenTypeAndCategories = reverseMap[keyword]
+        source += 'case ' + str(keyword) + ': return ' + str(tokenTypeAndCategories) + '\n'
+      }
+      source += '}\n'
+    }
+    source += '}\n'
+    source += '})'
+    return eval(source) // getTypeAndCategories
+  }
+
+  function matchToken(testToken, matchTokenOrCategory) {
+    if (testToken === undefined) return false
+
+    if (matchTokenOrCategory.isCategory) {
+      if (!testToken.categories) return false
+
+      for (var i = testToken.categories.length - 1; i >= 0; i--) {
+        var categoryName = testToken.categories[i]
+        if (matchTokenOrCategory.categoryName == categoryName) return true
+      }
+
+      return false
+    }
+    else return testToken.type == matchTokenOrCategory.type
+  }
+
+  function matchTokens(testTokens, matchTokensOrCategories) {
+    if (testTokens.length != matchTokensOrCategories.length) return false
+
+    for (var i = testTokens.length - 1; i >= 0; i--) {
+      var testToken = testTokens[i]
+      var matchTokenOrCategory = matchTokensOrCategories[i]
+      if (!matchToken(testToken, matchTokenOrCategory)) return false
+    }
+
+    return true
+   }
+
+
+  function validateCategories(categoriesArray) {
+    if (categoriesArray === null) return
+
+    for (var i = 0; i < categoriesArray.length; i++) {
+      var category = categoriesArray[i]
+      if (!category.isCategory) {
+        console.log(category)
+        throw "Categories should only be set to category objects"
+      }
+    }
+  }
+
+  function createCategory(categoryName, parentCategories) {
+    var finalCategories = []
+    if (parentCategories) {
+      parentCategories = toArray(parentCategories)
+      validateCategories(parentCategories)
+
+      for (var i = parentCategories.length - 1; i >= 0; i--) {
+        var parentCategory = parentCategories[i]
+        finalCategories.push(parentCategory)
+        if (parentCategory.categories) finalCategories.push.apply(finalCategories, parentCategory.categories)
+      }
+    }
+
+    return {
+      isCategory: true, categoryName: categoryName,
+      categories: finalCategories.length != 0 ? finalCategories : null
+    }
   }
 
   function compileRules(rules, hasStates) {
@@ -167,6 +334,7 @@
 
       // store regex
       parts.push(reCapture(pat))
+
     }
 
     var suffix = hasSticky ? '' : '|(?:)'
@@ -206,44 +374,6 @@
     }
 
     return new Lexer(map, start)
-  }
-
-  function keywordTransform(map) {
-    var reverseMap = Object.create(null)
-    var byLength = Object.create(null)
-    var types = Object.getOwnPropertyNames(map)
-    for (var i = 0; i < types.length; i++) {
-      var tokenType = types[i]
-      var item = map[tokenType]
-      var keywordList = Array.isArray(item) ? item : [item]
-      keywordList.forEach(function(keyword) {
-        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
-        if (typeof keyword !== 'string') {
-          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
-        }
-        reverseMap[keyword] = tokenType
-      })
-    }
-
-    // fast string lookup
-    // https://jsperf.com/string-lookups
-    function str(x) { return JSON.stringify(x) }
-    var source = ''
-    source += '(function(value) {\n'
-    source += 'switch (value.length) {\n'
-    for (var length in byLength) {
-      var keywords = byLength[length]
-      source += 'case ' + length + ':\n'
-      source += 'switch (value) {\n'
-      keywords.forEach(function(keyword) {
-        var tokenType = reverseMap[keyword]
-        source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
-      })
-      source += '}\n'
-    }
-    source += '}\n'
-    source += '})'
-    return eval(source) // getType
   }
 
   /***************************************************************************/
@@ -339,7 +469,8 @@
       // consume rest of buffer
       text = buffer.slice(index)
 
-    } else {
+    }
+    else {
       text = match[0]
       group = this.groups[i]
     }
@@ -351,13 +482,19 @@
       var nl = 1
       if (text === '\n') {
         lineBreaks = 1
-      } else {
+      }
+      else {
         while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
       }
     }
 
+    // we'll have to use this area to inject all token categories into the token
+    var tokenTypeAndCategories = group.getTypeAndCategories ? group.getTypeAndCategories(text) : undefined
+    var tokenType = tokenTypeAndCategories ? tokenTypeAndCategories.tokenType : undefined
+    var tokenCategories = tokenTypeAndCategories ? tokenTypeAndCategories.categories : undefined
+
     var token = {
-      type: (group.getType && group.getType(text)) || group.tokenType,
+      type: tokenType || group.tokenType,
       value: group.value ? group.value(text) : text,
       text: text,
       toString: tokenToString,
@@ -365,6 +502,7 @@
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
+      categories: tokenCategories || group.categories,
     }
     // nb. adding more props to token object will make V8 sad!
 
@@ -373,7 +511,8 @@
     this.line += lineBreaks
     if (lineBreaks !== 0) {
       this.col = size - nl + 1
-    } else {
+    }
+    else {
       this.col += size
     }
     // throw, if no rule with {error: true}
@@ -384,6 +523,8 @@
     if (group.pop) this.popState()
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
+
+    if (group.ignore) return this.next()
     return token
   }
 
@@ -430,7 +571,7 @@
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
         if (group.tokenType === tokenType) return true
-        if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
+        if (group.keywords && hasOwnProperty.call(group.keywordMap, tokenType)) {
           return true
         }
       }
@@ -438,11 +579,43 @@
     return false
   }
 
+  Lexer.prototype.tokenLibrary = function() {
+    var library = {}
+
+    for (var stateKey in this.states) {
+      var state = this.states[stateKey]
+      for (var i = 0; i < state.groups.length; i++) {
+        var group = state.groups[i]
+
+        if (group.keywords) {
+          for (const keyword of group.keywords) {
+            const { type, categories } = keyword
+            if (type in library) throw "there are overlapping token names in multiple states: " + type
+            library[type] = {
+              type: type, categories: categories,
+            }
+          }
+        }
+
+        var type = group.tokenType
+        if (type in library) throw "there are overlapping token names in multiple states: " + type
+        library[type] = {
+          type: type, categories: group.categories,
+        }
+      }
+    }
+
+    return library
+  }
+
 
   return {
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
+    matchToken: matchToken,
+    matchTokens: matchTokens,
+    createCategory: createCategory,
   }
 
 }))

@@ -788,3 +788,376 @@ describe('example: tosh', () => {
   })
 
 })
+
+
+const { createCategory, matchToken, matchTokens } = moo
+
+describe("createCategory", () => {
+  it("works", () => {
+    const First = createCategory('First')
+    expect(First).toHaveProperty('isCategory', true)
+    expect(First).toHaveProperty('categoryName', 'First')
+    expect(First).toHaveProperty('categories', null)
+
+    const Second = createCategory('Second', First)
+    expect(Second).toHaveProperty('isCategory', true)
+    expect(Second).toHaveProperty('categoryName', 'Second')
+    expect(Second).toHaveProperty('categories')
+    expect(Second.categories).toHaveLength(1)
+
+    const Unrelated = createCategory('Unrelated')
+    const Third = createCategory('Third', [Second, Unrelated])
+    expect(Third).toHaveProperty('isCategory', true)
+    expect(Third).toHaveProperty('categoryName', 'Third')
+    expect(Third).toHaveProperty('categories')
+    expect(Third.categories).toHaveLength(3)
+  })
+
+  it("doesn't allow non-categories", () => {
+    expect(() => {
+      createCategory('First', 'stuff')
+    }).toThrow()
+  })
+})
+
+describe("matchToken", () => {
+  const Punctuation = createCategory('Punctuation')
+  const Paren = createCategory('Paren', Punctuation)
+
+  const lexer = compile({
+    Dot: { match: '.', categories: Punctuation },
+    LeftParen: { match: '(', categories: Paren },
+    Space: / +/,
+  })
+
+  const { Dot, LeftParen, Space } = lexer.tokenLibrary()
+
+  lexer.reset(".( ")
+  const tokens = Array.from(lexer)
+  const [DotToken, LeftParenToken, SpaceToken] = tokens
+
+  it("works in the singular form", () => {
+    expect(matchToken(DotToken, Dot)).toBe(true)
+    expect(matchToken(LeftParenToken, LeftParen)).toBe(true)
+    expect(matchToken(SpaceToken, Space)).toBe(true)
+
+    expect(matchToken(DotToken, LeftParen)).toBe(false)
+    expect(matchToken(DotToken, Space)).toBe(false)
+
+    expect(matchToken(LeftParenToken, Dot)).toBe(false)
+    expect(matchToken(LeftParenToken, Space)).toBe(false)
+
+    expect(matchToken(SpaceToken, Dot)).toBe(false)
+    expect(matchToken(SpaceToken, LeftParen)).toBe(false)
+
+
+    expect(matchToken(DotToken, Punctuation)).toBe(true)
+    expect(matchToken(DotToken, Paren)).toBe(false)
+
+    expect(matchToken(LeftParenToken, Punctuation)).toBe(true)
+    expect(matchToken(LeftParenToken, Paren)).toBe(true)
+
+    expect(matchToken(SpaceToken, Punctuation)).toBe(false)
+    expect(matchToken(SpaceToken, Paren)).toBe(false)
+  })
+
+  it("works in the plural form", () => {
+    expect(matchTokens(tokens, [Dot, LeftParen, Space])).toBe(true)
+
+    expect(matchTokens(tokens, [Punctuation, Punctuation, Space])).toBe(true)
+
+    expect(matchTokens(tokens, [Punctuation, Paren, Space])).toBe(true)
+
+    expect(matchTokens(tokens, [Dot, Punctuation, Space])).toBe(true)
+
+    expect(matchTokens(tokens, [Dot, Paren, Space])).toBe(true)
+
+
+    expect(matchTokens(tokens, [Space, Dot, LeftParen])).toBe(false)
+
+    expect(matchTokens(tokens, [Paren, Paren, Paren])).toBe(false)
+
+    expect(matchTokens(tokens, [Punctuation, Punctuation, Punctuation])).toBe(false)
+
+    expect(matchTokens(tokens, [Dot, Dot, Dot])).toBe(false)
+  })
+})
+
+
+
+describe("categories", () => {
+  const Punctuation = createCategory('Punctuation')
+  const Paren = createCategory('Paren', Punctuation)
+
+  const Exclamatory = createCategory('Exclamatory')
+
+  const noKeywordLexer = compile({
+    Dot: { match: '.', categories: Punctuation },
+    BangParen: { match: '!()', categories: [Paren, Exclamatory] },
+    LeftParen: { match: '(', categories: Paren },
+    RightParen: { match: ')', categories: Paren },
+    Exclaim: { match: '!', categories: [Punctuation, Exclamatory] },
+    Space: / +/,
+  })
+
+  const tok = noKeywordLexer.tokenLibrary()
+
+  it("has a complete tokenLibrary when there are no keywords", () => {
+    expect(tok).toContainAllKeys(['Dot', 'BangParen', 'LeftParen', 'RightParen', 'Exclaim', 'Space'])
+  })
+
+  it("gives all tokenLibrary items the correct categories", () => {
+    const { Dot, BangParen, LeftParen, RightParen, Exclaim, Space } = tok
+
+    expect(Dot).toHaveProperty('categories')
+    expect(Dot.categories).toBeInstanceOf(Array)
+    expect(Dot.categories).toIncludeAllMembers(['Punctuation'])
+
+    expect(BangParen).toHaveProperty('categories')
+    expect(BangParen.categories).toBeInstanceOf(Array)
+    expect(BangParen.categories).toIncludeAllMembers(['Punctuation', 'Paren', 'Exclamatory'])
+
+    expect(LeftParen).toHaveProperty('categories')
+    expect(LeftParen.categories).toBeInstanceOf(Array)
+    expect(LeftParen.categories).toIncludeAllMembers(['Punctuation', 'Paren'])
+
+    expect(RightParen).toHaveProperty('categories')
+    expect(RightParen.categories).toBeInstanceOf(Array)
+    expect(RightParen.categories).toIncludeAllMembers(['Punctuation', 'Paren'])
+
+    expect(Exclaim).toHaveProperty('categories')
+    expect(Exclaim.categories).toBeInstanceOf(Array)
+    expect(Exclaim.categories).toIncludeAllMembers(['Punctuation', 'Exclamatory'])
+
+    expect(Space).toHaveProperty('categories', null)
+  })
+
+  it("are given correctly to lexed tokens", () => {
+    noKeywordLexer.reset(".!()()! ")
+    const tokens = Array.from(noKeywordLexer)
+    expect(tokens).toHaveLength(6)
+
+    const [
+      DotToken, BangParenToken, LeftParenToken, RightParenToken, ExclaimToken, SpaceToken
+    ] = tokens
+
+    expect(DotToken).toHaveProperty('categories')
+    expect(DotToken.categories).toBeInstanceOf(Array)
+    expect(DotToken.categories).toIncludeAllMembers(['Punctuation'])
+
+    expect(BangParenToken).toHaveProperty('categories')
+    expect(BangParenToken.categories).toBeInstanceOf(Array)
+    expect(BangParenToken.categories).toIncludeAllMembers(['Punctuation', 'Paren', 'Exclamatory'])
+
+    expect(LeftParenToken).toHaveProperty('categories')
+    expect(LeftParenToken.categories).toBeInstanceOf(Array)
+    expect(LeftParenToken.categories).toIncludeAllMembers(['Punctuation', 'Paren'])
+
+    expect(RightParenToken).toHaveProperty('categories')
+    expect(RightParenToken.categories).toBeInstanceOf(Array)
+    expect(RightParenToken.categories).toIncludeAllMembers(['Punctuation', 'Paren'])
+
+    expect(ExclaimToken).toHaveProperty('categories')
+    expect(ExclaimToken.categories).toBeInstanceOf(Array)
+    expect(ExclaimToken.categories).toIncludeAllMembers(['Punctuation', 'Exclamatory'])
+
+    expect(SpaceToken).toHaveProperty('categories', null)
+  })
+
+  it("works correctly with matchToken", () => {
+    noKeywordLexer.reset(".!()()! ")
+    const tokens = Array.from(noKeywordLexer)
+    expect(tokens).toHaveLength(6)
+
+    const [
+      DotToken, BangParenToken, LeftParenToken, RightParenToken, ExclaimToken, SpaceToken
+    ] = tokens
+    const { Dot, BangParen, LeftParen, RightParen, Exclaim, Space } = tok
+
+    expect(matchToken(DotToken, Dot)).toBe(true)
+    expect(matchToken(BangParenToken, BangParen)).toBe(true)
+    expect(matchToken(LeftParenToken, LeftParen)).toBe(true)
+    expect(matchToken(RightParenToken, RightParen)).toBe(true)
+    expect(matchToken(ExclaimToken, Exclaim)).toBe(true)
+    expect(matchToken(SpaceToken, Space)).toBe(true)
+
+    expect(matchToken(DotToken, Punctuation)).toBe(true)
+    expect(matchToken(DotToken, Paren)).toBe(false)
+    expect(matchToken(DotToken, Exclamatory)).toBe(false)
+
+    expect(matchToken(BangParenToken, Punctuation)).toBe(true)
+    expect(matchToken(BangParenToken, Paren)).toBe(true)
+    expect(matchToken(BangParenToken, Exclamatory)).toBe(true)
+
+    expect(matchToken(LeftParenToken, Punctuation)).toBe(true)
+    expect(matchToken(LeftParenToken, Paren)).toBe(true)
+    expect(matchToken(LeftParenToken, Exclamatory)).toBe(false)
+
+    expect(matchToken(RightParenToken, Punctuation)).toBe(true)
+    expect(matchToken(RightParenToken, Paren)).toBe(true)
+    expect(matchToken(RightParenToken, Exclamatory)).toBe(false)
+
+    expect(matchToken(ExclaimToken, Punctuation)).toBe(true)
+    expect(matchToken(ExclaimToken, Paren)).toBe(false)
+    expect(matchToken(ExclaimToken, Exclamatory)).toBe(true)
+
+    expect(matchToken(SpaceToken, Punctuation)).toBe(false)
+    expect(matchToken(SpaceToken, Paren)).toBe(false)
+    expect(matchToken(SpaceToken, Exclamatory)).toBe(false)
+  })
+})
+
+
+describe("keywords", () => {
+  const IdentifierCategory = createCategory('IdentifierCategory')
+  const Keyword = createCategory('Keyword')
+  const Html = createCategory('Html', Keyword)
+
+  const Exclamatory = createCategory('Exclamatory')
+
+  const Numeric = createCategory('Numeric')
+
+  const keywordLexer = compile({
+    Identifier: { match: /[a-z]+/, categories: IdentifierCategory, keywords: [
+      { type: 'Null', values: ['null'] },
+      { type: 'ControlFlowKeyword', values: ['while', 'for'], categories: Keyword },
+      { type: 'HtmlTag', values: ['div', 'span'], categories: Html },
+      { type: 'Scary', values: ['argh'], categories: [Keyword, Exclamatory] },
+    ]},
+    Num: { match: /[0-9]+/, categories: Numeric, keywords: {
+      ScaryNum: '666',
+      NiceNum: '000',
+    }},
+    Dots: { match: /\.+/, keywords: [
+      { type: 'ScaryDots', values: ['...'], categories: Exclamatory }
+    ]},
+    Bangs: { match: /\!+/, keywords: { ThreeBang: '!!!' }},
+    Space: / +/,
+  })
+
+  const tok = keywordLexer.tokenLibrary()
+
+  it("work with both new syntaxes, and are added to the tokenLibrary", () => {
+    expect(tok).toContainAllKeys(['Identifier', 'Null', 'ControlFlowKeyword', 'HtmlTag', 'Scary', 'Num', 'ScaryNum', 'NiceNum', 'Dots', 'ScaryDots', 'Bangs', 'ThreeBang', 'Space'])
+
+    const {
+      Identifier, Null, ControlFlowKeyword, HtmlTag, Scary, Num, ScaryNum, NiceNum, Dots, ScaryDots, Bangs, ThreeBang, Space
+    } = tok
+
+    expect(Identifier).toHaveProperty('categories')
+    expect(Identifier.categories).toBeInstanceOf(Array)
+    expect(Identifier.categories).toIncludeAllMembers(['IdentifierCategory'])
+
+    expect(Null).toHaveProperty('categories')
+    expect(Null.categories).toBeInstanceOf(Array)
+    expect(Null.categories).toIncludeAllMembers(['IdentifierCategory'])
+
+    expect(ControlFlowKeyword).toHaveProperty('categories')
+    expect(ControlFlowKeyword.categories).toBeInstanceOf(Array)
+    expect(ControlFlowKeyword.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword'])
+
+    expect(HtmlTag).toHaveProperty('categories')
+    expect(HtmlTag.categories).toBeInstanceOf(Array)
+    expect(HtmlTag.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword', 'Html'])
+
+    expect(Scary).toHaveProperty('categories')
+    expect(Scary.categories).toBeInstanceOf(Array)
+    expect(Scary.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword', 'Exclamatory'])
+
+    expect(Num).toHaveProperty('categories')
+    expect(Num.categories).toBeInstanceOf(Array)
+    expect(Num.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(ScaryNum).toHaveProperty('categories')
+    expect(ScaryNum.categories).toBeInstanceOf(Array)
+    expect(ScaryNum.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(NiceNum).toHaveProperty('categories')
+    expect(NiceNum.categories).toBeInstanceOf(Array)
+    expect(NiceNum.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(Dots).toHaveProperty('categories', null)
+
+    expect(ScaryDots).toHaveProperty('categories')
+    expect(ScaryDots.categories).toBeInstanceOf(Array)
+    expect(ScaryDots.categories).toIncludeAllMembers(['Exclamatory'])
+
+    expect(Bangs).toHaveProperty('categories', null)
+
+    expect(ThreeBang).toHaveProperty('categories', null)
+
+    expect(Space).toHaveProperty('categories', null)
+  })
+
+  it("are given correctly to lexed tokens", () => {
+    keywordLexer.reset("iden null for div argh 1 666 000 . ... ! !!! ")
+
+    const tokens = Array.from(keywordLexer)
+    expect(tokens).toHaveLength(24)
+
+    const [
+      IdentifierToken, , NullToken, , ControlFlowKeywordToken, , HtmlTagToken, , ScaryToken, , NumToken, , ScaryNumToken, , NiceNumToken, , DotsToken, ,ScaryDotsToken, , BangsToken, , ThreeBangToken, SpaceToken
+    ] = tokens
+
+    expect(IdentifierToken).toHaveProperty('categories')
+    expect(IdentifierToken.categories).toBeInstanceOf(Array)
+    expect(IdentifierToken.categories).toIncludeAllMembers(['IdentifierCategory'])
+
+    expect(NullToken).toHaveProperty('categories')
+    expect(NullToken.categories).toBeInstanceOf(Array)
+    expect(NullToken.categories).toIncludeAllMembers(['IdentifierCategory'])
+
+    expect(ControlFlowKeywordToken).toHaveProperty('categories')
+    expect(ControlFlowKeywordToken.categories).toBeInstanceOf(Array)
+    expect(ControlFlowKeywordToken.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword'])
+
+    expect(HtmlTagToken).toHaveProperty('categories')
+    expect(HtmlTagToken.categories).toBeInstanceOf(Array)
+    expect(HtmlTagToken.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword', 'Html'])
+
+    expect(ScaryToken).toHaveProperty('categories')
+    expect(ScaryToken.categories).toBeInstanceOf(Array)
+    expect(ScaryToken.categories).toIncludeAllMembers(['IdentifierCategory', 'Keyword', 'Exclamatory'])
+
+    expect(NumToken).toHaveProperty('categories')
+    expect(NumToken.categories).toBeInstanceOf(Array)
+    expect(NumToken.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(ScaryNumToken).toHaveProperty('categories')
+    expect(ScaryNumToken.categories).toBeInstanceOf(Array)
+    expect(ScaryNumToken.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(NiceNumToken).toHaveProperty('categories')
+    expect(NiceNumToken.categories).toBeInstanceOf(Array)
+    expect(NiceNumToken.categories).toIncludeAllMembers(['Numeric'])
+
+    expect(DotsToken).toHaveProperty('categories', null)
+
+    expect(ScaryDotsToken).toHaveProperty('categories')
+    expect(ScaryDotsToken.categories).toBeInstanceOf(Array)
+    expect(ScaryDotsToken.categories).toIncludeAllMembers(['Exclamatory'])
+
+    expect(BangsToken).toHaveProperty('categories', null)
+
+    expect(ThreeBangToken).toHaveProperty('categories', null)
+
+    expect(SpaceToken).toHaveProperty('categories', null)
+  })
+})
+
+describe("ignore", () => {
+  it("works as expected", () => {
+    const ignoringLexer = compile({
+      Dot: '.',
+      Bang: '!',
+      Space: { match: / +/, ignore: true },
+    })
+
+    const { Dot, Bang, Space } = ignoringLexer.tokenLibrary()
+
+    ignoringLexer.reset(" . ! . ")
+    const tokens = Array.from(ignoringLexer)
+    expect(tokens).toHaveLength(3)
+    expect(matchTokens(tokens, [Dot, Bang, Dot])).toBe(true)
+  })
+})
