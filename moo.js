@@ -160,6 +160,7 @@
     if (options.keywords) {
       if (!Array.isArray(options.keywords)) {
         var typeList = []
+        
         for (var [tokenType, keywords] of Object.entries(options.keywords)) {
           keywords = toArray(keywords)
           typeList.push({ type: tokenType, values: keywords, categories: options.categories })
