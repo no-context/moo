@@ -264,8 +264,7 @@
     for (var i = 0; i < categoriesArray.length; i++) {
       var category = categoriesArray[i]
       if (!category.isCategory) {
-        console.log(category)
-        throw "Categories should only be set to category objects"
+        throw new Error("Categories should only be set to category objects: " + category)
       }
     }
   }
@@ -590,7 +589,7 @@
         if (group.keywords) {
           for (const keyword of group.keywords) {
             const { type, categories } = keyword
-            if (type in library) throw "there are overlapping token names in multiple states: " + type
+            if (type in library) throw new Error("there are overlapping token names in multiple states: " + type)
             library[type] = {
               type: type, categories: categories,
             }
@@ -598,7 +597,7 @@
         }
 
         var type = group.tokenType
-        if (type in library) throw "there are overlapping token names in multiple states: " + type
+        if (type in library) throw new Error("there are overlapping token names in multiple states: " + type)
         library[type] = {
           type: type, categories: group.categories,
         }
