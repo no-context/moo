@@ -183,7 +183,8 @@
       }
 
       options.keywordMap = {}
-      for (var keywordObject of options.keywords) {
+      for (var i = options.keywords.length - 1; i >= 0; i--) {
+        var keywordObject = options.keywords[i]
         options.keywordMap[keywordObject.type] = keywordObject
       }
 
@@ -204,11 +205,12 @@
 
       var tokenCategories = toArray(item.categories)
 
-      for (var keyword of keywordList) {
-        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+      for (var j = keywordList.length - 1; j >= 0; j--) {
+        var keyword = keywordList[j]
         if (typeof keyword !== 'string') {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
+        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
         reverseMap[keyword] = { tokenType: tokenType, categories: tokenCategories.length == 0 ? null : tokenCategories }
       }
     }
@@ -223,7 +225,9 @@
       var keywords = byLength[length]
       source += 'case ' + length + ':\n'
       source += 'switch (value) {\n'
-      for (var keyword of keywords) {
+      for (var i = 0; i < keywords.length; i++) {
+        var keyword = keywords[i]
+      // for (var keyword of keywords) {
         var tokenTypeAndCategories = reverseMap[keyword]
         source += 'case ' + str(keyword) + ': return ' + str(tokenTypeAndCategories) + '\n'
       }
