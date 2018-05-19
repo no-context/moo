@@ -160,8 +160,12 @@
     if (options.keywords) {
       if (!Array.isArray(options.keywords)) {
         var typeList = []
-        
-        for (var [tokenType, keywords] of Object.entries(options.keywords)) {
+
+        var tokenTypes = Object.getOwnPropertyNames(options.keywords)
+        for (var i = 0; i < tokenTypes.length; i++) {
+        // for (var [tokenType, keywords] of Object.entries(options.keywords)) {
+          var tokenType = tokenTypes[i]
+          var keywords = options.keywords[tokenType]
           keywords = toArray(keywords)
           typeList.push({ type: tokenType, values: keywords, categories: options.categories })
         }
