@@ -99,7 +99,7 @@
     if (categories.length == 0) return null
     else {
       var finalCategories = []
-      for (var j = 0; j < categories.length; j++) {
+      for (var j = categories.length - 1; j >= 0; j--) {
         var category = categories[j]
 
         finalCategories.push(category.categoryName)
@@ -198,7 +198,7 @@
 
     var reverseMap = Object.create(null)
     var byLength = Object.create(null)
-    for (var i = 0; i < types.length; i++) {
+    for (var i = types.length - 1; i >= 0; i--) {
       var item = types[i]
       var keywordList = toArray(item.values)
       var tokenType = item.type
@@ -225,9 +225,8 @@
       var keywords = byLength[length]
       source += 'case ' + length + ':\n'
       source += 'switch (value) {\n'
-      for (var i = 0; i < keywords.length; i++) {
+      for (var i = keywords.length - 1; i >= 0; i--) {
         var keyword = keywords[i]
-      // for (var keyword of keywords) {
         var tokenTypeAndCategories = reverseMap[keyword]
         source += 'case ' + str(keyword) + ': return ' + str(tokenTypeAndCategories) + '\n'
       }
@@ -270,7 +269,7 @@
   function validateCategories(categoriesArray) {
     if (categoriesArray === null) return
 
-    for (var i = 0; i < categoriesArray.length; i++) {
+    for (var i = categoriesArray.length - 1; i >= 0; i--) {
       var category = categoriesArray[i]
       if (!category.isCategory) {
         throw new Error("Categories should only be set to category objects: " + category)
@@ -592,12 +591,14 @@
 
     for (var stateKey in this.states) {
       var state = this.states[stateKey]
-      for (var i = 0; i < state.groups.length; i++) {
+      for (var i = state.groups.length - 1; i >= 0; i--) {
         var group = state.groups[i]
 
         if (group.keywords) {
-          for (const keyword of group.keywords) {
-            const { type, categories } = keyword
+          for (var j = group.keywords.length - 1; j >= 0; j--) {
+            var keyword = group.keywords[j]
+            var type = keyword.type
+            var categories = keyword.categories
             if (type in library) throw new Error("there are overlapping token names in multiple states: " + type)
             library[type] = {
               type: type, categories: categories,
