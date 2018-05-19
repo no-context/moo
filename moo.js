@@ -162,8 +162,7 @@
         var typeList = []
 
         var tokenTypes = Object.getOwnPropertyNames(options.keywords)
-        for (var i = 0; i < tokenTypes.length; i++) {
-        // for (var [tokenType, keywords] of Object.entries(options.keywords)) {
+        for (var i = tokenTypes.length - 1; i >= 0; i--) {
           var tokenType = tokenTypes[i]
           var keywords = options.keywords[tokenType]
           keywords = toArray(keywords)
@@ -172,7 +171,8 @@
         options.keywords = typeList
       }
       else {
-        for (var keywordObject of options.keywords) {
+        for (var i = options.keywords.length - 1; i >= 0; i--) {
+          var keywordObject = options.keywords[i]
           normalizeCategories(keywordObject)
 
           if (options.categories) {
