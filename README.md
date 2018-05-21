@@ -141,6 +141,7 @@ Token objects (returned from `next()`) have the following attributes:
 * **`lineBreaks`**: the number of line breaks found in the match. (Always zero if this rule has `lineBreaks: false`.)
 * **`line`**: the line number of the beginning of the match, starting from 1.
 * **`col`**: the column where the match begins, starting from 1.
+* **`categories`**: the names of all categories this token belongs to.
 
 
 ### Reset ###
@@ -157,6 +158,83 @@ If you don't want this, you can `save()` the state, and later pass it as the sec
     // ...
     lexer.reset('a different line\n', info)
     lexer.next() // -> { line: 10 }
+```
+
+## Matching and the Token Library
+
+Since you may want to test output tokens to see if they match particular types, the `tokenLibrary` and `matchToken(s)` functions are provided.
+
+First grab the token library for your lexer.
+
+```js
+const lexer = moo.compile({
+  Word: /[a-zA-Z]+/,
+  Space: / +/,
+})
+
+const tokenLibrary = lexer.tokenLibrary()
+tokenLibrary.Word
+tokenLibrary.Space
+```
+
+Then use those types to test actual tokens.
+
+```js
+lexer.reset("words with spaces")
+for (let token of lexer) {
+  // will return a boolean telling if the match is true
+  matchToken(token, tokenLibrary.Word)
+  matchToken(token, tokenLibrary.Space)
+}
+
+// there's also a plural form for matchToken
+lexer.reset("other words")
+const tokens = Array.from(lexer)
+// returns true in this case
+matchTokens(tokens, [tokenLibrary.Word, tokenLibrary.Space, tokenLibrary.Word])
+```
+
+### Categories
+
+If you want to put multiple tokens into categories with each other, use the `createCategory` function to make categories, and provide them to token definitions.
+
+```js
+const Word = createCategory('Word')
+
+const Punctuation = createCategory('Punctuation')
+// you can provide an array of parents for categories as well
+const Paren = createCategory('Paren', [Punctuation])
+// if you're only providing one, this works too
+// const Paren = createCategory('Paren', Punctuation)
+
+const lexer = moo.compile({
+  LowercaseWord: { match: /[a-z]+/, categories: [Word] },
+  UppercaseWord: { match: /[a-z]+/, categories: [Word] },
+  // categories: Word would also work here
+  // UppercaseWord: { match: /[a-z]+/, categories: [Word] },
+
+  Dot: { match: '.', categories: Punctuation },
+  LeftParen: { match: '(', categories: Paren },
+  RightParen: { match: '(', categories: Paren },
+
+  Space: / +/,
+})
+
+lexer.reset("lower upper (.)")
+for (let token of lexer) {
+  // will return a boolean telling if the match is true
+  matchToken(token, tokenLibrary.UppercaseWord)
+  matchToken(token, tokenLibrary.LowercaseWord)
+  matchToken(token, tokenLibrary.Dot)
+  matchToken(token, tokenLibrary.LeftParen)
+  matchToken(token, tokenLibrary.RightParen)
+  matchToken(token, tokenLibrary.Space)
+
+  // matching works with categories just the same
+  matchToken(token, Word)
+  matchToken(token, Punctuation)
+  matchToken(token, Paren)
+}
 ```
 
 
@@ -230,6 +308,34 @@ You can use [itt](https://github.com/nathan/itt)'s iterator adapters to make con
     .toObject()
 ```
 
+### Categories with Keywords
+
+Keyword types will inherit any categories from their parent rule, and you can give them their own.
+
+```js
+const Ident = createCategory('Ident')
+const Keyword = createCategory('Keyword')
+
+const Problem = createCategory('Problem')
+
+const lexer = moo.compile({
+  Word: { match: /[a-zA-Z]+/, categories: Ident, keywords: {
+    // this one will be an Ident and a Keyword
+    ControlFlow: { values: ['for', 'while', 'if'], categories: Keyword },
+    // this one will just be an Ident
+    Output: ['print', 'warn', 'error'],
+  }},
+  Num: { match: /[0-9]+/, keywords: {
+    // the parent doesn't give any categories
+    // so this will just be Problem
+    Scary: { values: '666', categories: Problem },
+    // and this won't have any categories
+    Emergency: '911',
+  }}
+  Space: / +/,
+})
+```
+
 
 States
 ------
@@ -264,6 +370,27 @@ To support this, Moo allows annotating tokens with `push`, `pop` and `next`:
 * **`push`** moves the lexer to a new state, and pushes the old state onto the stack.
 * **`pop`** returns to a previous state, by removing one or more states from the stack.
 * **`next`** moves to a new state, but does not affect the stack.
+
+
+## Ignoring
+
+It's simple to ignore some token types. They'll simply be discarded instead of returned from `next`.
+
+```js
+const lexer = moo.compile({
+  Word: /[a-zA-Z]+/,
+  Space: { match: / +/, ignore: true },
+})
+
+lexer.reset("word after word")
+for (let token of lexer) {
+  // Word
+  // Space ignored and not returned
+  // Word
+  // Space ignored and not returned
+  // Word
+}
+```
 
 
 Errors
