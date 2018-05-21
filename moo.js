@@ -158,52 +158,41 @@
     normalizeCategories(options)
 
     if (options.keywords) {
-      if (!Array.isArray(options.keywords)) {
-        var typeList = []
+    	var tokenTypes = Object.getOwnPropertyNames(options.keywords)
+      for (var i = tokenTypes.length - 1; i >= 0; i--) {
+        var tokenType = tokenTypes[i]
+        var keywords = options.keywords[tokenType]
 
-        var tokenTypes = Object.getOwnPropertyNames(options.keywords)
-        for (var i = tokenTypes.length - 1; i >= 0; i--) {
-          var tokenType = tokenTypes[i]
-          var keywords = options.keywords[tokenType]
-          keywords = toArray(keywords)
-          typeList.push({ type: tokenType, values: keywords, categories: options.categories })
+        if (!isObject(keywords)) keywords = { values: toArray(keywords), categories: null }
+        else {
+          keywords.values = toArray(keywords.values)
+          if (keywords.values.length == 0) keywords.values = [null]
+          normalizeCategories(keywords)
         }
-        options.keywords = typeList
-      }
-      else {
-        for (var i = options.keywords.length - 1; i >= 0; i--) {
-          var keywordObject = options.keywords[i]
-          normalizeCategories(keywordObject)
 
-          if (options.categories) {
-            if (keywordObject.categories) keywordObject.categories = keywordObject.categories.concat(options.categories)
-            else keywordObject.categories = options.categories
-          }
+        if (options.categories) {
+          if (keywords.categories) keywords.categories = keywords.categories.concat(options.categories)
+          else keywords.categories = options.categories
         }
+
+        options.keywords[tokenType] = keywords
       }
 
-      options.keywordMap = {}
-      for (var i = options.keywords.length - 1; i >= 0; i--) {
-        var keywordObject = options.keywords[i]
-        options.keywordMap[keywordObject.type] = keywordObject
-      }
-
-      options.getTypeAndCategories = keywordTransform(options.keywords, options.categories)
+      options.getTypeAndCategories = keywordTransform(options.keywords)
     }
     return options
   }
 
-  function keywordTransform(types, categories) {
-    categories = categories || []
-
+  function keywordTransform(types) {
     var reverseMap = Object.create(null)
     var byLength = Object.create(null)
-    for (var i = types.length - 1; i >= 0; i--) {
-      var item = types[i]
-      var keywordList = toArray(item.values)
-      var tokenType = item.type
+    var tokenTypes = Object.getOwnPropertyNames(types)
+    for (var i = tokenTypes.length - 1; i >= 0; i--) {
+      var tokenType = tokenTypes[i]
+      var item = types[tokenType]
+      var keywordList = item.values
 
-      var tokenCategories = toArray(item.categories)
+      var tokenCategories = item.categories
 
       for (var j = keywordList.length - 1; j >= 0; j--) {
         var keyword = keywordList[j]
@@ -211,7 +200,7 @@
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
         (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
-        reverseMap[keyword] = { tokenType: tokenType, categories: tokenCategories.length == 0 ? null : tokenCategories }
+        reverseMap[keyword] = { tokenType: tokenType, categories: tokenCategories && tokenCategories.length != 0 ? tokenCategories: null }
       }
     }
 
@@ -578,7 +567,7 @@
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
         if (group.tokenType === tokenType) return true
-        if (group.keywords && hasOwnProperty.call(group.keywordMap, tokenType)) {
+        if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
           return true
         }
       }
@@ -595,9 +584,13 @@
         var group = state.groups[i]
 
         if (group.keywords) {
-          for (var j = group.keywords.length - 1; j >= 0; j--) {
-            var keyword = group.keywords[j]
-            var type = keyword.type
+        	var keywordTypes = Object.getOwnPropertyNames(group.keywords)
+          for (var j = keywordTypes.length - 1; j >= 0; j--) {
+            var type = keywordTypes[j]
+            var keyword = group.keywords[type]
+
+            // var keyword = group.keywords[j]
+            // var type = keyword.type
             var categories = keyword.categories
             if (type in library) throw new Error("there are overlapping token names in multiple states: " + type)
             library[type] = {
