@@ -23,9 +23,13 @@
     "chevrotain": "^0.27.1",
     "eslint": "^3.17.1",
     "jest": "^19.0.2",
+    "jest-extended": "^0.7.1",
     "lex": "^1.7.9",
     "lexing": "^0.8.0",
     "remix": "^0.1.4",
     "tokenizer2": "^2.0.0"
+  },
+  "jest": {
+    "setupTestFrameworkScriptFile": "jest-extended"
   }
 }
