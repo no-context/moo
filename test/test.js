@@ -430,6 +430,7 @@ describe('stateful lexer', () => {
     start: {
       word: /\w+/,
       eq: {match: '=', next: 'ab'},
+      myError: moo.error,
     },
     ab: {
       a: 'a',
@@ -448,6 +449,14 @@ describe('stateful lexer', () => {
       ['semi', ';'],
       ['word', 'two'],
       ['eq', '='],
+    ])
+  })
+
+  test('supports errors', () => {
+    statefulLexer.reset('foo!')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
+      ['word', 'foo'],
+      ['myError', '!'],
     ])
   })
 
