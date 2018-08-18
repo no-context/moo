@@ -10,7 +10,15 @@ function lexAll(lexer) {return Array.from(lexer)}
 
 describe('compiler', () => {
 
-  // TODO handles empty rule set
+  test('handles empty rule set', () => {
+    const lex = compile({})
+    lex.reset('nope!')
+    expect(() => lex.next()).toThrow('invalid syntax')
+
+    const lex2 = compile({err: moo.error})
+    lex2.reset('nope!')
+    expect(lex2.next()).toMatchObject({type: 'err', text: 'nope!'})
+  })
 
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
