@@ -18,6 +18,14 @@ describe('compiler', () => {
     const lex2 = compile({err: moo.error})
     lex2.reset('nope!')
     expect(lex2.next()).toMatchObject({type: 'err', text: 'nope!'})
+
+    const lex3 = moo.states({main: {}})
+    lex3.reset('nope!')
+    expect(() => lex3.next()).toThrow('invalid syntax')
+
+    const lex4 = moo.states({main: {err: moo.error}})
+    lex4.reset('nope!')
+    expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
   test("warns for /g, /y, /i, /m", () => {
