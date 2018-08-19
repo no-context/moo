@@ -28,6 +28,7 @@
     return '(' + s + ')'
   }
   function reUnion(regexps) {
+    if (!regexps.length) return '(?!)'
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")"
     }).join('|')
