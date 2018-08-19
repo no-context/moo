@@ -60,7 +60,13 @@
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       var thing = object[key]
-      var rules = Array.isArray(thing) ? thing : [thing]
+      var rules = [].concat(thing)
+      if (key === 'include') {
+        for (var j = 0; j < rules.length; j++) {
+          result.push({include: rules[j]})
+        }
+        continue
+      }
       var match = []
       rules.forEach(function(rule) {
         if (isObject(rule)) {
@@ -80,6 +86,13 @@
     var result = []
     for (var i = 0; i < array.length; i++) {
       var obj = array[i]
+      if (obj.include) {
+        var include = [].concat(obj.include)
+        for (var j = 0; j < include.length; j++) {
+          result.push({include: include[j]})
+        }
+        continue
+      }
       if (!obj.name) {
         throw new Error('Rule has no name: ' + JSON.stringify(obj))
       }
@@ -91,6 +104,9 @@
   function ruleOptions(name, obj) {
     if (!isObject(obj)) {
       obj = { match: obj }
+    }
+    if (obj.include) {
+      throw new Error('Matching rules cannot also include states')
     }
 
     // nb. error and fallback imply lineBreaks
@@ -127,10 +143,12 @@
     return options
   }
 
+  function toRules(spec) {
+    return Array.isArray(spec) ? arrayToRules(spec) : objectToRules(spec)
+  }
+
   var defaultErrorRule = ruleOptions('error', {lineBreaks: true, shouldThrow: true})
   function compileRules(rules, hasStates) {
-    rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
-
     var errorRule = null
     var fast = Object.create(null)
     var fastAllowed = true
@@ -138,6 +156,11 @@
     var parts = []
     for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
+
+      if (options.include) {
+        // all valid inclusions are removed by states() preprocessor
+        throw new Error('Inheritance is not allowed in stateless lexers')
+      }
 
       if (options.error || options.fallback) {
         // errorRule can only be set once
@@ -214,7 +237,7 @@
   }
 
   function compile(rules) {
-    var result = compileRules(rules)
+    var result = compileRules(toRules(rules))
     return new Lexer({start: result}, 'start')
   }
 
@@ -228,13 +251,55 @@
     }
   }
   function compileStates(states, start) {
+    var all = states.$all ? toRules(states.$all) : []
+    delete states.$all
+
     var keys = Object.getOwnPropertyNames(states)
     if (!start) start = keys[0]
+
+    var ruleMap = Object.create(null)
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i]
+      ruleMap[key] = toRules(states[key]).concat(all)
+    }
+    do {
+      var affected = false
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i]
+        var rules = ruleMap[key]
+        for (var j = 0; j < rules.length; j++) {
+          var rule = rules[j]
+          if (!rule.include || rule.include === key) continue
+          var newRules = ruleMap[rule.include]
+          if (!newRules) {
+            throw new Error("Cannot include nonexistent state '" + rule.include + "' (in state '" + key + "')")
+          }
+          for (var k = 0; k < newRules.length; k++) {
+            var newRule = newRules[k]
+            var l = rules.indexOf(newRule)
+            if (l > j) {
+              rules.splice(l, 1)
+            } else if (l !== -1) {
+              continue
+            }
+            rules.splice(j, 0, newRule)
+            ++j
+            affected = true
+          }
+        }
+      }
+    } while (affected)
 
     var map = Object.create(null)
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
-      map[key] = compileRules(states[key], true)
+      var allRules = ruleMap[key]
+      var matchRules = []
+      for (var j = 0; j < allRules.length; j++) {
+        var rule = allRules[j]
+        if (!rule.include) matchRules.push(rule)
+      }
+      map[key] = compileRules(matchRules, true)
     }
 
     for (var i = 0; i < keys.length; i++) {
