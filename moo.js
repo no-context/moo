@@ -290,13 +290,7 @@
     var map = Object.create(null)
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
-      var allRules = ruleMap[key]
-      var matchRules = []
-      for (var j = 0; j < allRules.length; j++) {
-        var rule = allRules[j]
-        if (!rule.include) matchRules.push(rule)
-      }
-      map[key] = compileRules(matchRules, true)
+      map[key] = compileRules(ruleMap[key], true)
     }
 
     for (var i = 0; i < keys.length; i++) {
