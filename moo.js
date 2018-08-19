@@ -278,8 +278,7 @@
           }
           for (var k = 0; k < newRules.length; k++) {
             var newRule = newRules[k]
-            var l = rules.indexOf(newRule)
-            if (l !== -1) continue
+            if (rules.indexOf(newRule) !== -1) continue
             splice.push(newRule)
           }
         }
