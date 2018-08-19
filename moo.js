@@ -271,6 +271,7 @@
         if (!rule.include) continue
         var splice = [j, 1]
         if (rule.include !== key && !included[rule.include]) {
+          included[rule.include] = true
           var newRules = ruleMap[rule.include]
           if (!newRules) {
             throw new Error("Cannot include nonexistent state '" + rule.include + "' (in state '" + key + "')")
