@@ -262,14 +262,15 @@
       var key = keys[i]
       ruleMap[key] = toRules(states[key]).concat(all)
     }
-    do {
-      var affected = false
-      for (var i = 0; i < keys.length; i++) {
-        var key = keys[i]
-        var rules = ruleMap[key]
-        for (var j = 0; j < rules.length; j++) {
-          var rule = rules[j]
-          if (!rule.include || rule.include === key) continue
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i]
+      var rules = ruleMap[key]
+      var included = Object.create(null)
+      for (var j = 0; j < rules.length; j++) {
+        var rule = rules[j]
+        if (!rule.include) continue
+        var splice = [j, 1]
+        if (rule.include !== key && !included[rule.include]) {
           var newRules = ruleMap[rule.include]
           if (!newRules) {
             throw new Error("Cannot include nonexistent state '" + rule.include + "' (in state '" + key + "')")
@@ -277,18 +278,14 @@
           for (var k = 0; k < newRules.length; k++) {
             var newRule = newRules[k]
             var l = rules.indexOf(newRule)
-            if (l > j) {
-              rules.splice(l, 1)
-            } else if (l !== -1) {
-              continue
-            }
-            rules.splice(j, 0, newRule)
-            ++j
-            affected = true
+            if (l !== -1) continue
+            splice.push(newRule)
           }
         }
+        rules.splice.apply(rules, splice)
+        j--
       }
-    } while (affected)
+    }
 
     var map = Object.create(null)
     for (var i = 0; i < keys.length; i++) {
