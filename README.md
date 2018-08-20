@@ -280,7 +280,7 @@ If you prefer, you can have moo return an error token instead of throwing an exc
     })
     
     moo.reset('invalid')
-    moo.next() // -> { type: 'myError', value: 'invalid' }
+    moo.next() // -> { type: 'myError', value: 'invalid', text: 'invalid', offset: 0, lineBreaks: 0, line: 1, col: 1 } }
     moo.next() // -> undefined
 ```
 
