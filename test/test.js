@@ -141,7 +141,15 @@ describe('compiler', () => {
 
 describe('compiles literals', () => {
 
-  // TODO test they're escaped
+  test('escapes strings', () => {
+    let lexer = moo.compile({
+      tok1: '-/\\^$*+',
+      tok2: ['?.()|[]{}', 'cow'],
+    })
+    lexer.reset('-/\\^$*+?.()|[]{}')
+    expect(lexer.next()).toMatchObject({value: '-/\\^$*+'})
+    expect(lexer.next()).toMatchObject({value: '?.()|[]{}'})
+  })
 
   test('sorts RegExps and strings', () => {
     let lexer = moo.compile({
