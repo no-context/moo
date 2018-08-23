@@ -171,7 +171,7 @@
       parts.push(reCapture(pat))
     }
 
-    var suffix = hasSticky ? '' : '|(?:)'
+    var suffix = hasSticky ? '' : '|'
     var flags = hasSticky ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
