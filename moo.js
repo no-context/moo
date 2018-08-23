@@ -104,6 +104,7 @@
       default: false,
       value: null,
       getType: null,
+      shouldThrow: false,
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -126,6 +127,7 @@
     return options
   }
 
+  var defaultErrorRule = ruleOptions('error', {lineBreaks: true, shouldThrow: true})
   function compileRules(rules, hasStates) {
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
@@ -178,7 +180,7 @@
     var flags = hasSticky && !defaultRule ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule}
+    return {regexp: combined, groups: groups, error: errorRule || defaultErrorRule}
   }
 
   function compile(rules) {
@@ -285,7 +287,7 @@
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error || {lineBreaks: true, shouldThrow: true}
+    this.error = info.error
     this.re = info.regexp
   }
 
