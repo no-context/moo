@@ -752,7 +752,7 @@ describe('errors', () => {
     expect(() => compile({
       myError: moo.error,
       myError2: moo.error,
-    })).toThrow("Multiple error rules not allowed: (for token 'myError2')")
+    })).toThrow("Multiple error rules not allowed (for token 'myError2')")
   })
 
   test('may also match patterns', () => {

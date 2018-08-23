@@ -139,7 +139,7 @@
 
       if (options.error || options.default) {
         if (errorRule) {
-          throw new Error((!options.default === !errorRule.default ? "Multiple " + (options.default ? "default" : "error") + " rules not allowed" : "default and error are mutually exclusive") + ": (for token '" + options.tokenType + "')")
+          throw new Error((!options.default === !errorRule.default ? "Multiple " + (options.default ? "default" : "error") + " rules not allowed" : "default and error are mutually exclusive") + " (for token '" + options.tokenType + "')")
         }
         errorRule = options
       }
