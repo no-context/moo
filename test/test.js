@@ -29,12 +29,13 @@ describe('compiler', () => {
     expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
-  test("warns for /g, /y, /i, /m", () => {
+  test("warns for /g, /y, /i, /m, /u", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow('implied')
     expect(() => compile({ word: /foo/i })).toThrow('not allowed')
     expect(() => compile({ word: /foo/y })).toThrow('implied')
     expect(() => compile({ word: /foo/m })).toThrow('implied')
+    expect(() => compile({ word: /foo/u })).toThrow('not allowed')
   })
 
   // TODO warns if no lineBreaks: true
