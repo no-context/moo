@@ -93,14 +93,15 @@
       obj = { match: obj }
     }
 
-    // nb. error implies lineBreaks
+    // nb. error and default imply lineBreaks
     var options = {
       tokenType: name,
-      lineBreaks: !!obj.error,
+      lineBreaks: !!obj.error || !!obj.default,
       pop: false,
       next: null,
       push: null,
       error: false,
+      default: false,
       value: null,
       getType: null,
     }
@@ -129,6 +130,7 @@
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
     var errorRule = null
+    var defaultRule = null
     var groups = []
     var parts = []
     for (var i = 0; i < rules.length; i++) {
@@ -139,6 +141,12 @@
           throw new Error("Multiple error rules not allowed: (for token '" + options.tokenType + "')")
         }
         errorRule = options
+      }
+      if (options.default) {
+        if (defaultRule) {
+          throw new Error("Multiple default rules not allowed: (for token '" + options.tokenType + "')")
+        }
+        defaultRule = options
       }
 
       // skip rules with no match
@@ -159,8 +167,8 @@
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
-      if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+      if ((!hasStates || options.default) && (options.pop || options.push || options.next)) {
+        throw new Error("State-switching options are not allowed in " + (options.default ? 'default tokens' : 'stateless lexers') + " (for token '" + options.tokenType + "')")
       }
 
       // try and detect rules matching newlines
@@ -172,11 +180,11 @@
       parts.push(reCapture(pat))
     }
 
-    var suffix = hasSticky ? '' : '|'
-    var flags = hasSticky ? 'ym' : 'gm'
+    var suffix = hasSticky || defaultRule ? '' : '|'
+    var flags = hasSticky && !defaultRule ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule}
+    return {regexp: combined, groups: groups, error: errorRule, default: defaultRule}
   }
 
   function compile(rules) {
@@ -262,6 +270,8 @@
     this.index = 0
     this.line = info ? info.line : 1
     this.col = info ? info.col : 1
+    this.queued = info ? info.queued : null
+    this.queuedThrow = info ? info.queuedThrow : null
     this.setState(info ? info.state : this.startState)
     return this
   }
@@ -271,6 +281,8 @@
       line: this.line,
       col: this.col,
       state: this.state,
+      queued: this.queued,
+      queuedThrow: this.queuedThrow,
     }
   }
 
@@ -280,6 +292,7 @@
     var info = this.states[state]
     this.groups = info.groups
     this.error = info.error || {lineBreaks: true, shouldThrow: true}
+    this.default = info.default
     this.re = info.regexp
   }
 
@@ -322,6 +335,15 @@
   }
 
   Lexer.prototype.next = function() {
+    if (this.queued) {
+      var queued = this.queued
+      this.queued = null
+      this.queuedThrow = false
+      if (this.queuedThrow) {
+        throw new Error(this.formatError(queued, "invalid syntax"))
+      }
+      return queued
+    }
     var re = this.re
     var buffer = this.buffer
 
@@ -331,6 +353,7 @@
     }
 
     var match = this._eat(re)
+    var matchIndex = match ? match.index : this.buffer.length
     var i = this._getGroup(match)
 
     var group, text
@@ -357,12 +380,51 @@
       }
     }
 
+    if (this.default && index !== matchIndex) {
+      var dGroup = this.default
+      var dText = buffer.slice(index, matchIndex)
+
+      var dLineBreaks = 0
+      if (dGroup.dLineBreaks) {
+        var dMatchNL = /\n/g
+        var dNl = 1
+        if (dText === '\n') {
+          dLineBreaks = 1
+        } else {
+          while (dMatchNL.exec(dText)) { dLineBreaks++; dNl = dMatchNL.lastIndex }
+        }
+      }
+
+      var defaultToken = {
+        type: (dGroup.getType && dGroup.getType(dText)) || dGroup.tokenType,
+        value: dGroup.value ? dGroup.value(dText) : dText,
+        text: dText,
+        toString: tokenToString,
+        offset: index,
+        lineBreaks: dLineBreaks,
+        line: this.line,
+        col: this.col,
+      }
+
+      var dSize = dText.length
+      this.index += dSize
+      this.line += dLineBreaks
+      if (dLineBreaks !== 0) {
+        this.col = dSize - dNl + 1
+      } else {
+        this.col += dSize
+      }
+      if (matchIndex === this.buffer.length) {
+        return defaultToken
+      }
+    }
+
     var token = {
       type: (group.getType && group.getType(text)) || group.tokenType,
       value: group.value ? group.value(text) : text,
       text: text,
       toString: tokenToString,
-      offset: index,
+      offset: matchIndex,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
@@ -377,15 +439,20 @@
     } else {
       this.col += size
     }
+
     // throw, if no rule with {error: true}
-    if (group.shouldThrow) {
+    if (defaultToken) {
+      this.queued = token
+      this.queuedThrow = group.shouldThrow
+    } else if (group.shouldThrow) {
       throw new Error(this.formatError(token, "invalid syntax"))
     }
 
     if (group.pop) this.popState()
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
-    return token
+
+    return defaultToken || token
   }
 
   if (typeof Symbol !== 'undefined' && Symbol.iterator) {
@@ -426,7 +493,7 @@
   Lexer.prototype.has = function(tokenType) {
     for (var s in this.states) {
       var state = this.states[s]
-      if (state.error && state.error.tokenType === tokenType) return true
+      if (state.error && state.error.tokenType === tokenType || state.default && state.default.tokenType === tokenType) return true
       var groups = state.groups
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
@@ -444,6 +511,7 @@
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
+    default: Object.freeze({default: true}),
   }
 
 }))
