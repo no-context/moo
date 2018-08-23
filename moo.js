@@ -10,12 +10,13 @@
   'use strict';
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
+  var toString = Object.prototype.toString
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   /***************************************************************************/
 
-  function isRegExp(o) { return o && o.constructor === RegExp }
-  function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
+  function isRegExp(o) { return o && toString.call(o) === '[object RegExp]' }
+  function isObject(o) { return o && typeof o === 'object' && !isRegExp(o) && !Array.isArray(o) }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
