@@ -31,10 +31,10 @@ describe('compiler', () => {
 
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
-    expect(() => compile({ word: /foo/g })).toThrow()
-    expect(() => compile({ word: /foo/i })).toThrow()
-    expect(() => compile({ word: /foo/y })).toThrow()
-    expect(() => compile({ word: /foo/m })).toThrow()
+    expect(() => compile({ word: /foo/g })).toThrow('implied')
+    expect(() => compile({ word: /foo/i })).toThrow('not allowed')
+    expect(() => compile({ word: /foo/y })).toThrow('implied')
+    expect(() => compile({ word: /foo/m })).toThrow('implied')
   })
 
   // TODO warns if no lineBreaks: true
