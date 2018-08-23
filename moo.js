@@ -130,23 +130,16 @@
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
     var errorRule = null
-    var defaultRule = null
     var groups = []
     var parts = []
     for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
-      if (options.error) {
+      if (options.error || options.default) {
         if (errorRule) {
-          throw new Error("Multiple error rules not allowed: (for token '" + options.tokenType + "')")
+          throw new Error((!options.default === !errorRule.default ? "Multiple " + (options.default ? "default" : "error") + " rules not allowed" : "default and error are mutually exclusive") + ": (for token '" + options.tokenType + "')")
         }
         errorRule = options
-      }
-      if (options.default) {
-        if (defaultRule) {
-          throw new Error("Multiple default rules not allowed: (for token '" + options.tokenType + "')")
-        }
-        defaultRule = options
       }
 
       // skip rules with no match
@@ -180,11 +173,12 @@
       parts.push(reCapture(pat))
     }
 
+    var defaultRule = errorRule && errorRule.default
     var suffix = hasSticky || defaultRule ? '' : '|'
     var flags = hasSticky && !defaultRule ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule, default: defaultRule}
+    return {regexp: combined, groups: groups, error: errorRule}
   }
 
   function compile(rules) {
@@ -292,7 +286,6 @@
     var info = this.states[state]
     this.groups = info.groups
     this.error = info.error || {lineBreaks: true, shouldThrow: true}
-    this.default = info.default
     this.re = info.regexp
   }
 
@@ -356,89 +349,19 @@
     var matchIndex = match ? match.index : this.buffer.length
     var i = this._getGroup(match)
 
-    var group, text
-    if (i === -1) {
-      group = this.error
+    if (this.error.default && matchIndex !== index || i === -1) {
+      var defaultToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
 
-      // consume rest of buffer
-      text = buffer.slice(index)
-
-    } else {
-      text = match[0]
-      group = this.groups[i]
-    }
-
-    // count line breaks
-    var lineBreaks = 0
-    if (group.lineBreaks) {
-      var matchNL = /\n/g
-      var nl = 1
-      if (text === '\n') {
-        lineBreaks = 1
-      } else {
-        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
-      }
-    }
-
-    if (this.default && index !== matchIndex) {
-      var dGroup = this.default
-      var dText = buffer.slice(index, matchIndex)
-
-      var dLineBreaks = 0
-      if (dGroup.dLineBreaks) {
-        var dMatchNL = /\n/g
-        var dNl = 1
-        if (dText === '\n') {
-          dLineBreaks = 1
-        } else {
-          while (dMatchNL.exec(dText)) { dLineBreaks++; dNl = dMatchNL.lastIndex }
+      if (i === -1) {
+        if (this.error.shouldThrow) {
+          throw new Error(this.formatError(defaultToken, "invalid syntax"))
         }
-      }
-
-      var defaultToken = {
-        type: (dGroup.getType && dGroup.getType(dText)) || dGroup.tokenType,
-        value: dGroup.value ? dGroup.value(dText) : dText,
-        text: dText,
-        toString: tokenToString,
-        offset: index,
-        lineBreaks: dLineBreaks,
-        line: this.line,
-        col: this.col,
-      }
-
-      var dSize = dText.length
-      this.index += dSize
-      this.line += dLineBreaks
-      if (dLineBreaks !== 0) {
-        this.col = dSize - dNl + 1
-      } else {
-        this.col += dSize
-      }
-      if (matchIndex === this.buffer.length) {
         return defaultToken
       }
     }
 
-    var token = {
-      type: (group.getType && group.getType(text)) || group.tokenType,
-      value: group.value ? group.value(text) : text,
-      text: text,
-      toString: tokenToString,
-      offset: matchIndex,
-      lineBreaks: lineBreaks,
-      line: this.line,
-      col: this.col,
-    }
-    // nb. adding more props to token object will make V8 sad!
-
-    var size = text.length
-    this.index += size
-    this.line += lineBreaks
-    if (lineBreaks !== 0) {
-      this.col = size - nl + 1
-    } else {
-      this.col += size
-    }
+    var group = this.groups[i]
+    var token = this._hadToken(group, match[0], matchIndex)
 
     // throw, if no rule with {error: true}
     if (defaultToken) {
@@ -453,6 +376,42 @@
     else if (group.next) this.setState(group.next)
 
     return defaultToken || token
+  }
+
+  Lexer.prototype._hadToken = function(group, text, offset) {
+    // count line breaks
+    var lineBreaks = 0
+    if (group.lineBreaks) {
+      var matchNL = /\n/g
+      var nl = 1
+      if (text === '\n') {
+        lineBreaks = 1
+      } else {
+        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
+      }
+    }
+
+    var token = {
+      type: (group.getType && group.getType(text)) || group.tokenType,
+      value: group.value ? group.value(text) : text,
+      text: text,
+      toString: tokenToString,
+      offset: offset,
+      lineBreaks: lineBreaks,
+      line: this.line,
+      col: this.col,
+    }
+    // nb. adding more props to token object will make V8 sad!
+
+    var size = text.length
+    this.index += size
+    this.line += lineBreaks
+    if (lineBreaks !== 0) {
+      this.col = size - nl + 1
+    } else {
+      this.col += size
+    }
+    return token
   }
 
   if (typeof Symbol !== 'undefined' && Symbol.iterator) {
@@ -493,7 +452,7 @@
   Lexer.prototype.has = function(tokenType) {
     for (var s in this.states) {
       var state = this.states[s]
-      if (state.error && state.error.tokenType === tokenType || state.default && state.default.tokenType === tokenType) return true
+      if (state.error && state.error.tokenType === tokenType) return true
       var groups = state.groups
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
