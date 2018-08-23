@@ -116,8 +116,7 @@
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
     options.match.sort(function(a, b) {
-      return isRegExp(a) && isRegExp(b) ? 0
-           : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
+      return isRegExp(a) - isRegExp(b) || b.length - a.length
     })
     if (options.keywords) {
       options.getType = keywordTransform(options.keywords)
