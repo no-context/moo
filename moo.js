@@ -329,10 +329,10 @@
 
   Lexer.prototype.next = function() {
     if (this.queued) {
-      var queued = this.queued
+      var queued = this.queued, queuedThrow = this.queuedThrow
       this.queued = null
       this.queuedThrow = false
-      if (this.queuedThrow) {
+      if (queuedThrow) {
         throw new Error(this.formatError(queued, "invalid syntax"))
       }
       return queued
