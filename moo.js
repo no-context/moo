@@ -49,7 +49,7 @@
       return obj.source
 
     } else {
-      throw new Error('not a pattern: ' + obj)
+      throw new Error('Not a pattern: ' + obj)
     }
   }
 
@@ -315,7 +315,7 @@
         return i
       }
     }
-    throw new Error('oops')
+    throw new Error('Cannot find token type for matched text')
   }
 
   function tokenToString() {
