@@ -170,7 +170,7 @@ describe('compiles literals', () => {
     expect(lexer.next()).toMatchObject({value: '+='})
   })
 
-  test('but doesn\'t sort literals across rules', () => {
+  test("but doesn't sort literals across rules", () => {
     let lexer = moo.compile({
       one: 'moo',
       two: 'moomintroll',
