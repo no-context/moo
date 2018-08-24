@@ -89,7 +89,7 @@
   }
 
   function ruleOptions(name, obj) {
-    if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
+    if (!isObject(obj)) {
       obj = { match: obj }
     }
 
