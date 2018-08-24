@@ -128,23 +128,10 @@
 
     var errorRule = null
     var fast = Object.create(null)
+    var fastAllowed = true
     var groups = []
     var parts = []
     for (var i = 0; i < rules.length; i++) {
-      var options = rules[i]
-
-      if (options.error) { break }
-
-      var match = options.match
-      var notKeywords = []
-      while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
-        var word = match.shift()
-        fast[word.charCodeAt(0)] = options
-      }
-      if (match.length) { break }
-    }
-
-    for ( ; i<rules.length; i++) {
       var options = rules[i]
 
       if (options.error) {
@@ -155,13 +142,25 @@
       }
 
       // skip rules with no match
-      if (options.match.length === 0) {
+      var match = options.match
+      if (fastAllowed) {
+        while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
+          var word = match.shift()
+          fast[word.charCodeAt(0)] = options
+        }
+      }
+      if (!hasStates && (options.pop || options.push || options.next)) {
+        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+      }
+      if (match.length === 0) {
         continue
       }
+      fastAllowed = false
+
       groups.push(options)
 
       // convert to RegExp
-      var pat = reUnion(options.match.map(regexpOrLiteral))
+      var pat = reUnion(match.map(regexpOrLiteral))
 
       // validate
       var regexp = new RegExp(pat)
@@ -171,9 +170,6 @@
       var groupCount = reGroups(pat)
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
-      }
-      if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
       }
 
       // try and detect rules matching newlines
