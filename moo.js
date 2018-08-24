@@ -10,31 +10,12 @@
   'use strict';
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
-  var assign = typeof Object.assign === 'function' ? Object.assign :
-    // https://tc39.github.io/ecma262/#sec-object.assign
-    function(target, sources) {
-      if (target == null) {
-        throw new TypeError('Target cannot be null or undefined');
-      }
-      target = Object(target)
-
-      for (var i = 1; i < arguments.length; i++) {
-        var source = arguments[i]
-        if (source == null) continue
-
-        for (var key in source) {
-          if (hasOwnProperty.call(source, key)) {
-            target[key] = source[key]
-          }
-        }
-      }
-      return target
-    }
-
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
-  function isRegExp(o) { return o && o.constructor === RegExp }
+  /***************************************************************************/
 
+  function isRegExp(o) { return o && o.constructor === RegExp }
+  function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -47,15 +28,11 @@
     return '(' + s + ')'
   }
   function reUnion(regexps) {
+    if (!regexps.length) return '(?!)'
     var source =  regexps.map(function(s) {
       return "(?:" + s + ")"
     }).join('|')
     return "(?:" + source + ")"
-  }
-
-
-  function compareLength(a, b) {
-    return b.length - a.length
   }
 
   function regexpOrLiteral(obj) {
@@ -64,10 +41,10 @@
 
     } else if (isRegExp(obj)) {
       // TODO: consider /u support
-      if (obj.ignoreCase) { throw new Error('RegExp /i flag not allowed') }
-      if (obj.global) { throw new Error('RegExp /g flag is implied') }
-      if (obj.sticky) { throw new Error('RegExp /y flag is implied') }
-      if (obj.multiline) { throw new Error('RegExp /m flag is implied') }
+      if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
+      if (obj.global) throw new Error('RegExp /g flag is implied')
+      if (obj.sticky) throw new Error('RegExp /y flag is implied')
+      if (obj.multiline) throw new Error('RegExp /m flag is implied')
       return obj.source
 
     } else {
@@ -78,16 +55,28 @@
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
-      result.push(ruleOptions(key, object[key]))
+      var thing = object[key]
+      var rules = Array.isArray(thing) ? thing : [thing]
+      var match = []
+      rules.forEach(function(rule) {
+        if (isObject(rule)) {
+          if (match.length) result.push(ruleOptions(key, match))
+          result.push(ruleOptions(key, rule))
+          match = []
+        } else {
+          match.push(rule)
+        }
+      })
+      if (match.length) result.push(ruleOptions(key, match))
     }
     return result
   }
 
   function arrayToRules(array) {
     var result = []
-    for (var i=0; i<array.length; i++) {
+    for (var i = 0; i < array.length; i++) {
       var obj = array[i]
       if (!obj.name) {
         throw new Error('Rule has no name: ' + JSON.stringify(obj))
@@ -103,80 +92,45 @@
     }
 
     // nb. error implies lineBreaks
-    var options = assign({
+    var options = {
       tokenType: name,
       lineBreaks: !!obj.error,
       pop: false,
       next: null,
       push: null,
       error: false,
-    }, obj)
-    options.keywords = null
+      value: null,
+      getType: null,
+    }
+
+    // Avoid Object.assign(), so we support IE9+
+    for (var key in obj) {
+      if (hasOwnProperty.call(obj, key)) {
+        options[key] = obj[key]
+      }
+    }
 
     // convert to array
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
+    options.match.sort(function(a, b) {
+      return isRegExp(a) && isRegExp(b) ? 0
+           : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
+    })
+    if (options.keywords) {
+      options.getType = keywordTransform(options.keywords)
+    }
     return options
-  }
-
-  function sortRules(rules) {
-    var result = []
-    for (var i=0; i<rules.length; i++) {
-      var options = rules[i]
-      var match = options.match
-
-      // sort literals by length to ensure longest match
-      var capturingPatterns = []
-      var patterns = []
-      var literals = []
-      for (var j=0; j<match.length; j++) {
-        var obj = match[j]
-        if (!isRegExp(obj)) literals.push(obj)
-        else if (reGroups(obj.source) > 0) capturingPatterns.push(obj)
-        else patterns.push(obj)
-      }
-      literals.sort(compareLength)
-
-      // append regexps to the end
-      options.match = literals.concat(patterns)
-      result.push(options)
-
-      // add each capturing regexp as a separate rule
-      for (var j=0; j<capturingPatterns.length; j++) {
-        result.push(assign({}, options, {
-          match: [capturingPatterns[j]],
-        }))
-      }
-    }
-    return result
-  }
-
-  function getIdentifier(literal, otherRules) {
-    for (var i=0; i<otherRules.length; i++) {
-      var rule = otherRules[i]
-      var match = rule.match
-      for (var j=0; j<match.length; j++) {
-        var pat = match[j]
-        if (!isRegExp(pat)) { continue }
-        var m = pat.exec(literal)
-        if (m && m[0] === literal) {
-          return rule
-        }
-      }
-    }
   }
 
   function compileRules(rules, hasStates) {
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
-    rules = sortRules(rules)
-
     var errorRule = null
     var fast = Object.create(null)
     var groups = []
     var parts = []
-
-    for (var i=0; i<rules.length; i++) {
+    for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
       if (options.error) { break }
@@ -200,26 +154,6 @@
         errorRule = options
       }
 
-      // look for keywords
-      var match = options.match
-      var notKeywords = []
-      for (var j=0; j<match.length; j++) {
-        var word = match[j]
-        if (typeof word === 'string') {
-          // does it match an existing rule (e.g. identifier?)
-          var other = getIdentifier(word, rules)
-          if (other) {
-            if (!other.keywords) {
-              other.keywords = Object.create(null)
-            }
-            other.keywords[word] = options
-            continue
-          }
-        }
-        notKeywords.push(word)
-      }
-      options.match = notKeywords
-
       // skip rules with no match
       if (options.match.length === 0) {
         continue
@@ -235,8 +169,8 @@
         throw new Error("RegExp matches empty string: " + regexp)
       }
       var groupCount = reGroups(pat)
-      if (groupCount > 1) {
-        throw new Error("RegExp has more than one capture group: " + regexp)
+      if (groupCount > 0) {
+        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
         throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
@@ -248,16 +182,14 @@
       }
 
       // store regex
-      var isCapture = !!groupCount
-      if (!isCapture) pat = reCapture(pat)
-      parts.push(pat)
+      parts.push(reCapture(pat))
     }
 
     var suffix = hasSticky ? '' : '|(?:)'
     var flags = hasSticky ? 'ym' : 'gm'
-    var regexp = new RegExp(reUnion(parts) + suffix, flags)
+    var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: regexp, groups: groups, fast: fast, error: errorRule}
+    return {regexp: combined, groups: groups, fast: fast, error: errorRule}
   }
 
   function compile(rules) {
@@ -270,18 +202,21 @@
     if (!start) start = keys[0]
 
     var map = Object.create(null)
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var key = keys[i]
       map[key] = compileRules(states[key], true)
     }
 
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       var groups = map[keys[i]].groups
-      for (var j=0; j<groups.length; j++) {
-        var g = groups[i]
+      for (var j = 0; j < groups.length; j++) {
+        var g = groups[j]
         var state = g && (g.push || g.next)
         if (state && !map[state]) {
           throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
+        }
+        if (g && g.pop && +g.pop !== 1) {
+          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
         }
       }
     }
@@ -289,13 +224,69 @@
     return new Lexer(map, start)
   }
 
+  function keywordTransform(map) {
+    var reverseMap = Object.create(null)
+    var byLength = Object.create(null)
+    var types = Object.getOwnPropertyNames(map)
+    for (var i = 0; i < types.length; i++) {
+      var tokenType = types[i]
+      var item = map[tokenType]
+      var keywordList = Array.isArray(item) ? item : [item]
+      keywordList.forEach(function(keyword) {
+        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
+        if (typeof keyword !== 'string') {
+          throw new Error("keyword must be string (in keyword '" + tokenType + "')")
+        }
+        reverseMap[keyword] = tokenType
+      })
+    }
+
+    // fast string lookup
+    // https://jsperf.com/string-lookups
+    function str(x) { return JSON.stringify(x) }
+    var source = ''
+    source += '(function(value) {\n'
+    source += 'switch (value.length) {\n'
+    for (var length in byLength) {
+      var keywords = byLength[length]
+      source += 'case ' + length + ':\n'
+      source += 'switch (value) {\n'
+      keywords.forEach(function(keyword) {
+        var tokenType = reverseMap[keyword]
+        source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
+      })
+      source += '}\n'
+    }
+    source += '}\n'
+    source += '})'
+    return eval(source) // getType
+  }
+
+  /***************************************************************************/
 
   var Lexer = function(states, state) {
+    this.startState = state
     this.states = states
     this.buffer = ''
     this.stack = []
-    this.setState(state)
     this.reset()
+  }
+
+  Lexer.prototype.reset = function(data, info) {
+    this.buffer = data || ''
+    this.index = 0
+    this.line = info ? info.line : 1
+    this.col = info ? info.col : 1
+    this.setState(info ? info.state : this.startState)
+    return this
+  }
+
+  Lexer.prototype.save = function() {
+    return {
+      line: this.line,
+      col: this.col,
+      state: this.state,
+    }
   }
 
   Lexer.prototype.setState = function(state) {
@@ -303,7 +294,7 @@
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error
+    this.error = info.error || {lineBreaks: true, shouldThrow: true}
     this.re = info.regexp
     this.fast = info.fast
   }
@@ -317,7 +308,7 @@
     this.setState(state)
   }
 
-  Lexer.prototype.eat = hasSticky ? function(re) { // assume re is /y
+  Lexer.prototype._eat = hasSticky ? function(re) { // assume re is /y
     return re.exec(this.buffer)
   } : function(re) { // assume re is /g
     var match = re.exec(this.buffer)
@@ -328,8 +319,22 @@
     return match
   }
 
+  Lexer.prototype._getGroup = function(match) {
+    if (match === null) {
+      return -1
+    }
+
+    var groupCount = this.groups.length
+    for (var i = 0; i < groupCount; i++) {
+      if (match[i + 1] !== undefined) {
+        return i
+      }
+    }
+    throw new Error('oops')
+  }
+
   function tokenToString() {
-    return this.value || this.type
+    return this.value
   }
 
   Lexer.prototype.next = function() {
@@ -341,41 +346,25 @@
       return // EOF
     }
 
-    var group, value, text
-    var group = this.fast[buffer.charCodeAt(index)]
+    var group, text
+    group = this.fast[buffer.charCodeAt(index)]
     if (group) {
-      value = text = buffer.charAt(index)
+      text = buffer.charAt(index)
 
     } else {
-      var match = this.eat(re)
-      if (match === null) {
+      var match = this._eat(re)
+      var i = this._getGroup(match)
+
+      var group, text
+      if (i === -1) {
         group = this.error
-        if (!group) {
-          // TODO prettier syntax errors
-          throw new Error('Syntax error')
-        }
 
         // consume rest of buffer
-        text = value = buffer.slice(index)
-        re.lastIndex = buffer.length
+        text = buffer.slice(index)
 
       } else {
         text = match[0]
-        var groups = this.groups
-        for (var i = 0; i < groups.length; i++) {
-          value = match[i + 1]
-          if (value !== undefined) {
-            group = groups[i]
-            // TODO is `buffer` being leaked here?
-            break
-          }
-        }
-        // assert(i < groupCount)
-
-        // check for keywords
-        if (group.keywords) {
-          group = group.keywords[text] || group
-        }
+        group = this.groups[i]
       }
     }
 
@@ -391,22 +380,19 @@
       }
     }
 
-    var size = text.length
     var token = {
-      type: group.tokenType,
-      value: value,
+      type: (group.getType && group.getType(text)) || group.tokenType,
+      value: group.value ? group.value(text) : text,
+      text: text,
       toString: tokenToString,
       offset: index,
-      size: size,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
     }
+    // nb. adding more props to token object will make V8 sad!
 
-    if (group.pop) this.popState()
-    else if (group.push) this.pushState(group.push)
-    else if (group.next) this.setState(group.next)
-
+    var size = text.length
     this.index += size
     this.line += lineBreaks
     if (lineBreaks !== 0) {
@@ -414,6 +400,14 @@
     } else {
       this.col += size
     }
+    // throw, if no rule with {error: true}
+    if (group.shouldThrow) {
+      throw new Error(this.formatError(token, "invalid syntax"))
+    }
+
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
     return token
   }
 
@@ -427,33 +421,45 @@
       return {value: token, done: !token}
     }
 
+    LexerIterator.prototype[Symbol.iterator] = function() {
+      return this
+    }
+
     Lexer.prototype[Symbol.iterator] = function() {
       return new LexerIterator(this)
     }
   }
 
-  Lexer.prototype.reset = function(data, state) {
-    this.buffer = data || ''
-    this.index = 0
-    this.line = state ? state.line : 1
-    this.col = state ? state.col : 1
-    return this
-  }
-
-  Lexer.prototype.save = function() {
-    return {
-      line: this.line,
-      col: this.col,
-    }
-  }
-
-  Lexer.prototype.feed = function(data) {
-    this.buffer += data
-    return this
+  Lexer.prototype.formatError = function(token, message) {
+    var value = token.value
+    var index = token.offset
+    var eol = token.lineBreaks ? value.indexOf('\n') : value.length
+    var start = Math.max(0, index - token.col + 1)
+    var firstLine = this.buffer.substring(start, index + eol)
+    message += " at line " + token.line + " col " + token.col + ":\n\n"
+    message += "  " + firstLine + "\n"
+    message += "  " + Array(token.col).join(" ") + "^"
+    return message
   }
 
   Lexer.prototype.clone = function() {
     return new Lexer(this.states, this.state)
+  }
+
+  Lexer.prototype.has = function(tokenType) {
+    for (var s in this.states) {
+      var state = this.states[s]
+      if (state.error && state.error.tokenType === tokenType) return true
+      var groups = state.groups
+      for (var i = 0; i < groups.length; i++) {
+        var group = groups[i]
+        if (group.tokenType === tokenType) return true
+        if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
 

@@ -13,6 +13,7 @@ Moo is a highly-optimised tokenizer/lexer generator. Use it to tokenize your str
 * supports [States](#states)
 * custom [Errors](#errors)
 * is even [Iterable](#iteration)
+* has no dependencies
 * <3KB gzipped
 * Moo!
 
@@ -33,7 +34,7 @@ Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness
 Usage
 -----
 
-First, you need to do the needful: `$ npm install moo`, `$ yarn install moo`, or whatever will ship this code to your computer. Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; it's completely standalone.
+First, you need to do the needful: `$ npm install moo`, or whatever will ship this code to your computer. Alternatively, grab the `moo.js` file by itself and slap it into your web page via a `<script>` tag; moo is completely standalone.
 
 Then you can start roasting your very own lexer/tokenizer:
 
@@ -43,8 +44,8 @@ Then you can start roasting your very own lexer/tokenizer:
     let lexer = moo.compile({
       WS:      /[ \t]+/,
       comment: /\/\/.*?$/,
-      number:  /(0|[1-9][0-9]*)/,
-      string:  /"((?:\\["\\]|[^\n"\\])*)"/,
+      number:  /0|[1-9][0-9]*/,
+      string:  /"(?:\\["\\]|[^\n"\\])*"/,
       lparen:  '(',
       rparen:  ')',
       keyword: ['while', 'if', 'else', 'moo', 'cows'],
@@ -63,17 +64,7 @@ And now throw some text at it:
     // ...
 ```
 
-You can also feed it chunks of input at a time.
-
-```j
-    lexer.reset()
-    lexer.feed('while')
-    lexer.feed(' 10 cows\n')
-    lexer.next() // -> { type: 'keyword', value: 'while' }
-    // ...
-```
-
-If you've reached the end of Moo's internal buffer, next() will return `undefined`. You can always feed() it more if that happens.
+When you reach the end of Moo's internal buffer, next() will return `undefined`. You can always `reset()` it and feed it more data when that happens.
 
 
 On Regular Expressions
@@ -85,7 +76,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
     ```js
     let lexer = moo.compile({
-      string: /"(.*)"/,   // greedy quantifier *
+      string: /".*"/,   // greedy quantifier *
       // ...
     })
 
@@ -97,7 +88,7 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     
     ```js
     let lexer = moo.compile({
-      string: /"(.*?)"/,   // non-greedy quantifier *?
+      string: /".*?"/,   // non-greedy quantifier *?
       // ...
     })
 
@@ -111,19 +102,19 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
 
     ```js
     moo.compile({
-        word:  /[a-z]+/,
-        foo:   'foo',
-    }).reset('foo').next() // -> { type: 'word', value: 'foo' }
+        identifier:  /[a-z0-9]+/,
+        number:  /[0-9]+/,
+    }).reset('42').next() // -> { type: 'identifier', value: '42' }
 
     moo.compile({
-        foo:   'foo',
-        word:  /[a-z]+/,
-    }).reset('foo').next() // -> { type: 'foo', value: 'foo' }
+        number:  /[0-9]+/,
+        identifier:  /[a-z0-9]+/,
+    }).reset('42').next() // -> { type: 'number', value: '42' }
     ```
 
 * Moo uses **multiline RegExps**. This has a few quirks: for example, the **dot `/./` doesn't include newlines**. Use `[^]` instead if you want to match newlines too.
 
-* Since excluding capture groups like `/[^ ]/` (no spaces) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
+* Since an excluding character ranges like `/[^ ]/` (which matches anything but a space) _will_ include newlines, you have to be careful not to include them by accident! In particular, the whitespace metacharacter `\s` includes newlines.
 
 
 Line Numbers
@@ -131,13 +122,21 @@ Line Numbers
 
 Moo tracks detailed information about the input for you.
 
-It will track line numbers, as long as you apply the `lineBreaks: true` option to any tokens which might contain newlines. Moo will try to warn you if you forget to do this.
+It will track line numbers, as long as you **apply the `lineBreaks: true` option to any rules which might contain newlines**. Moo will try to warn you if you forget to do this.
+
+Note that this is `false` by default, for performance reasons: counting the number of lines in a matched token has a small cost. For optimal performance, only match newlines inside a dedicated token:
+
+```js
+    newline: {match: '\n', lineBreaks: true},
+```
+
+
+### Token Info ###
 
 Token objects (returned from `next()`) have the following attributes:
 
 * **`type`**: the name of the group, as passed to compile.
-* **`value`**: the contents of the capturing group (or the whole match, if the token RegExp doesn't define a capture).
-* **`size`**: the total length of the match (`value` may be shorter if you have capturing groups).
+* **`value`**: the match contents.
 * **`offset`**: the number of bytes from the start of the buffer where the match starts.
 * **`lineBreaks`**: the number of line breaks found in the match. (Always zero if this rule has `lineBreaks: false`.)
 * **`line`**: the line number of the beginning of the match, starting from 1.
@@ -151,12 +150,12 @@ Calling `reset()` on your lexer will empty its internal buffer, and set the line
 If you don't want this, you can `save()` the state, and later pass it as the second argument to `reset()` to explicitly control the internal state of the lexer.
 
 ```js
-    let state = lexer.save() // -> { line: 10 }
-    lexer.feed('some line\n')
+    lexer.reset('some line\n')
+    let info = lexer.save() // -> { line: 10 }
     lexer.next() // -> { line: 10 }
     lexer.next() // -> { line: 11 }
     // ...
-    lexer.reset('a different line\n', state)
+    lexer.reset('a different line\n', info)
     lexer.next() // -> { line: 10 }
 ```
 
@@ -164,42 +163,72 @@ If you don't want this, you can `save()` the state, and later pass it as the sec
 Keywords
 --------
 
-Moo makes it convenient to define literals and keywords.
+Moo makes it convenient to define literals.
 
 ```js
     moo.compile({
-      ['lparen',  '('],
-      ['rparen',  ')'],
-      ['keyword', ['while', 'if', 'else', 'moo', 'cows']],
+      lparen:  '(',
+      rparen:  ')',
+      keyword: ['while', 'if', 'else', 'moo', 'cows'],
     })
 ```
 
 It'll automatically compile them into regular expressions, escaping them where necessary.
 
-Important! **Always write your literals like this:**
+**Keywords** should be written using the `keywords` attribute.
 
 ```js
-    ['while', 'if', 'else', 'moo', 'cows']
+    moo.compile({
+      IDEN: {match: /[a-zA-Z]+/, keywords: {
+        KW: ['while', 'if', 'else', 'moo', 'cows']),
+      }},
+      SPACE: {match: /\s+/, lineBreaks: true},
+    })
 ```
 
-And **not** like this:
-
-```js
-    /while|if|else|moo|cows/
-```
 
 ### Why? ###
 
-The reason: Moo special-cases keywords to ensure the **longest match** principle applies, even in edge cases.
+You need to do this to ensure the **longest match** principle applies, even in edge cases.
 
 Imagine trying to parse the input `className` with the following rules:
 
-      ['keyword',     ['class']],
-      ['identifier',  /[a-zA-Z]+/],
+```js
+    keyword: ['class'],
+    identifier: /[a-zA-Z]+/,
+```
 
 You'll get _two_ tokens — `['class', 'Name']` -- which is _not_ what you want! If you swap the order of the rules, you'll fix this example; but now you'll lex `class` wrong (as an `identifier`).
 
-Moo solves this by checking to see if any of your literals can be matched by one of your other rules; if so, it doesn't lex the keyword separately, but instead handles it at a later stage (by checking identifiers against a list of keywords).
+The keywords helper checks matches against the list of keywords; if any of them match, it uses the type `'keyword'` instead of `'identifier'` (for this example).
+
+
+### Keyword Types ###
+
+Keywords can also have **individual types**.
+
+```js
+    let lexer = moo.compile({
+      name: {match: /[a-zA-Z]+/, keywords: {
+        'kw-class': 'class',
+        'kw-def': 'def',
+        'kw-if': 'if',
+      }},
+      // ...
+    })
+    lexer.reset('def foo')
+    lexer.next() // -> { type: 'kw-def', value: 'def' }
+    lexer.next() // space
+    lexer.next() // -> { type: 'name', value: 'foo' }
+```
+
+You can use [itt](https://github.com/nathan/itt)'s iterator adapters to make constructing keyword objects easier:
+
+```js
+    itt(['class', 'def', 'if'])
+    .map(k => ['kw-' + k, k])
+    .toObject()
+```
 
 
 States
@@ -213,14 +242,14 @@ Sometimes you want your lexer to support different states. This is useful for st
         strstart: {match: '`', push: 'lit'},
         ident:    /\w+/,
         lbrace:   {match: '{', push: 'main'},
-        rbrace:   {match: '}', pop: 1},
+        rbrace:   {match: '}', pop: true},
         colon:    ':',
         space:    {match: /\s+/, lineBreaks: true},
       },
       lit: {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
-        strend:   {match: '`', pop: 1},
+        strend:   {match: '`', pop: true},
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     })
@@ -240,9 +269,9 @@ To support this, Moo allows annotating tokens with `push`, `pop` and `next`:
 Errors
 ------
 
-If no token matches, Moo will throw an Error.
+If none of your rules match, Moo will throw an Error; since it doesn't know what else to do.
 
-If you'd rather treat errors as just another kind of token, you can ask Moo to do so.
+If you prefer, you can have moo return an error token instead of throwing an exception. The error token will contain the whole of the rest of the buffer.
 
 ```js
     moo.compile({
@@ -252,8 +281,8 @@ If you'd rather treat errors as just another kind of token, you can ask Moo to d
     
     moo.reset('invalid')
     moo.next() // -> { type: 'myError', value: 'invalid' }
+    moo.next() // -> undefined
 ```
-
 
 You can have a token type that both matches tokens _and_ contains error values.
 
@@ -262,6 +291,23 @@ You can have a token type that both matches tokens _and_ contains error values.
       // ...
       myError: {match: /[\$?`]/, error: true},
     })
+```
+
+### Formatting errors ###
+
+If you want to throw an error from your parser, you might find `formatError` helpful. Call it with the offending token:
+
+```js
+throw new Error(lexer.formatError(token, "invalid syntax"))
+```
+
+It returns a string with a pretty error message.
+
+```
+Error: invalid syntax at line 2 col 15:
+
+  totally valid `syntax`
+                ^
 ```
 
 
@@ -276,6 +322,12 @@ Iterators: we got 'em.
     }
 ```
 
+Create an array of tokens.
+
+```js
+    let tokens = Array.from(lexer);
+```
+
 Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
 
 ```js
@@ -285,8 +337,27 @@ Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
 ```
 
 
+Transform
+---------
+
+Moo doesn't allow capturing groups, but you can supply a transform function, `value()`, which will be called on the value before storing it in the Token object.
+
+```js
+    moo.compile({
+      STRING: [
+        {match: /"""[^]*?"""/, lineBreaks: true, value: x => x.slice(3, -3)},
+        {match: /"(?:\\["\\rn]|[^"\\])*?"/, lineBreaks: true, value: x => x.slice(1, -1)},
+        {match: /'(?:\\['\\rn]|[^'\\])*?'/, lineBreaks: true, value: x => x.slice(1, -1)},
+      ],
+      // ...
+    })
+```
+
+
 Contributing
 ------------
+
+Do check the [FAQ](https://github.com/tjvr/moo/issues?q=label%3Aquestion).
 
 Before submitting an issue, [remember...](https://github.com/tjvr/moo/blob/master/.github/CONTRIBUTING.md)
 

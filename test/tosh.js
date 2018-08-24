@@ -5,17 +5,17 @@ let toshLexer = moo.compile([
   {name: 'symbol',  match: Array.from('-%#+*/=^,?')},  // single character
   {name: 'WS',      match: /[ \t]+/},
   {name: 'ellips',  match: /\.{3}/},
-  {name: 'comment', match: /\/{2}(.*)$/},
+  {name: 'comment', match: /\/{2}.*$/},
   {name: 'false',   match: /\<\>/},
   {name: 'zero',    match: /\(\)/},
-  {name: 'empty',   match: /_( |$)/},
-  {name: 'number',  match: /([0-9]+(?:\.[0-9]+)?e-?[0-9]+)/}, // 123[.123]e[-]123
-  {name: 'number',  match: /((?:0|[1-9][0-9]*)?\.[0-9]+)/},   // [123].123
-  {name: 'number',  match: /((?:0|[1-9][0-9]*)\.[0-9]*)/},    // 123.[123]
-  {name: 'number',  match: /(0|[1-9][0-9]*)/},              // 123
-  {name: 'color',   match: /#([A-Fa-f0-9]{3}(?:[A-Fa-f0-9]{3})?)/},
-  {name: 'string',  match: /"((?:\\["\\]|[^\n"\\])*)"/}, // strings are backslash-escaped
-  {name: 'string',  match: /'((?:\\['\\]|[^\n'\\])*)'/},
+  {name: 'empty',   match: /_(?: |$)/},
+  {name: 'number',  match: /[0-9]+(?:\.[0-9]+)?e-?[0-9]+/}, // 123[.123]e[-]123
+  {name: 'number',  match: /(?:0|[1-9][0-9]*)?\.[0-9]+/},   // [123].123
+  {name: 'number',  match: /(?:0|[1-9][0-9]*)\.[0-9]*/},    // 123.[123]
+  {name: 'number',  match: /0|[1-9][0-9]*/},              // 123
+  {name: 'color',   match: /#(?:[A-Fa-f0-9]{3}){2}/},
+  {name: 'string',  match: /"(?:\\["\\]|[^\n"\\])*"/}, // strings are backslash-escaped
+  {name: 'string',  match: /'(?:\\['\\]|[^\n'\\])*'/},
   {name: 'lparen',  match: /\(/},
   {name: 'rparen',  match: /\)/},
   {name: 'langle',  match: /\</},
@@ -31,10 +31,13 @@ let toshLexer = moo.compile([
 ])
 
 function tokenize(source) {
-  let lexer = toshLexer.clone().feed(source + '\n')
+  let lexer = toshLexer.reset(source + '\n')
   let tokens = []
   for (let tok of lexer) {
     if (tok.type !== 'WS') {
+      if (tok.type === 'string') {
+        tok.value = tok.value.slice(1, tok.value.length - 1)
+      }
       tokens.push([tok.type, tok.value])
     }
   }

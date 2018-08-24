@@ -33,10 +33,10 @@ var opPat = [
 ];
 
 var pythonLexer = moo.compile({
-  Whitespace: /([ ]+)/, // TODO tabs
-  NAME: /([A-Za-z_][A-Za-z0-9_]*)/,
+  Whitespace: /[ ]+/, // TODO tabs
+  NAME: /[A-Za-z_][A-Za-z0-9_]*/,
   OP: opPat,
-  COMMENT: /(#.*)/,
+  COMMENT: /#.*/,
   NEWLINE: { match: /\r|\r\n|\n/, lineBreaks: true },
   Continuation: /\\/,
   ERRORTOKEN: {match: /[\$?`]/, error: true},
@@ -47,16 +47,16 @@ var pythonLexer = moo.compile({
     /(?:(?:0|[1-9][0-9]*)\.[0-9]*)/,    // 123.[123]
     /(?:0|[1-9][0-9]*)/,              // 123
   ],
-  STRING: [ // strings are backslash-escaped
-    /(""".*?""")/,
-    /"((?:\\["\\rn]|[^"\\])*?)"/,
-    /'((?:\\['\\rn]|[^'\\])*?)'/,
+  STRING: [
+    {match: /"""[^]*?"""/, lineBreaks: true, value: x => x.slice(3, -3)},
+    {match: /"(?:\\["\\rn]|[^"\\\n])*?"/, value: x => x.slice(1, -1)},
+    {match: /'(?:\\['\\rn]|[^'\\\n])*?'/, value: x => x.slice(1, -1)},
   ],
 })
 
 
 var tokenize = function(input, emit) {
-  var lexer = pythonLexer.clone().feed(input);
+  var lexer = pythonLexer.reset(input);
   var lex = function() { return lexer.next(); }
 
   var tok = lex();

@@ -10,6 +10,24 @@ function lexAll(lexer) {return Array.from(lexer)}
 
 describe('compiler', () => {
 
+  test('handles empty rule set', () => {
+    const lex = compile({})
+    lex.reset('nope!')
+    expect(() => lex.next()).toThrow('invalid syntax')
+
+    const lex2 = compile({err: moo.error})
+    lex2.reset('nope!')
+    expect(lex2.next()).toMatchObject({type: 'err', text: 'nope!'})
+
+    const lex3 = moo.states({main: {}})
+    lex3.reset('nope!')
+    expect(() => lex3.next()).toThrow('invalid syntax')
+
+    const lex4 = moo.states({main: {err: moo.error}})
+    lex4.reset('nope!')
+    expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
+  })
+
   test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow()
@@ -54,6 +72,32 @@ describe('compiler', () => {
     expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
   })
 
+  test('accepts a list of match objects', () => {
+    const lexer = compile({
+      op: [
+        {match: '('},
+        {match: ')'},
+      ],
+    })
+    lexer.reset('())(')
+    expect(Array.from(lexer).map(x => x.value)).toEqual(['(', ')', ')', '('])
+  })
+
+  test('accepts mixed rules and match objects', () => {
+    const lexer = compile({
+      op: [
+        /regexp/,
+        'string',
+        {match: /something/},
+        'lol',
+      ],
+    })
+    expect(lexer.groups.length).toBe(3)
+    expect(lexer.reset('string').next()).toMatchObject({type: 'op', value: 'string'})
+    expect(lexer.reset('regexp').next()).toMatchObject({type: 'op', value: 'regexp'})
+    expect(lexer.reset('something').next()).toMatchObject({type: 'op', value: 'something'})
+  })
+
   test('accepts rules in an array', () => {
     const lexer = compile([
       { name: 'keyword', match: 'Bob'},
@@ -96,7 +140,31 @@ describe('compiles literals', () => {
     expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|foo|t[ok]+|\\w')
   })
 
-  test("deals with keyword literals", () => {
+  test('sorts literals by length', () => {
+    let lexer = moo.compile({
+      op: ['=', '==', '===', '+', '+='],
+      space: / +/,
+    })
+    lexer.reset('=== +=')
+    expect(lexer.next()).toMatchObject({value: '==='})
+    expect(lexer.next()).toMatchObject({type: 'space'})
+    expect(lexer.next()).toMatchObject({value: '+='})
+  })
+
+  test('but doesn\'t sort literals across rules', () => {
+    let lexer = moo.compile({
+      one: 'moo',
+      two: 'moomintroll',
+    })
+    lexer.reset('moomintroll')
+    expect(lexer.next()).toMatchObject({value: 'moo'})
+  })
+
+})
+
+describe('keywords', () => {
+
+  test('supports explicit keywords', () => {
     function check(lexer) {
       lexer.reset('class')
       expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'class' })
@@ -107,53 +175,76 @@ describe('compiles literals', () => {
     }
 
     check(compile({
-      keyword:     ['class'],
-      identifier:  /[a-zA-Z]+/,
+      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: 'class'}},
     }))
     check(compile({
-      identifier:  /[a-zA-Z]+/,
-      keyword:     ['class'],
+      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: ['class']}},
     }))
+  })
+
+  test('keywords can have individual tokenTypes', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        keywords: {
+          'kw-class': 'class',
+          'kw-def': 'def',
+          'kw-if': 'if',
+        },
+      },
+      space: {match: /\s+/, lineBreaks: true},
+    })
+    lexer.reset('foo def')
+    expect(Array.from(lexer).map(t => t.type)).toEqual([
+        'identifier',
+        'space',
+        'kw-def',
+    ])
+  })
+
+  test('must be strings', () => {
+    expect(() => compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        keywords: {
+          'kw-class': {foo: 'bar'},
+        },
+      },
+    })).toThrow("keyword must be string (in keyword 'kw-class')")
   })
 
 })
 
-describe('capturing groups', () => {
+describe('value transforms', () => {
 
-  // TODO warns for multiple capture groups
-
-  test('no capture groups', () => {
-    let lexer = compile({
-      a: /a+/,
-      b: /b|c/,
-    })
-    lexer.reset('aaaaabcbcbcbc')
-    expect(lexer.next().value).toEqual('aaaaa')
-    expect(lexer.next().value).toEqual('b')
-    expect(lexer.next().value).toEqual('c')
-    expect(lexer.next().value).toEqual('b')
-  })
-
-  test('list of capturing RegExps', () => {
+  test('forbid capture groups', () => {
     expect(() => moo.compile({
       tok: [/(foo)/, /(bar)/]
-    })).not.toThrow()
+    })).toThrow("has capture groups")
   })
 
-  test('captures & reports correct size', () => {
+  test('transform & keep original', () => {
     let lexer = moo.compile({
-      fubar: /fu(bar)/,
-      string: /"(.*?)"/,
-      full: /(quxx)/,
-      moo: /moo(moo)*moo/,
+      fubar: {match: /fubar/, value: x => x.slice(2)},
+      string: {match: /".*?"/, value: x => x.slice(1, -1)},
+      full: {match: /quxx/, value: x => x},
+      moo: {match: /moo(?:moo)*moo/, value: x => x.slice(3, -3)},
       space: / +/,
     })
     lexer.reset('fubar "yes" quxx moomoomoomoo')
     let tokens = lexAll(lexer).filter(t => t.type !== 'space')
-    expect(tokens.shift()).toMatchObject({ type: 'fubar', value: 'bar', size: 5 })
-    expect(tokens.shift()).toMatchObject({ type: 'string', value: 'yes', size: 5 })
-    expect(tokens.shift()).toMatchObject({ value: 'quxx', size: 4 })
-    expect(tokens.shift()).toMatchObject({ value: 'moo', size: 12 })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'bar' })
+    expect(tokens.shift()).toMatchObject({ type: 'string', text: '"yes"', value: 'yes' })
+    expect(tokens.shift()).toMatchObject({ value: 'quxx' })
+    expect(tokens.shift()).toMatchObject({ value: 'moomoo' })
+  })
+
+  test('empty transform result', () => {
+    let lexer = moo.compile({
+      string: {match: /".*?"/, value: x => x.slice(1, -1)},
+    })
+    lexer.reset('""')
+    expect(lexer.next()).toMatchObject({text: '""', value: ''})
   })
 
 })
@@ -181,11 +272,13 @@ describe('lexer', () => {
       expect(t).toMatchObject({type, value})
     }
     expect(simpleLexer.next()).not.toBeTruthy()
+    expect(typeof simpleLexer[Symbol.iterator]).toBe("function")
+    expect(typeof simpleLexer[Symbol.iterator]()[Symbol.iterator]).toBe("function")
   })
 
   test('multiline RegExps', () => {
     var lexer = compile({
-      file: { match: /([^]+)/, lineBreaks: true },
+      file: { match: /[^]+/, lineBreaks: true },
     }).reset('I like to moo\na lot')
     expect(lexer.next().value).toBe('I like to moo\na lot')
   })
@@ -228,27 +321,120 @@ describe('lexer', () => {
     ])
   })
 
-  test('token to string conversion', () => {
+  test('Token#toString', () => {
+    // TODO: why does toString() return the value?
     const lexer = compile({
-      apples: /()a/,
-      pears: /p/,
-    }).reset('ap')
-    expect(String(lexer.next())).toBe('apples')
-    expect(String(lexer.next())).toBe('p')
+      apples: 'a',
+      name: {match: /[a-z]/, keywords: { kw: ['m'] }},
+    }).reset('azm')
+    expect(String(lexer.next())).toBe('a')
+    expect(String(lexer.next())).toBe('z')
+    expect(String(lexer.next())).toBe('m')
   })
 
   test('can be cloned', () => {
     let lexer = compile({
-      foo: /[a-z]/,
-      bar: /[0-9]/,
+      word: /[a-z]+/,
+      digit: /[0-9]/,
     })
-    lexer.reset('abc')
+    lexer.reset('abc9')
     let clone = lexer.clone()
     clone.reset('123')
-    expect(lexer.next()).toMatchObject({value: 'a'})
-    expect(clone.next()).toMatchObject({value: '1'})
-    expect(lexer.next()).toMatchObject({value: 'b'})
-    expect(clone.next()).toMatchObject({value: '2'})
+    expect(lexer.next()).toMatchObject({value: 'abc', offset: 0})
+    expect(clone.next()).toMatchObject({value: '1', offset: 0})
+    expect(lexer.next()).toMatchObject({value: '9', offset: 3})
+    expect(clone.next()).toMatchObject({value: '2', offset: 1})
+  })
+
+})
+
+
+describe('Lexer#has', () => {
+
+  const basicLexer = compile({
+    keyword: 'foo',
+    identifier: /[a-z]+/,
+    error: moo.error
+  })
+
+  test('supports has()', () => {
+    expect(basicLexer.has('identifier')).toBe(true)
+  })
+
+  test('works with literals', () => {
+    expect(basicLexer.has('keyword')).toBe(true)
+  })
+
+  test('finds the error token', () => {
+    expect(basicLexer.has('error')).toBe(true)
+  })
+
+  test('returns false for nonexistent junk', () => {
+    expect(basicLexer.has('random')).toBe(false)
+  })
+
+  test('returns false for stuff inherited from Object', () => {
+    expect(basicLexer.has('hasOwnProperty')).toBe(false)
+  })
+
+  const keywordLexer = compile({
+    identifier: {
+      match: /[a-zA-Z]+/,
+      keywords: {
+        'kw-class': 'class',
+        'kw-def': 'def',
+        'kw-if': 'if',
+      },
+    },
+  })
+
+  test('works with keywords', () => {
+    expect(keywordLexer.has('identifier')).toBe(true)
+    expect(keywordLexer.has('kw-class')).toBe(true)
+  })
+
+  // Example from the readme.
+  const statefulLexer = moo.states({
+    main: {
+      strstart: {match: '`', push: 'lit'},
+      ident:    /\w+/,
+      lbrace:   {match: '{', push: 'main'},
+      rbrace:   {match: '}', pop: true},
+      colon:    ':',
+      space:    {match: /\s+/, lineBreaks: true},
+      mainErr:  moo.error,
+    },
+    lit: {
+      interp:   {match: '${', push: 'main'},
+      escape:   /\\./,
+      strend:   {match: '`', pop: true},
+      const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
+			litErr:   moo.error,
+    },
+  })
+
+  test('works with multiple states - for first state', () => {
+    expect(statefulLexer.has('ident')).toEqual(true)
+  })
+
+  test('works with multiple states - for second state', () => {
+    expect(statefulLexer.has('interp')).toEqual(true)
+  })
+
+	test('works with error tokens - for first state', () => {
+		expect(statefulLexer.has('mainErr')).toEqual(true)
+	})
+
+	test('works with error tokens - for second state', () => {
+		expect(statefulLexer.has('litErr')).toEqual(true)
+	})
+
+  test('returns false for the state names themselves', () => {
+    expect(statefulLexer.has('main')).toEqual(false)
+  })
+
+  test('returns false for stuff inherited from Object when using states', () => {
+    expect(statefulLexer.has('toString')).toEqual(false)
   })
 
 })
@@ -256,21 +442,22 @@ describe('lexer', () => {
 
 describe('stateful lexer', () => {
 
-  test('switches states', () => {
-    const lexer = moo.states({
-      start: {
-        word: /\w+/,
-        eq: {match: '=', next: 'ab'},
-      },
-      ab: {
-        a: 'a',
-        b: 'b',
-        semi: {match: ';', next: 'start'},
-      },
-    })
+  const statefulLexer = moo.states({
+    start: {
+      word: /\w+/,
+      eq: {match: '=', next: 'ab'},
+      myError: moo.error,
+    },
+    ab: {
+      a: 'a',
+      b: 'b',
+      semi: {match: ';', next: 'start'},
+    },
+  })
 
-    lexer.reset('one=ab;two=')
-    expect(lexAll(lexer).map(({type, value}) => [type, value])).toEqual([
+  test('switches states', () => {
+    statefulLexer.reset('one=ab;two=')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
       ['word', 'one'],
       ['eq', '='],
       ['a', 'a'],
@@ -278,6 +465,14 @@ describe('stateful lexer', () => {
       ['semi', ';'],
       ['word', 'two'],
       ['eq', '='],
+    ])
+  })
+
+  test('supports errors', () => {
+    statefulLexer.reset('foo!')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
+      ['word', 'foo'],
+      ['myError', '!'],
     ])
   })
 
@@ -317,24 +512,52 @@ describe('stateful lexer', () => {
     ])
   })
 
+  test('resets state', () => {
+    statefulLexer.reset('one=a')
+    expect(statefulLexer.state).toBe('start')
+    expect(lexAll(statefulLexer).map(({type, value}) => [type, value])).toEqual([
+      ['word', 'one'],
+      ['eq', '='],
+      ['a', 'a'],
+    ])
+    expect(statefulLexer.state).toBe('ab')
+    statefulLexer.reset('one=ab;two=')
+    expect(statefulLexer.state).toBe('start')
+  })
+
   test('lexes interpolation example', () => {
     let lexer = moo.states({
       main: {
         strstart: {match: '`', push: 'lit'},
         ident:    /\w+/,
         lbrace:   {match: '{', push: 'main'},
-        rbrace:   {match: '}', pop: 1},
+        rbrace:   {match: '}', pop: true},
         colon:    ':',
         space:    {match: /\s+/, lineBreaks: true},
       },
       lit: {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
-        strend:   {match: '`', pop: 1},
+        strend:   {match: '`', pop: true},
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
-    }).feed('`a${{c: d}}e`')
+    }).reset('`a${{c: d}}e`')
     expect(lexAll(lexer).map(t => t.type).join(' ')).toBe('strstart const interp lbrace ident colon space ident rbrace rbrace const strend')
+  })
+
+  test('warns for non-existent states', () => {
+    expect(() => moo.states({start: {bar: {match: 'bar', next: 'foo'}}})).toThrow("Missing state 'foo'")
+    expect(() => moo.states({start: {bar: {match: 'bar', push: 'foo'}}})).toThrow("Missing state 'foo'")
+    expect(() => moo.states({start: {foo: 'fish', bar: {match: 'bar', push: 'foo'}}})).toThrow("Missing state 'foo'")
+  })
+
+  test('warns for non-boolean pop', () => {
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: true}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 1}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: false}}})).not.toThrow()
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 0}}})).not.toThrow()
   })
 
 })
@@ -352,7 +575,6 @@ describe('line numbers', () => {
     var tokens = lexAll(testLexer.reset('cow\nfarm\ngrass'))
     expect(tokens.map(t => t.value)).toEqual(['cow', '\n', 'farm', '\n', 'grass'])
     expect(tokens.map(t => t.lineBreaks)).toEqual([0, 1, 0, 1, 0])
-    expect(tokens.map(t => t.size)).toEqual([3, 1, 4, 1, 5])
     expect(tokens.map(t => t.line)).toEqual([1, 1, 2, 2, 3])
     expect(tokens.map(t => t.col)).toEqual([1, 4, 1, 5, 1])
   })
@@ -376,7 +598,7 @@ describe('line numbers', () => {
     expect(() => compile({multiline: /q[^]*/})).not.toThrow()
   })
 
-  test('resets state', () => {
+  test('resets line/col', () => {
     var lexer = compile({
       WS: / +/,
       word: /[a-z]+/,
@@ -400,15 +622,43 @@ describe('save/restore', () => {
     NL: { match: '\n', lineBreaks: true },
   })
 
-  test('can save state', () => {
+  test('can save info', () => {
     testLexer.reset('one\ntwo')
     lexAll(testLexer)
-    expect(testLexer.save()).toEqual({line: 2, col: 4})
+    expect(testLexer.save()).toMatchObject({line: 2, col: 4})
+  })
+
+  test('can restore info', () => {
+    testLexer.reset('\nthree', {line: 2, col: 4})
+    expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+  })
+
+  const statefulLexer = moo.states({
+    start: {
+      word: /\w+/,
+      eq: {match: '=', next: 'ab'},
+    },
+    ab: {
+      a: 'a',
+      b: 'b',
+      semi: {match: ';', next: 'start'},
+    },
+  })
+
+  test('info includes state', () => {
+    statefulLexer.reset('one=ab')
+    statefulLexer.next()
+    expect(statefulLexer.state).toBe('start')
+    expect(statefulLexer.save()).toMatchObject({state: 'start'})
+    statefulLexer.next()
+    expect(statefulLexer.state).toBe('ab')
+    expect(statefulLexer.save()).toMatchObject({state: 'ab'})
   })
 
   test('can restore state', () => {
-    testLexer.reset('\nthree', {line: 2, col: 4})
-    expect(testLexer).toMatchObject({line: 2, col: 4, buffer: '\nthree'})
+    statefulLexer.reset('ab', {line: 0, col: 0, state: 'ab'})
+    expect(statefulLexer.state).toBe('ab')
+    expect(lexAll(statefulLexer).length).toBe(2)
   })
 
 })
@@ -419,10 +669,42 @@ describe('errors', () => {
   test('are thrown by default', () => {
     let lexer = compile({
       digits: /[0-9]+/,
+      nl: {match: '\n', lineBreaks: true},
     })
-    lexer.reset('123foo')
+    lexer.reset('123\n456baa')
     expect(lexer.next()).toMatchObject({value: '123'})
+    expect(lexer.next()).toMatchObject({type: 'nl'})
+    expect(lexer.next()).toMatchObject({value: '456'})
+    expect(() => lexer.next()).toThrow(
+      "invalid syntax at line 2 col 4:\n\n" +
+      "  456baa\n" +
+      "     ^"
+    )
+  })
+
+  test('can be externally formatted', () => {
+    let lexer = compile({
+      letters: {match: /[a-z\n]+/, lineBreaks: true},
+      error: moo.error,
+    })
+    lexer.reset('abc\ndef\ng 12\n345\n6')
+    expect(lexer.next()).toMatchObject({type: 'letters', value: 'abc\ndef\ng'})
+    const tok = lexer.next()
+    expect(tok).toMatchObject({type: 'error', value: ' 12\n345\n6', lineBreaks: 2})
+    expect(lexer.formatError(tok, "numbers!")).toBe(
+      "numbers! at line 3 col 2:\n\n" +
+      "  g 12\n" +
+      "   ^"
+    )
+  })
+
+  test('seek to end of buffer when thrown', () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+    })
+    lexer.reset('invalid')
     expect(() => lexer.next()).toThrow()
+    expect(lexer.next()).toBe(undefined)
   })
 
   test('can be tokens', () => {
@@ -433,7 +715,7 @@ describe('errors', () => {
     expect(lexer.error).toMatchObject({tokenType: 'error'})
     lexer.reset('123foo')
     expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
-    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo', offset: 3})
   })
 
   test('imply lineBreaks', () => {
@@ -442,7 +724,8 @@ describe('errors', () => {
       error: moo.error,
     })
     lexer.reset('foo\nbar')
-    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1, size: 7})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo\nbar', lineBreaks: 1})
+    expect(lexer.save()).toMatchObject({line: 2})
     expect(lexer.next()).toBe(undefined) // consumes rest of input
   })
 
@@ -466,17 +749,27 @@ describe('errors', () => {
     expect(lexer.next()).toMatchObject({type: 'error', value: 'foo' })
   })
 
+  test("don't mess with cloned lexers", () => {
+    let lexer = compile({
+      digits: /[0-9]+/,
+      error: moo.error,
+    })
+    lexer.reset('123foo')
+    let clone = lexer.clone()
+    clone.reset('bar')
+    expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
+    expect(clone.next()).toMatchObject({type: 'error', value: 'bar'})
+    expect(lexer.next()).toMatchObject({type: 'error', value: 'foo'})
+    expect(clone.next()).toBe(undefined)
+    expect(lexer.next()).toBe(undefined)
+  })
+
 })
 
 
 describe('example: python', () => {
 
   const pythonLexer = require('./python').lexer
-
-  test('kurt tokens', () => {
-    let tokens = lexAll(pythonLexer.reset(fs.readFileSync('test/kurt.py', 'utf-8')))
-    expect(tokens.length).toBe(14513)
-  })
 
   test("1 + 2", () => {
     expect(python.outputTokens("1 + 2")).toEqual([
@@ -491,7 +784,7 @@ describe('example: python', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
-      ['"""abc"""', " ", "1", "+", "1", " ", '"""def"""']
+      ['abc', " ", "1", "+", "1", " ", 'def']
     )
   })
 
@@ -501,14 +794,10 @@ describe('example: python', () => {
 
   test("kurt python", () => {
     let tokens = python.outputTokens(fs.readFileSync('test/kurt.py', 'utf-8'))
-    expect(tokens[100]).toBe('NAME "def"')
+    expect(tokens).toMatchSnapshot()
     expect(tokens.pop()).toBe('ENDMARKER ""')
     tokens.pop()
     expect(tokens.pop()).not.toBe('ERRORTOKEN ""')
-    expect(tokens.length).toBe(11616)
-
-    // let expected = fs.readFileSync('test/kurt-tokens.txt', 'utf-8').split('\n')
-    // expect(tokens).toEqual(expected)
   })
 
 })
