@@ -231,7 +231,6 @@
     // https://jsperf.com/string-lookups
     function str(x) { return JSON.stringify(x) }
     var source = ''
-    source += '(function(value) {\n'
     source += 'switch (value.length) {\n'
     for (var length in byLength) {
       var keywords = byLength[length]
@@ -244,8 +243,7 @@
       source += '}\n'
     }
     source += '}\n'
-    source += '})'
-    return eval(source) // getType
+    return Function('value', source) // getType
   }
 
   /***************************************************************************/
