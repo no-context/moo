@@ -193,6 +193,15 @@
     return new Lexer({start: result}, 'start')
   }
 
+  function checkStateGroup(g, name, map) {
+    var state = g && (g.push || g.next)
+    if (state && !map[state]) {
+      throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+    if (g && g.pop && +g.pop !== 1) {
+      throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+  }
   function compileStates(states, start) {
     var keys = Object.getOwnPropertyNames(states)
     if (!start) start = keys[0]
@@ -204,16 +213,15 @@
     }
 
     for (var i = 0; i < keys.length; i++) {
-      var groups = map[keys[i]].groups
+      var name = keys[i]
+      var state = map[name]
+      var groups = state.groups
       for (var j = 0; j < groups.length; j++) {
-        var g = groups[j]
-        var state = g && (g.push || g.next)
-        if (state && !map[state]) {
-          throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
-        if (g && g.pop && +g.pop !== 1) {
-          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
+        checkStateGroup(groups[j], name, map)
+      }
+      var keys = Object.getOwnPropertyNames(state.fast)
+      for (var j = 0; j < keys.length; j++) {
+        checkStateGroup(state.fast[keys[j]], name, map)
       }
     }
 
