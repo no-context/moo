@@ -234,7 +234,17 @@ You can use [itt](https://github.com/nathan/itt)'s iterator adapters to make con
 States
 ------
 
-Sometimes you want your lexer to support different states. This is useful for string interpolation, for example: to tokenize `a${{c: d}}e`, you might use:
+Moo allows you to define multiple lexer **states**. Each state defines its own separate set of token rules. Your lexer will start off in the first state given to `moo.states({})`.
+
+Rules can be annotated with `next`, `push`, and `pop`, to change the current state after that token is matched. A "stack" of past states is kept, which is used by `push` and `pop`.
+
+* **`next: 'bar'`** moves to the state named `bar`. (The stack is not changed.)
+* **`push: 'bar'`** moves to the state named `bar`, and pushes the old state onto the stack.
+* **`pop: 1`** removes one state from the top of the stack, and moves to that state. (Only `1` is supported.)
+
+Only rules from the current state can be matched. You need to copy your rule into all the states you want it to be matched in.
+
+For example, to tokenize JS-style string interpolation such as `a${{c: d}}e`, you might use:
 
 ```js
     let lexer = moo.states({
@@ -257,13 +267,7 @@ Sometimes you want your lexer to support different states. This is useful for st
     // => strstart const interp lbrace ident colon space ident rbrace rbrace const strend
 ```
 
-It's also nice to let states inherit rules from other states and be able to count things, e.g. the interpolated expression state needs a `}` rule that can tell if it's a closing brace or the end of the interpolation, but is otherwise identical to the normal expression state.
-
-To support this, Moo allows annotating tokens with `push`, `pop` and `next`:
-
-* **`push`** moves the lexer to a new state, and pushes the old state onto the stack.
-* **`pop`** returns to a previous state, by removing one or more states from the stack.
-* **`next`** moves to a new state, but does not affect the stack.
+The `rbrace` rule is annotated with `pop`, so it moves from the `main` state into either `lit` or `main`, depending on the stack.
 
 
 Errors
