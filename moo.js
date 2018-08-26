@@ -10,12 +10,13 @@
   'use strict';
 
   var hasOwnProperty = Object.prototype.hasOwnProperty
+  var toString = Object.prototype.toString
   var hasSticky = typeof new RegExp().sticky === 'boolean'
 
   /***************************************************************************/
 
-  function isRegExp(o) { return o && o.constructor === RegExp }
-  function isObject(o) { return o && typeof o === 'object' && o.constructor !== RegExp && !Array.isArray(o) }
+  function isRegExp(o) { return o && toString.call(o) === '[object RegExp]' }
+  function isObject(o) { return o && typeof o === 'object' && !isRegExp(o) && !Array.isArray(o) }
 
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -45,10 +46,11 @@
       if (obj.global) throw new Error('RegExp /g flag is implied')
       if (obj.sticky) throw new Error('RegExp /y flag is implied')
       if (obj.multiline) throw new Error('RegExp /m flag is implied')
+      if (obj.unicode) throw new Error('RegExp /u flag is not allowed')
       return obj.source
 
     } else {
-      throw new Error('not a pattern: ' + obj)
+      throw new Error('Not a pattern: ' + obj)
     }
   }
 
@@ -87,7 +89,7 @@
   }
 
   function ruleOptions(name, obj) {
-    if (typeof obj !== 'object' || Array.isArray(obj) || isRegExp(obj)) {
+    if (!isObject(obj)) {
       obj = { match: obj }
     }
 
@@ -170,7 +172,7 @@
       parts.push(reCapture(pat))
     }
 
-    var suffix = hasSticky ? '' : '|(?:)'
+    var suffix = hasSticky ? '' : '|'
     var flags = hasSticky ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
@@ -230,7 +232,6 @@
     // https://jsperf.com/string-lookups
     function str(x) { return JSON.stringify(x) }
     var source = ''
-    source += '(function(value) {\n'
     source += 'switch (value.length) {\n'
     for (var length in byLength) {
       var keywords = byLength[length]
@@ -243,8 +244,7 @@
       source += '}\n'
     }
     source += '}\n'
-    source += '})'
-    return eval(source) // getType
+    return Function('value', source) // getType
   }
 
   /***************************************************************************/
@@ -314,7 +314,7 @@
         return i
       }
     }
-    throw new Error('oops')
+    throw new Error('Cannot find token type for matched text')
   }
 
   function tokenToString() {

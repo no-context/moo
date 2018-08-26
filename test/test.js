@@ -1,5 +1,6 @@
 
 const fs = require('fs')
+const vm = require('vm')
 
 const moo = require('../moo')
 const compile = moo.compile
@@ -28,12 +29,13 @@ describe('compiler', () => {
     expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
-  test("warns for /g, /y, /i, /m", () => {
+  test("warns for /g, /y, /i, /m, /u", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
-    expect(() => compile({ word: /foo/g })).toThrow()
-    expect(() => compile({ word: /foo/i })).toThrow()
-    expect(() => compile({ word: /foo/y })).toThrow()
-    expect(() => compile({ word: /foo/m })).toThrow()
+    expect(() => compile({ word: /foo/g })).toThrow('implied')
+    expect(() => compile({ word: /foo/i })).toThrow('not allowed')
+    expect(() => compile({ word: /foo/y })).toThrow('implied')
+    expect(() => compile({ word: /foo/m })).toThrow('implied')
+    expect(() => compile({ word: /foo/u })).toThrow('not allowed')
   })
 
   // TODO warns if no lineBreaks: true
@@ -47,6 +49,14 @@ describe('compiler', () => {
       expect(() => moo.states({start: {thing: rule}}))
       .toThrow("Missing state 'missing' (in token 'thing' of state 'start')")
     }
+  })
+
+  test('accepts RegExps from other contexts', () => {
+    const lexer = moo.compile({
+      word: vm.runInNewContext(/\w+/),
+    })
+    lexer.reset('ducks')
+    expect(lexer.next()).toMatchObject({type: 'word', value: 'ducks'})
   })
 
   test('warns about inappropriate state-switching options', () => {
@@ -131,13 +141,22 @@ describe('compiler', () => {
 
 describe('compiles literals', () => {
 
-  // TODO test they're escaped
+  test('escapes strings', () => {
+    let lexer = moo.compile({
+      tok1: '-/\\^$*+',
+      tok2: ['?.()|[]{}', 'cow'],
+    })
+    lexer.reset('-/\\^$*+?.()|[]{}')
+    expect(lexer.next()).toMatchObject({value: '-/\\^$*+'})
+    expect(lexer.next()).toMatchObject({value: '?.()|[]{}'})
+  })
 
   test('sorts RegExps and strings', () => {
     let lexer = moo.compile({
       tok: [/t[ok]+/, /\w/, 'foo', 'token']
     })
-    expect(lexer.re.source.replace(/[(?:)]/g, '')).toBe('token|foo|t[ok]+|\\w')
+    expect(lexer.re.source.replace(/[(?:)]/g, '').replace(/\|$/, ''))
+    .toMatch('token|foo|t[ok]+|\\w')
   })
 
   test('sorts literals by length', () => {
@@ -151,7 +170,7 @@ describe('compiles literals', () => {
     expect(lexer.next()).toMatchObject({value: '+='})
   })
 
-  test('but doesn\'t sort literals across rules', () => {
+  test("but doesn't sort literals across rules", () => {
     let lexer = moo.compile({
       one: 'moo',
       two: 'moomintroll',
