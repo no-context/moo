@@ -93,15 +93,15 @@
       obj = { match: obj }
     }
 
-    // nb. error and default imply lineBreaks
+    // nb. error and fallback imply lineBreaks
     var options = {
       tokenType: name,
-      lineBreaks: !!obj.error || !!obj.default,
+      lineBreaks: !!obj.error || !!obj.fallback,
       pop: false,
       next: null,
       push: null,
       error: false,
-      default: false,
+      fallback: false,
       value: null,
       getType: null,
       shouldThrow: false,
@@ -137,9 +137,9 @@
     for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
-      if (options.error || options.default) {
+      if (options.error || options.fallback) {
         if (errorRule) {
-          throw new Error((!options.default === !errorRule.default ? "Multiple " + (options.default ? "default" : "error") + " rules not allowed" : "default and error are mutually exclusive") + " (for token '" + options.tokenType + "')")
+          throw new Error((!options.fallback === !errorRule.fallback ? "Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed" : "fallback and error are mutually exclusive") + " (for token '" + options.tokenType + "')")
         }
         errorRule = options
       }
@@ -162,8 +162,8 @@
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
-      if ((!hasStates || options.default) && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in " + (options.default ? 'default tokens' : 'stateless lexers') + " (for token '" + options.tokenType + "')")
+      if ((!hasStates || options.fallback) && (options.pop || options.push || options.next)) {
+        throw new Error("State-switching options are not allowed in " + (options.fallback ? 'fallback tokens' : 'stateless lexers') + " (for token '" + options.tokenType + "')")
       }
 
       // try and detect rules matching newlines
@@ -175,9 +175,9 @@
       parts.push(reCapture(pat))
     }
 
-    var defaultRule = errorRule && errorRule.default
-    var suffix = hasSticky || defaultRule ? '' : '|'
-    var flags = hasSticky && !defaultRule ? 'ym' : 'gm'
+    var fallbackRule = errorRule && errorRule.fallback
+    var suffix = hasSticky || fallbackRule ? '' : '|'
+    var flags = hasSticky && !fallbackRule ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
     return {regexp: combined, groups: groups, error: errorRule || defaultErrorRule}
@@ -351,14 +351,14 @@
     var matchIndex = match ? match.index : this.buffer.length
     var i = this._getGroup(match)
 
-    if (this.error.default && matchIndex !== index || i === -1) {
-      var defaultToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
+    if (this.error.fallback && matchIndex !== index || i === -1) {
+      var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
 
       if (i === -1) {
         if (this.error.shouldThrow) {
-          throw new Error(this.formatError(defaultToken, "invalid syntax"))
+          throw new Error(this.formatError(fallbackToken, "invalid syntax"))
         }
-        return defaultToken
+        return fallbackToken
       }
     }
 
@@ -366,7 +366,7 @@
     var token = this._hadToken(group, match[0], matchIndex)
 
     // throw, if no rule with {error: true}
-    if (defaultToken) {
+    if (fallbackToken) {
       this.queued = token
       this.queuedThrow = group.shouldThrow
     } else if (group.shouldThrow) {
@@ -377,7 +377,7 @@
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
 
-    return defaultToken || token
+    return fallbackToken || token
   }
 
   Lexer.prototype._hadToken = function(group, text, offset) {
@@ -472,7 +472,7 @@
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
-    default: Object.freeze({default: true}),
+    fallback: Object.freeze({fallback: true}),
   }
 
 }))

@@ -181,12 +181,12 @@ describe('compiles literals', () => {
 
 })
 
-describe('default tokens', () => {
+describe('fallback tokens', () => {
 
   test('work', () => {
     const lexer = moo.compile({
       op: /[._]/,
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('.this_that.')
     expect(lexer.next()).toMatchObject({type: 'op', value: '.'})
@@ -199,7 +199,7 @@ describe('default tokens', () => {
   test(`work if there are characters before the first token`, () => {
     const lexer = compile({
       op: /[._]/,
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('.stuff')
     expect(lexer.next()).toMatchObject({type: 'op', value: '.'})
@@ -209,7 +209,7 @@ describe('default tokens', () => {
   test(`work if there are characters after the last token`, () => {
     const lexer = compile({
       op: /[._]/,
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('stuff.')
     expect(lexer.next()).toMatchObject({type: 'text', value: 'stuff'})
@@ -221,7 +221,7 @@ describe('default tokens', () => {
       main: {
         op: /[._]/,
         switch: {match: '|', next: 'other'},
-        text: moo.default,
+        text: moo.fallback,
       },
       other: {
         op: /[+-]/,
@@ -243,7 +243,7 @@ describe('default tokens', () => {
   test(`are never empty`, () => {
     const lexer = moo.compile({
       op: /[._]/,
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('.._._')
     expect(lexer.next()).toMatchObject({type: 'op', value: '.'})
@@ -256,7 +256,7 @@ describe('default tokens', () => {
   test(`report token positions correctly`, () => {
     const lexer = moo.compile({
       op: /[._]/,
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('.this_th\nat.')
     expect(lexer.next()).toMatchObject({value: '.', offset: 0})
@@ -269,7 +269,7 @@ describe('default tokens', () => {
   test(`report token line numbers correctly`, () => {
     const lexer = moo.compile({
       str: {lineBreaks: true, match: /"[^]+?"/},
-      bare: moo.default,
+      bare: moo.fallback,
     })
     lexer.reset('a\nb"some\nthing" else\ngoes\nhere\n\n"\nand here"\n')
     expect(lexer.next()).toMatchObject({value: 'a\nb', line: 1, col: 1})
@@ -282,7 +282,7 @@ describe('default tokens', () => {
   test("don't throw token errors until next() is called again", () => {
     const lexer = moo.compile({
       op: {match: /[._]/, shouldThrow: true},
-      text: moo.default,
+      text: moo.fallback,
     })
     lexer.reset('stuff.')
     expect(lexer.next()).toMatchObject({type: 'text', value: 'stuff'})
