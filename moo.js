@@ -266,7 +266,7 @@
     this.index = 0
     this.line = info ? info.line : 1
     this.col = info ? info.col : 1
-    this.queued = info ? info.queued : null
+    this.queuedToken = info ? info.queuedToken : null
     this.queuedThrow = info ? info.queuedThrow : null
     this.setState(info ? info.state : this.startState)
     return this
@@ -277,7 +277,7 @@
       line: this.line,
       col: this.col,
       state: this.state,
-      queued: this.queued,
+      queuedToken: this.queuedToken,
       queuedThrow: this.queuedThrow,
     }
   }
@@ -330,14 +330,14 @@
   }
 
   Lexer.prototype.next = function() {
-    if (this.queued) {
-      var queued = this.queued, queuedThrow = this.queuedThrow
-      this.queued = null
+    if (this.queuedToken) {
+      var queuedToken = this.queuedToken, queuedThrow = this.queuedThrow
+      this.queuedToken = null
       this.queuedThrow = false
       if (queuedThrow) {
-        throw new Error(this.formatError(queued, "invalid syntax"))
+        throw new Error(this.formatError(queuedToken, "invalid syntax"))
       }
-      return queued
+      return queuedToken
     }
     var re = this.re
     var buffer = this.buffer
@@ -367,7 +367,7 @@
 
     // throw, if no rule with {error: true}
     if (fallbackToken) {
-      this.queued = token
+      this.queuedToken = token
       this.queuedThrow = group.shouldThrow
     } else if (group.shouldThrow) {
       throw new Error(this.formatError(token, "invalid syntax"))
