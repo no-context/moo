@@ -93,16 +93,18 @@
       obj = { match: obj }
     }
 
-    // nb. error implies lineBreaks
+    // nb. error and fallback imply lineBreaks
     var options = {
       tokenType: name,
-      lineBreaks: !!obj.error,
+      lineBreaks: !!obj.error || !!obj.fallback,
       pop: false,
       next: null,
       push: null,
       error: false,
+      fallback: false,
       value: null,
       getType: null,
+      shouldThrow: false,
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -125,6 +127,7 @@
     return options
   }
 
+  var defaultErrorRule = ruleOptions('error', {lineBreaks: true, shouldThrow: true})
   function compileRules(rules, hasStates) {
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
@@ -134,14 +137,19 @@
     for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
-      if (options.error) {
+      if (options.error || options.fallback) {
+        // errorRule can only be set once
         if (errorRule) {
-          throw new Error("Multiple error rules not allowed: (for token '" + options.tokenType + "')")
+          if (!options.fallback === !errorRule.fallback) {
+            throw new Error("Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed (for token '" + options.tokenType + "')")
+          } else {
+            throw new Error("fallback and error are mutually exclusive (for token '" + options.tokenType + "')")
+          }
         }
         errorRule = options
       }
 
-      // skip rules with no match
+      // Only rules with a .match are included in the RegExp
       if (options.match.length === 0) {
         continue
       }
@@ -159,8 +167,15 @@
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
-      if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+
+      // Warn about inappropriate state-switching options
+      if (options.pop || options.push || options.next) {
+        if (!hasStates) {
+          throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+        }
+        if (options.fallback) {
+          throw new Error("State-switching options are not allowed on fallback tokens (for token '" + options.tokenType + "')")
+        }
       }
 
       // try and detect rules matching newlines
@@ -172,11 +187,18 @@
       parts.push(reCapture(pat))
     }
 
-    var suffix = hasSticky ? '' : '|'
-    var flags = hasSticky ? 'ym' : 'gm'
+
+    // If there's no fallback rule, use the sticky flag so we only look for
+    // matches at the current index.
+    //
+    // If we don't support the sticky flag, then fake it using an irrefutable
+    // match (i.e. an empty pattern).
+    var fallbackRule = errorRule && errorRule.fallback
+    var flags = hasSticky && !fallbackRule ? 'ym' : 'gm'
+    var suffix = hasSticky || fallbackRule ? '' : '|'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule}
+    return {regexp: combined, groups: groups, error: errorRule || defaultErrorRule}
   }
 
   function compile(rules) {
@@ -262,6 +284,8 @@
     this.index = 0
     this.line = info ? info.line : 1
     this.col = info ? info.col : 1
+    this.queuedToken = info ? info.queuedToken : null
+    this.queuedThrow = info ? info.queuedThrow : null
     this.setState(info ? info.state : this.startState)
     return this
   }
@@ -271,6 +295,8 @@
       line: this.line,
       col: this.col,
       state: this.state,
+      queuedToken: this.queuedToken,
+      queuedThrow: this.queuedThrow,
     }
   }
 
@@ -279,7 +305,7 @@
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error || {lineBreaks: true, shouldThrow: true}
+    this.error = info.error
     this.re = info.regexp
   }
 
@@ -322,6 +348,15 @@
   }
 
   Lexer.prototype.next = function() {
+    if (this.queuedToken) {
+      var queuedToken = this.queuedToken, queuedThrow = this.queuedThrow
+      this.queuedToken = null
+      this.queuedThrow = false
+      if (queuedThrow) {
+        throw new Error(this.formatError(queuedToken, "invalid syntax"))
+      }
+      return queuedToken
+    }
     var re = this.re
     var buffer = this.buffer
 
@@ -331,20 +366,39 @@
     }
 
     var match = this._eat(re)
+    var matchIndex = match ? match.index : this.buffer.length
     var i = this._getGroup(match)
 
-    var group, text
-    if (i === -1) {
-      group = this.error
+    if ((this.error.fallback && matchIndex !== index) || i === -1) {
+      var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
 
-      // consume rest of buffer
-      text = buffer.slice(index)
-
-    } else {
-      text = match[0]
-      group = this.groups[i]
+      if (i === -1) {
+        if (this.error.shouldThrow) {
+          throw new Error(this.formatError(fallbackToken, "invalid syntax"))
+        }
+        return fallbackToken
+      }
     }
 
+    var group = this.groups[i]
+    var token = this._hadToken(group, match[0], matchIndex)
+
+    // throw, if no rule with {error: true}
+    if (fallbackToken) {
+      this.queuedToken = token
+      this.queuedThrow = group.shouldThrow
+    } else if (group.shouldThrow) {
+      throw new Error(this.formatError(token, "invalid syntax"))
+    }
+
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
+
+    return fallbackToken || token
+  }
+
+  Lexer.prototype._hadToken = function(group, text, offset) {
     // count line breaks
     var lineBreaks = 0
     if (group.lineBreaks) {
@@ -362,7 +416,7 @@
       value: group.value ? group.value(text) : text,
       text: text,
       toString: tokenToString,
-      offset: index,
+      offset: offset,
       lineBreaks: lineBreaks,
       line: this.line,
       col: this.col,
@@ -377,14 +431,6 @@
     } else {
       this.col += size
     }
-    // throw, if no rule with {error: true}
-    if (group.shouldThrow) {
-      throw new Error(this.formatError(token, "invalid syntax"))
-    }
-
-    if (group.pop) this.popState()
-    else if (group.push) this.pushState(group.push)
-    else if (group.next) this.setState(group.next)
     return token
   }
 
@@ -444,6 +490,7 @@
     compile: compile,
     states: compileStates,
     error: Object.freeze({error: true}),
+    fallback: Object.freeze({fallback: true}),
   }
 
 }))
