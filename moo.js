@@ -129,6 +129,8 @@
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
     var errorRule = null
+    var fast = Object.create(null)
+    var fastAllowed = true
     var groups = []
     var parts = []
     for (var i = 0; i < rules.length; i++) {
@@ -142,13 +144,25 @@
       }
 
       // skip rules with no match
-      if (options.match.length === 0) {
+      var match = options.match
+      if (fastAllowed) {
+        while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
+          var word = match.shift()
+          fast[word.charCodeAt(0)] = options
+        }
+      }
+      if (!hasStates && (options.pop || options.push || options.next)) {
+        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+      }
+      if (match.length === 0) {
         continue
       }
+      fastAllowed = false
+
       groups.push(options)
 
       // convert to RegExp
-      var pat = reUnion(options.match.map(regexpOrLiteral))
+      var pat = reUnion(match.map(regexpOrLiteral))
 
       // validate
       var regexp = new RegExp(pat)
@@ -158,9 +172,6 @@
       var groupCount = reGroups(pat)
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
-      }
-      if (!hasStates && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
       }
 
       // try and detect rules matching newlines
@@ -176,7 +187,7 @@
     var flags = hasSticky ? 'ym' : 'gm'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule}
+    return {regexp: combined, groups: groups, fast: fast, error: errorRule}
   }
 
   function compile(rules) {
@@ -184,6 +195,15 @@
     return new Lexer({start: result}, 'start')
   }
 
+  function checkStateGroup(g, name, map) {
+    var state = g && (g.push || g.next)
+    if (state && !map[state]) {
+      throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+    if (g && g.pop && +g.pop !== 1) {
+      throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+  }
   function compileStates(states, start) {
     var keys = Object.getOwnPropertyNames(states)
     if (!start) start = keys[0]
@@ -195,16 +215,15 @@
     }
 
     for (var i = 0; i < keys.length; i++) {
-      var groups = map[keys[i]].groups
+      var name = keys[i]
+      var state = map[name]
+      var groups = state.groups
       for (var j = 0; j < groups.length; j++) {
-        var g = groups[j]
-        var state = g && (g.push || g.next)
-        if (state && !map[state]) {
-          throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
-        if (g && g.pop && +g.pop !== 1) {
-          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
+        checkStateGroup(groups[j], name, map)
+      }
+      var keys = Object.getOwnPropertyNames(state.fast)
+      for (var j = 0; j < keys.length; j++) {
+        checkStateGroup(state.fast[keys[j]], name, map)
       }
     }
 
@@ -281,6 +300,7 @@
     this.groups = info.groups
     this.error = info.error || {lineBreaks: true, shouldThrow: true}
     this.re = info.regexp
+    this.fast = info.fast
   }
 
   Lexer.prototype.popState = function() {
@@ -330,19 +350,26 @@
       return // EOF
     }
 
-    var match = this._eat(re)
-    var i = this._getGroup(match)
-
     var group, text
-    if (i === -1) {
-      group = this.error
-
-      // consume rest of buffer
-      text = buffer.slice(index)
+    group = this.fast[buffer.charCodeAt(index)]
+    if (group) {
+      text = buffer.charAt(index)
 
     } else {
-      text = match[0]
-      group = this.groups[i]
+      var match = this._eat(re)
+      var i = this._getGroup(match)
+
+      var group, text
+      if (i === -1) {
+        group = this.error
+
+        // consume rest of buffer
+        text = buffer.slice(index)
+
+      } else {
+        text = match[0]
+        group = this.groups[i]
+      }
     }
 
     // count line breaks

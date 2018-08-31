@@ -17,6 +17,14 @@ function randomChoice(array) {
 const chevrotain = require('chevrotain')
 function chevrotainFromMoo(lexer) {
   const tokens = []
+  var keys = Object.keys(lexer.fast)
+  for (var i=0; i<keys.length; i++) {
+    var charCode = keys[i]
+    var word = String.fromCharCode(charCode)
+    var pat = new RegExp(reEscape(word))
+    var group = lexer.fast[charCode]
+    tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
+  }
   lexer.groups.forEach(group => {
     var options = group.match.map(pat => typeof pat === 'string' ? reEscape(pat) : pat.source)
     var pat = new RegExp(options.join('|'))
