@@ -138,13 +138,18 @@
       var options = rules[i]
 
       if (options.error || options.fallback) {
+        // errorRule can only be set once
         if (errorRule) {
-          throw new Error((!options.fallback === !errorRule.fallback ? "Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed" : "fallback and error are mutually exclusive") + " (for token '" + options.tokenType + "')")
+          if (!options.fallback === !errorRule.fallback) {
+            throw new Error("Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed (for token '" + options.tokenType + "')")
+          } else {
+            throw new Error("fallback and error are mutually exclusive (for token '" + options.tokenType + "')")
+          }
         }
         errorRule = options
       }
 
-      // skip rules with no match
+      // Only rules with a .match are included in the RegExp
       if (options.match.length === 0) {
         continue
       }
@@ -162,8 +167,15 @@
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
-      if ((!hasStates || options.fallback) && (options.pop || options.push || options.next)) {
-        throw new Error("State-switching options are not allowed in " + (options.fallback ? 'fallback tokens' : 'stateless lexers') + " (for token '" + options.tokenType + "')")
+
+      // Warn about inappropriate state-switching options
+      if (options.pop || options.push || options.next) {
+        if (!hasStates) {
+          throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+        }
+        if (options.fallback) {
+          throw new Error("State-switching options are not allowed on fallback tokens (for token '" + options.tokenType + "')")
+        }
       }
 
       // try and detect rules matching newlines
@@ -175,9 +187,15 @@
       parts.push(reCapture(pat))
     }
 
+
+    // If there's no fallback rule, use the sticky flag so we only look for
+    // matches at the current index.
+    //
+    // If we don't support the sticky flag, then fake it using an irrefutable
+    // match (i.e. an empty pattern).
     var fallbackRule = errorRule && errorRule.fallback
-    var suffix = hasSticky || fallbackRule ? '' : '|'
     var flags = hasSticky && !fallbackRule ? 'ym' : 'gm'
+    var suffix = hasSticky || fallbackRule ? '' : '|'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
     return {regexp: combined, groups: groups, error: errorRule || defaultErrorRule}
@@ -351,7 +369,7 @@
     var matchIndex = match ? match.index : this.buffer.length
     var i = this._getGroup(match)
 
-    if (this.error.fallback && matchIndex !== index || i === -1) {
+    if ((this.error.fallback && matchIndex !== index) || i === -1) {
       var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
 
       if (i === -1) {
