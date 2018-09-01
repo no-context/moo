@@ -132,6 +132,8 @@
     rules = Array.isArray(rules) ? arrayToRules(rules) : objectToRules(rules)
 
     var errorRule = null
+    var fast = Object.create(null)
+    var fastAllowed = true
     var groups = []
     var parts = []
     for (var i = 0; i < rules.length; i++) {
@@ -149,23 +151,12 @@
         errorRule = options
       }
 
-      // Only rules with a .match are included in the RegExp
-      if (options.match.length === 0) {
-        continue
-      }
-      groups.push(options)
-
-      // convert to RegExp
-      var pat = reUnion(options.match.map(regexpOrLiteral))
-
-      // validate
-      var regexp = new RegExp(pat)
-      if (regexp.test("")) {
-        throw new Error("RegExp matches empty string: " + regexp)
-      }
-      var groupCount = reGroups(pat)
-      if (groupCount > 0) {
-        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
+      var match = options.match
+      if (fastAllowed) {
+        while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
+          var word = match.shift()
+          fast[word.charCodeAt(0)] = options
+        }
       }
 
       // Warn about inappropriate state-switching options
@@ -176,6 +167,27 @@
         if (options.fallback) {
           throw new Error("State-switching options are not allowed on fallback tokens (for token '" + options.tokenType + "')")
         }
+      }
+
+      // Only rules with a .match are included in the RegExp
+      if (match.length === 0) {
+        continue
+      }
+      fastAllowed = false
+
+      groups.push(options)
+
+      // convert to RegExp
+      var pat = reUnion(match.map(regexpOrLiteral))
+
+      // validate
+      var regexp = new RegExp(pat)
+      if (regexp.test("")) {
+        throw new Error("RegExp matches empty string: " + regexp)
+      }
+      var groupCount = reGroups(pat)
+      if (groupCount > 0) {
+        throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
 
       // try and detect rules matching newlines
@@ -198,7 +210,7 @@
     var suffix = hasSticky || fallbackRule ? '' : '|'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, error: errorRule || defaultErrorRule}
+    return {regexp: combined, groups: groups, fast: fast, error: errorRule || defaultErrorRule}
   }
 
   function compile(rules) {
@@ -206,6 +218,15 @@
     return new Lexer({start: result}, 'start')
   }
 
+  function checkStateGroup(g, name, map) {
+    var state = g && (g.push || g.next)
+    if (state && !map[state]) {
+      throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+    if (g && g.pop && +g.pop !== 1) {
+      throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + name + "')")
+    }
+  }
   function compileStates(states, start) {
     var keys = Object.getOwnPropertyNames(states)
     if (!start) start = keys[0]
@@ -217,16 +238,15 @@
     }
 
     for (var i = 0; i < keys.length; i++) {
-      var groups = map[keys[i]].groups
+      var name = keys[i]
+      var state = map[name]
+      var groups = state.groups
       for (var j = 0; j < groups.length; j++) {
-        var g = groups[j]
-        var state = g && (g.push || g.next)
-        if (state && !map[state]) {
-          throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
-        if (g && g.pop && +g.pop !== 1) {
-          throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + keys[i] + "')")
-        }
+        checkStateGroup(groups[j], name, map)
+      }
+      var keys = Object.getOwnPropertyNames(state.fast)
+      for (var j = 0; j < keys.length; j++) {
+        checkStateGroup(state.fast[keys[j]], name, map)
       }
     }
 
@@ -307,6 +327,7 @@
     this.groups = info.groups
     this.error = info.error
     this.re = info.regexp
+    this.fast = info.fast
   }
 
   Lexer.prototype.popState = function() {
@@ -365,23 +386,32 @@
       return // EOF
     }
 
-    var match = this._eat(re)
-    var matchIndex = match ? match.index : this.buffer.length
-    var i = this._getGroup(match)
+    var group, text, matchIndex
+    group = this.fast[buffer.charCodeAt(index)]
+    if (group) {
+      text = buffer.charAt(index)
+      matchIndex = index
 
-    if ((this.error.fallback && matchIndex !== index) || i === -1) {
-      var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
+    } else {
+      var match = this._eat(re)
+      matchIndex = match ? match.index : this.buffer.length
+      var i = this._getGroup(match)
 
-      if (i === -1) {
-        if (this.error.shouldThrow) {
-          throw new Error(this.formatError(fallbackToken, "invalid syntax"))
+      if ((this.error.fallback && matchIndex !== index) || i === -1) {
+        var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
+
+        if (i === -1) {
+          if (this.error.shouldThrow) {
+            throw new Error(this.formatError(fallbackToken, "invalid syntax"))
+          }
+          return fallbackToken
         }
-        return fallbackToken
       }
-    }
 
-    var group = this.groups[i]
-    var token = this._hadToken(group, match[0], matchIndex)
+      group = this.groups[i]
+      text = match[0]
+    }
+    var token = this._hadToken(group, text, matchIndex)
 
     // throw, if no rule with {error: true}
     if (fallbackToken) {
