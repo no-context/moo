@@ -2,6 +2,7 @@
 const moo = require('../moo')
 
 let toshLexer = moo.compile([
+  {name: 'symbol',  match: Array.from('-%#+*/=^,?')},  // single character
   {name: 'WS',      match: /[ \t]+/},
   {name: 'ellips',  match: /\.{3}/},
   {name: 'comment', match: /\/{2}.*$/},
@@ -23,7 +24,6 @@ let toshLexer = moo.compile([
   {name: 'rsquare', match: /\]/},
   {name: 'cloud',   match: /[☁]/},
   {name: 'input',   match: /%[a-z](?:\.[a-zA-Z]+)?/},
-  {name: 'symbol',  match: /[-%#+*/=^,?]/},                // single character
   {name: 'symbol',  match: /[_A-Za-z][-_A-Za-z0-9:',.]*/}, // word, as in a block
   {name: 'iden',    match: /[^\n \t"'()<>=*\/+-]+/},     // user-defined names
   {name: 'NL',      match: /\n/, lineBreaks: true },
