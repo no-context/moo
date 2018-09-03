@@ -180,7 +180,7 @@ It'll automatically compile them into regular expressions, escaping them where n
 ```js
     moo.compile({
       IDEN: {match: /[a-zA-Z]+/, keywords: {
-        KW: ['while', 'if', 'else', 'moo', 'cows']),
+        KW: ['while', 'if', 'else', 'moo', 'cows'],
       }},
       SPACE: {match: /\s+/, lineBreaks: true},
     })
