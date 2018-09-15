@@ -523,4 +523,4 @@
     fallback: Object.freeze({fallback: true}),
   }
 
-}))
+}));
