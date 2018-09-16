@@ -344,6 +344,61 @@ describe('keywords', () => {
 
 })
 
+describe('type transforms', () => {
+
+  test('can use moo.keywords as type', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: moo.keywords({
+          'kw-class': 'class',
+          'kw-def': 'def',
+          'kw-if': 'if',
+        }),
+      },
+      space: {match: /\s+/, lineBreaks: true},
+    })
+    lexer.reset('foo def')
+    expect(Array.from(lexer).map(t => t.type)).toEqual([
+        'identifier',
+        'space',
+        'kw-def',
+    ])
+  })
+
+  test('type can be a function', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: () => 'moo',
+      },
+    })
+    lexer.reset('baa')
+    expect(lexer.next()).toMatchObject({ type: 'moo' })
+  })
+
+  test('supports case-insensitive keywords', () => {
+    const caseInsensitiveKeywords = map => {
+      const transform = moo.keywords(map)
+      return text => transform(text.toLowerCase())
+    }
+    let lexer = compile({
+      space: ' ',
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: caseInsensitiveKeywords({
+          keyword: ['moo'],
+        }),
+      },
+    })
+    lexer.reset('mOo')
+    expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'mOo' })
+    lexer.reset('cheese')
+    expect(lexer.next()).toMatchObject({ type: 'identifier', value: 'cheese'})
+  })
+
+})
+
 describe('value transforms', () => {
 
   test('forbid capture groups', () => {
@@ -857,7 +912,6 @@ describe('errors', () => {
       digits: /[0-9]+/,
       error: moo.error,
     })
-    expect(lexer.error).toMatchObject({tokenType: 'error'})
     lexer.reset('123foo')
     expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
     expect(lexer.next()).toMatchObject({type: 'error', value: 'foo', offset: 3})

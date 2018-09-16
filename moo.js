@@ -111,7 +111,7 @@
 
     // nb. error and fallback imply lineBreaks
     var options = {
-      tokenType: name,
+      defaultType: name,
       lineBreaks: !!obj.error || !!obj.fallback,
       pop: false,
       next: null,
@@ -119,7 +119,7 @@
       error: false,
       fallback: false,
       value: null,
-      getType: null,
+      type: null,
       shouldThrow: false,
     }
 
@@ -138,7 +138,7 @@
            : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
     })
     if (options.keywords) {
-      options.getType = keywordTransform(options.keywords)
+      options.type = keywordTransform(options.keywords)
     }
     return options
   }
@@ -166,9 +166,9 @@
         // errorRule can only be set once
         if (errorRule) {
           if (!options.fallback === !errorRule.fallback) {
-            throw new Error("Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed (for token '" + options.tokenType + "')")
+            throw new Error("Multiple " + (options.fallback ? "fallback" : "error") + " rules not allowed (for token '" + options.defaultType + "')")
           } else {
-            throw new Error("fallback and error are mutually exclusive (for token '" + options.tokenType + "')")
+            throw new Error("fallback and error are mutually exclusive (for token '" + options.defaultType + "')")
           }
         }
         errorRule = options
@@ -185,10 +185,10 @@
       // Warn about inappropriate state-switching options
       if (options.pop || options.push || options.next) {
         if (!hasStates) {
-          throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
+          throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.defaultType + "')")
         }
         if (options.fallback) {
-          throw new Error("State-switching options are not allowed on fallback tokens (for token '" + options.tokenType + "')")
+          throw new Error("State-switching options are not allowed on fallback tokens (for token '" + options.defaultType + "')")
         }
       }
 
@@ -244,10 +244,10 @@
   function checkStateGroup(g, name, map) {
     var state = g && (g.push || g.next)
     if (state && !map[state]) {
-      throw new Error("Missing state '" + state + "' (in token '" + g.tokenType + "' of state '" + name + "')")
+      throw new Error("Missing state '" + state + "' (in token '" + g.defaultType + "' of state '" + name + "')")
     }
     if (g && g.pop && +g.pop !== 1) {
-      throw new Error("pop must be 1 (in token '" + g.tokenType + "' of state '" + name + "')")
+      throw new Error("pop must be 1 (in token '" + g.defaultType + "' of state '" + name + "')")
     }
   }
   function compileStates(states, start) {
@@ -342,7 +342,7 @@
       source += '}\n'
     }
     source += '}\n'
-    return Function('value', source) // getType
+    return Function('value', source) // type
   }
 
   /***************************************************************************/
@@ -500,8 +500,8 @@
     }
 
     var token = {
-      type: (group.getType && group.getType(text)) || group.tokenType,
-      value: group.value ? group.value(text) : text,
+      type: (typeof group.type === 'function' && group.type(text)) || group.defaultType,
+      value: typeof group.value === 'function' ? group.value(text) : text,
       text: text,
       toString: tokenToString,
       offset: offset,
@@ -560,11 +560,11 @@
   Lexer.prototype.has = function(tokenType) {
     for (var s in this.states) {
       var state = this.states[s]
-      if (state.error && state.error.tokenType === tokenType) return true
+      if (state.error && state.error.defaultType === tokenType) return true
       var groups = state.groups
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
-        if (group.tokenType === tokenType) return true
+        if (group.defaultType === tokenType) return true
         if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
           return true
         }
@@ -579,6 +579,7 @@
     states: compileStates,
     error: Object.freeze({error: true}),
     fallback: Object.freeze({fallback: true}),
+    keywords: keywordTransform,
   }
 
 }));
