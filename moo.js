@@ -93,15 +93,15 @@
         }
         continue
       }
-      if (!obj.name) {
-        throw new Error('Rule has no name: ' + JSON.stringify(obj))
+      if (!obj.type) {
+        throw new Error('Rule has no type: ' + JSON.stringify(obj))
       }
-      result.push(ruleOptions(obj.name, obj))
+      result.push(ruleOptions(obj.type, obj))
     }
     return result
   }
 
-  function ruleOptions(name, obj) {
+  function ruleOptions(type, obj) {
     if (!isObject(obj)) {
       obj = { match: obj }
     }
@@ -111,7 +111,7 @@
 
     // nb. error and fallback imply lineBreaks
     var options = {
-      defaultType: name,
+      defaultType: type,
       lineBreaks: !!obj.error || !!obj.fallback,
       pop: false,
       next: null,
@@ -134,14 +134,14 @@
     if (options.keywords) {
       // Warn if both keywords and type are set
       if (options.type) {
-        throw new Error("Cannot have both keywords and type (for token '" + name + "')")
+        throw new Error("Cannot have both keywords and type (for token '" + type + "')")
       }
       options.type = keywordTransform(options.keywords)
     }
 
     // type transform cannot be a string
-    if (typeof options.type === 'string') {
-      throw new Error("Type transform cannot be a string (type '" + options.type + "' for token '" + name + "')")
+    if (typeof options.type === 'string' && type !== options.type) {
+      throw new Error("Type transform cannot be a string (type '" + options.type + "' for token '" + type + "')")
     }
 
     // convert to array

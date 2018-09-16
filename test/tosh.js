@@ -2,32 +2,32 @@
 const moo = require('../moo')
 
 let toshLexer = moo.compile([
-  {name: 'symbol',  match: Array.from('-%#+*/=^,?')},  // single character
-  {name: 'WS',      match: /[ \t]+/},
-  {name: 'ellips',  match: /\.{3}/},
-  {name: 'comment', match: /\/{2}.*$/},
-  {name: 'false',   match: /\<\>/},
-  {name: 'zero',    match: /\(\)/},
-  {name: 'empty',   match: /_(?: |$)/},
-  {name: 'number',  match: /[0-9]+(?:\.[0-9]+)?e-?[0-9]+/}, // 123[.123]e[-]123
-  {name: 'number',  match: /(?:0|[1-9][0-9]*)?\.[0-9]+/},   // [123].123
-  {name: 'number',  match: /(?:0|[1-9][0-9]*)\.[0-9]*/},    // 123.[123]
-  {name: 'number',  match: /0|[1-9][0-9]*/},              // 123
-  {name: 'color',   match: /#(?:[A-Fa-f0-9]{3}){2}/},
-  {name: 'string',  match: /"(?:\\["\\]|[^\n"\\])*"/}, // strings are backslash-escaped
-  {name: 'string',  match: /'(?:\\['\\]|[^\n'\\])*'/},
-  {name: 'lparen',  match: /\(/},
-  {name: 'rparen',  match: /\)/},
-  {name: 'langle',  match: /\</},
-  {name: 'rangle',  match: /\>/},
-  {name: 'lsquare', match: /\[/},
-  {name: 'rsquare', match: /\]/},
-  {name: 'cloud',   match: /[☁]/},
-  {name: 'input',   match: /%[a-z](?:\.[a-zA-Z]+)?/},
-  {name: 'symbol',  match: /[_A-Za-z][-_A-Za-z0-9:',.]*/}, // word, as in a block
-  {name: 'iden',    match: /[^\n \t"'()<>=*\/+-]+/},     // user-defined names
-  {name: 'NL',      match: /\n/, lineBreaks: true },
-  {name: 'ERROR',   error: true},
+  {type: 'symbol',  match: Array.from('-%#+*/=^,?')},  // single character
+  {type: 'WS',      match: /[ \t]+/},
+  {type: 'ellips',  match: /\.{3}/},
+  {type: 'comment', match: /\/{2}.*$/},
+  {type: 'false',   match: /\<\>/},
+  {type: 'zero',    match: /\(\)/},
+  {type: 'empty',   match: /_(?: |$)/},
+  {type: 'number',  match: /[0-9]+(?:\.[0-9]+)?e-?[0-9]+/}, // 123[.123]e[-]123
+  {type: 'number',  match: /(?:0|[1-9][0-9]*)?\.[0-9]+/},   // [123].123
+  {type: 'number',  match: /(?:0|[1-9][0-9]*)\.[0-9]*/},    // 123.[123]
+  {type: 'number',  match: /0|[1-9][0-9]*/},              // 123
+  {type: 'color',   match: /#(?:[A-Fa-f0-9]{3}){2}/},
+  {type: 'string',  match: /"(?:\\["\\]|[^\n"\\])*"/}, // strings are backslash-escaped
+  {type: 'string',  match: /'(?:\\['\\]|[^\n'\\])*'/},
+  {type: 'lparen',  match: /\(/},
+  {type: 'rparen',  match: /\)/},
+  {type: 'langle',  match: /\</},
+  {type: 'rangle',  match: /\>/},
+  {type: 'lsquare', match: /\[/},
+  {type: 'rsquare', match: /\]/},
+  {type: 'cloud',   match: /[☁]/},
+  {type: 'input',   match: /%[a-z](?:\.[a-zA-Z]+)?/},
+  {type: 'symbol',  match: /[_A-Za-z][-_A-Za-z0-9:',.]*/}, // word, as in a block
+  {type: 'iden',    match: /[^\n \t"'()<>=*\/+-]+/},     // user-defined type
+  {type: 'NL',      match: /\n/, lineBreaks: true },
+  {type: 'ERROR',   error: true},
 ])
 
 function tokenize(source) {

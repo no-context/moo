@@ -110,10 +110,10 @@ describe('compiler', () => {
 
   test('accepts rules in an array', () => {
     const lexer = compile([
-      { name: 'keyword', match: 'Bob'},
-      { name: 'word', match: /[a-z]+/},
-      { name: 'number', match: /[0-9]+/},
-      { name: 'space', match: / +/},
+      { type: 'keyword', match: 'Bob'},
+      { type: 'word', match: /[a-z]+/},
+      { type: 'number', match: /[0-9]+/},
+      { type: 'space', match: / +/},
     ])
     lexer.reset('Bob ducks are 123 bad')
     expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
