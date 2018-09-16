@@ -304,10 +304,10 @@ describe('keywords', () => {
     }
 
     check(compile({
-      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: 'class'}},
+      identifier: {match: /[a-zA-Z]+/, type: moo.keywords({keyword: 'class'})},
     }))
     check(compile({
-      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: ['class']}},
+      identifier: {match: /[a-zA-Z]+/, type: moo.keywords({keyword: ['class']})},
     }))
   })
 
@@ -315,11 +315,11 @@ describe('keywords', () => {
     let lexer = compile({
       identifier: {
         match: /[a-zA-Z]+/,
-        keywords: {
+        type: moo.keywords({
           'kw-class': 'class',
           'kw-def': 'def',
           'kw-if': 'if',
-        },
+        }),
       },
       space: {match: /\s+/, lineBreaks: true},
     })
@@ -335,9 +335,9 @@ describe('keywords', () => {
     expect(() => compile({
       identifier: {
         match: /[a-zA-Z]+/,
-        keywords: {
+        type: moo.keywords({
           'kw-class': {foo: 'bar'},
-        },
+        }),
       },
     })).toThrow("keyword must be string (in keyword 'kw-class')")
   })
@@ -395,15 +395,6 @@ describe('type transforms', () => {
     expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'mOo' })
     lexer.reset('cheese')
     expect(lexer.next()).toMatchObject({ type: 'identifier', value: 'cheese'})
-  })
-
-  test('cannot set both type and keywords', () => {
-    expect(() => compile({
-      identifier: {
-        type: () => 'moo',
-        keywords: {foo: 'keyword'},
-      },
-    })).toThrow("Cannot have both keywords and type (for token 'identifier')")
   })
 
   test('cannot set type to a string', () => {
@@ -526,7 +517,7 @@ describe('lexer', () => {
     // TODO: why does toString() return the value?
     const lexer = compile({
       apples: 'a',
-      name: {match: /[a-z]/, keywords: { kw: ['m'] }},
+      name: {match: /[a-z]/, type: moo.keywords({ kw: ['m'] })},
     }).reset('azm')
     expect(String(lexer.next())).toBe('a')
     expect(String(lexer.next())).toBe('z')
@@ -581,17 +572,17 @@ describe('Lexer#has', () => {
   const keywordLexer = compile({
     identifier: {
       match: /[a-zA-Z]+/,
-      keywords: {
+      type: moo.keywords({
         'kw-class': 'class',
         'kw-def': 'def',
         'kw-if': 'if',
-      },
+      }),
     },
   })
 
-  test('works with keywords', () => {
+  test("doesn't work with keywords", () => {
     expect(keywordLexer.has('identifier')).toBe(true)
-    expect(keywordLexer.has('kw-class')).toBe(true)
+    expect(keywordLexer.has('kw-class')).toBe(false)
   })
 
   // Example from the readme.

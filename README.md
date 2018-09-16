@@ -175,13 +175,13 @@ Moo makes it convenient to define literals.
 
 It'll automatically compile them into regular expressions, escaping them where necessary.
 
-**Keywords** should be written using the `keywords` attribute.
+**Keywords** should be written using the `keywords` transform.
 
 ```js
     moo.compile({
-      IDEN: {match: /[a-zA-Z]+/, keywords: {
+      IDEN: {match: /[a-zA-Z]+/, type: moo.keywords({
         KW: ['while', 'if', 'else', 'moo', 'cows'],
-      }},
+      })},
       SPACE: {match: /\s+/, lineBreaks: true},
     })
 ```
@@ -209,11 +209,11 @@ Keywords can also have **individual types**.
 
 ```js
     let lexer = moo.compile({
-      name: {match: /[a-zA-Z]+/, keywords: {
+      name: {match: /[a-zA-Z]+/, type: moo.keywords({
         'kw-class': 'class',
         'kw-def': 'def',
         'kw-if': 'if',
-      }},
+      })},
       // ...
     })
     lexer.reset('def foo')

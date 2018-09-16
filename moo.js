@@ -130,15 +130,6 @@
       }
     }
 
-    // `keywords: obj` is shorthand for `type: moo.keywords(obj)`
-    if (options.keywords) {
-      // Warn if both keywords and type are set
-      if (options.type) {
-        throw new Error("Cannot have both keywords and type (for token '" + type + "')")
-      }
-      options.type = keywordTransform(options.keywords)
-    }
-
     // type transform cannot be a string
     if (typeof options.type === 'string' && type !== options.type) {
       throw new Error("Type transform cannot be a string (type '" + options.type + "' for token '" + type + "')")
@@ -576,9 +567,6 @@
       for (var i = 0; i < groups.length; i++) {
         var group = groups[i]
         if (group.defaultType === tokenType) return true
-        if (group.keywords && hasOwnProperty.call(group.keywords, tokenType)) {
-          return true
-        }
       }
     }
     return false
