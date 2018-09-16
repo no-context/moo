@@ -134,9 +134,14 @@
     if (options.keywords) {
       // Warn if both keywords and type are set
       if (options.type) {
-        throw new Error("Cannot have both keywords and type (for token '" + options.defaultType + "')")
+        throw new Error("Cannot have both keywords and type (for token '" + name + "')")
       }
       options.type = keywordTransform(options.keywords)
+    }
+
+    // type transform cannot be a string
+    if (typeof options.type === 'string') {
+      throw new Error("Type transform cannot be a string (type '" + options.type + "' for token '" + name + "')")
     }
 
     // convert to array

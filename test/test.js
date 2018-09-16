@@ -406,6 +406,14 @@ describe('type transforms', () => {
     })).toThrow("Cannot have both keywords and type (for token 'identifier')")
   })
 
+  test('cannot set type to a string', () => {
+    expect(() => compile({
+      identifier: {
+        type: 'moo',
+      },
+    })).toThrow("Type transform cannot be a string (type 'moo' for token 'identifier')")
+  })
+
 })
 
 describe('value transforms', () => {
