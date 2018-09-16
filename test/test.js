@@ -561,12 +561,8 @@ describe('Lexer#has', () => {
     expect(basicLexer.has('error')).toBe(true)
   })
 
-  test('returns false for nonexistent junk', () => {
-    expect(basicLexer.has('random')).toBe(false)
-  })
-
-  test('returns false for stuff inherited from Object', () => {
-    expect(basicLexer.has('hasOwnProperty')).toBe(false)
+  test('returns true even for nonexistent junk', () => {
+    expect(basicLexer.has('random')).toBe(true)
   })
 
   const keywordLexer = compile({
@@ -580,9 +576,8 @@ describe('Lexer#has', () => {
     },
   })
 
-  test("doesn't work with keywords", () => {
-    expect(keywordLexer.has('identifier')).toBe(true)
-    expect(keywordLexer.has('kw-class')).toBe(false)
+  test("returns true even for keywords", () => {
+    expect(keywordLexer.has('kw-class')).toBe(true)
   })
 
   // Example from the readme.
@@ -613,20 +608,12 @@ describe('Lexer#has', () => {
     expect(statefulLexer.has('interp')).toEqual(true)
   })
 
-	test('works with error tokens - for first state', () => {
-		expect(statefulLexer.has('mainErr')).toEqual(true)
-	})
-
-	test('works with error tokens - for second state', () => {
-		expect(statefulLexer.has('litErr')).toEqual(true)
-	})
-
-  test('returns false for the state names themselves', () => {
-    expect(statefulLexer.has('main')).toEqual(false)
+  test('works with error tokens - for first state', () => {
+    expect(statefulLexer.has('mainErr')).toEqual(true)
   })
 
-  test('returns false for stuff inherited from Object when using states', () => {
-    expect(statefulLexer.has('toString')).toEqual(false)
+  test('works with error tokens - for second state', () => {
+    expect(statefulLexer.has('litErr')).toEqual(true)
   })
 
 })

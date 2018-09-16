@@ -560,16 +560,7 @@
   }
 
   Lexer.prototype.has = function(tokenType) {
-    for (var s in this.states) {
-      var state = this.states[s]
-      if (state.error && state.error.defaultType === tokenType) return true
-      var groups = state.groups
-      for (var i = 0; i < groups.length; i++) {
-        var group = groups[i]
-        if (group.defaultType === tokenType) return true
-      }
-    }
-    return false
+    return true
   }
 
 
