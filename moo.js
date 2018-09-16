@@ -260,6 +260,7 @@
       throw new Error("pop must be 1 (in token '" + g.defaultType + "' of state '" + name + "')")
     }
   }
+
   function compileStates(states, start) {
     var all = states.$all ? toRules(states.$all) : []
     delete states.$all
@@ -509,16 +510,14 @@
       }
     }
 
-    var token = {
-      type: (typeof group.type === 'function' && group.type(text)) || group.defaultType,
-      value: typeof group.value === 'function' ? group.value(text) : text,
-      text: text,
-      toString: tokenToString,
-      offset: offset,
-      lineBreaks: lineBreaks,
-      line: this.line,
-      col: this.col,
-    }
+    var token = new Token
+    token.type = (typeof group.type === 'function' && group.type(text)) || group.defaultType
+    token.value = typeof group.value === 'function' ? group.value(text) : text
+    token.text = text
+    token.offset = offset
+    token.lineBreaks = lineBreaks
+    token.line = this.line
+    token.col = this.col
     // nb. adding more props to token object will make V8 sad!
 
     var size = text.length
@@ -569,6 +568,13 @@
 
   Lexer.prototype.has = function(tokenType) {
     return true
+  }
+
+
+  function Token() {}
+
+  Token.prototype.toString = function() {
+    return this.text
   }
 
 
