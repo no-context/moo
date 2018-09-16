@@ -130,6 +130,15 @@
       }
     }
 
+    // `keywords: obj` is shorthand for `type: moo.keywords(obj)`
+    if (options.keywords) {
+      // Warn if both keywords and type are set
+      if (options.type) {
+        throw new Error("Cannot have both keywords and type (for token '" + options.defaultType + "')")
+      }
+      options.type = keywordTransform(options.keywords)
+    }
+
     // convert to array
     var match = options.match
     options.match = Array.isArray(match) ? match : match ? [match] : []
@@ -137,9 +146,6 @@
       return isRegExp(a) && isRegExp(b) ? 0
            : isRegExp(b) ? -1 : isRegExp(a) ? +1 : b.length - a.length
     })
-    if (options.keywords) {
-      options.type = keywordTransform(options.keywords)
-    }
     return options
   }
 

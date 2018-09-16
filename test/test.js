@@ -397,6 +397,15 @@ describe('type transforms', () => {
     expect(lexer.next()).toMatchObject({ type: 'identifier', value: 'cheese'})
   })
 
+  test('cannot set both type and keywords', () => {
+    expect(() => compile({
+      identifier: {
+        type: () => 'moo',
+        keywords: {foo: 'keyword'},
+      },
+    })).toThrow("Cannot have both keywords and type (for token 'identifier')")
+  })
+
 })
 
 describe('value transforms', () => {
