@@ -765,16 +765,16 @@ describe('save/restore', () => {
   const statefulLexer = moo.states({
     start: {
       word: /\w+/,
-      eq: {match: '=', next: 'ab'},
+      eq: {match: '=', push: 'ab'},
     },
     ab: {
       a: 'a',
       b: 'b',
-      semi: {match: ';', next: 'start'},
+      semi: {match: ';', push: 'start'},
     },
   })
 
-  test('info includes state', () => {
+  test('can save state', () => {
     statefulLexer.reset('one=ab')
     statefulLexer.next()
     expect(statefulLexer.state).toBe('start')
@@ -788,6 +788,22 @@ describe('save/restore', () => {
     statefulLexer.reset('ab', {line: 0, col: 0, state: 'ab'})
     expect(statefulLexer.state).toBe('ab')
     expect(lexAll(statefulLexer).length).toBe(2)
+  })
+
+  test('can save stack', () => {
+    statefulLexer.reset('one=a;')
+    statefulLexer.next() // one
+    statefulLexer.next() // =
+    expect(statefulLexer.save()).toMatchObject({stack: ['start']})
+    statefulLexer.next() // a
+    statefulLexer.next() // ;
+    expect(statefulLexer.save()).toMatchObject({stack: ['start', 'ab']})
+  })
+
+  test('can restore stack', () => {
+    statefulLexer.reset('one=a;', { stack: ['one', 'two'], state: 'ab' })
+    expect(statefulLexer.state).toBe('ab')
+    expect(statefulLexer.stack).toEqual(['one', 'two'])
   })
 
 })

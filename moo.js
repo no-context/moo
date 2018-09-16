@@ -363,6 +363,7 @@
     this.queuedToken = info ? info.queuedToken : null
     this.queuedThrow = info ? info.queuedThrow : null
     this.setState(info ? info.state : this.startState)
+    this.stack = info && info.stack ? info.stack.slice() : []
     return this
   }
 
@@ -371,6 +372,7 @@
       line: this.line,
       col: this.col,
       state: this.state,
+      stack: this.stack.slice(),
       queuedToken: this.queuedToken,
       queuedThrow: this.queuedThrow,
     }
