@@ -83,9 +83,9 @@ RegExps are nifty for making tokenizers, but they can be a bit of a pain. Here a
     lexer.reset('"foo" "bar"')
     lexer.next() // -> { type: 'string', value: 'foo" "bar' }
     ```
-    
+
     Better:
-    
+
     ```js
     let lexer = moo.compile({
       string: /".*?"/,   // non-greedy quantifier *?
@@ -136,11 +136,29 @@ Note that this is `false` by default, for performance reasons: counting the numb
 Token objects (returned from `next()`) have the following attributes:
 
 * **`type`**: the name of the group, as passed to compile.
-* **`value`**: the match contents.
+* **`text`**: the string that was matched.
+* **`value`**: the string that was matched, transformed by your `value` function (if any).
 * **`offset`**: the number of bytes from the start of the buffer where the match starts.
 * **`lineBreaks`**: the number of line breaks found in the match. (Always zero if this rule has `lineBreaks: false`.)
 * **`line`**: the line number of the beginning of the match, starting from 1.
 * **`col`**: the column where the match begins, starting from 1.
+
+
+### Value vs. Text ###
+
+The `value` is the same as the `text`, unless you provide a [value transform](#transform).
+
+```js
+const moo = require('moo')
+
+const lexer = moo.compile({
+  ws: /[ \t]+/,
+  string: {match: /"(?:\\["\\]|[^\n"\\])*"/, value: s => s.slice(1, -1)},
+})
+
+lexer.reset('"test"')
+lexer.next() /* { value: 'test', text: '"test"', ... } */
+```
 
 
 ### Reset ###
@@ -282,7 +300,7 @@ If you prefer, you can have moo return an error token instead of throwing an exc
       // ...
       myError: moo.error,
     })
-    
+
     moo.reset('invalid')
     moo.next() // -> { type: 'myError', value: 'invalid', text: 'invalid', offset: 0, lineBreaks: 0, line: 1, col: 1 }
     moo.next() // -> undefined
