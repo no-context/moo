@@ -110,10 +110,10 @@ describe('compiler', () => {
 
   test('accepts rules in an array', () => {
     const lexer = compile([
-      { name: 'keyword', match: 'Bob'},
-      { name: 'word', match: /[a-z]+/},
-      { name: 'number', match: /[0-9]+/},
-      { name: 'space', match: / +/},
+      { type: 'keyword', match: 'Bob'},
+      { type: 'word', match: /[a-z]+/},
+      { type: 'number', match: /[0-9]+/},
+      { type: 'space', match: / +/},
     ])
     lexer.reset('Bob ducks are 123 bad')
     expect(lexer.next()).toMatchObject({type: 'keyword', value: 'Bob'})
@@ -304,10 +304,10 @@ describe('keywords', () => {
     }
 
     check(compile({
-      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: 'class'}},
+      identifier: {match: /[a-zA-Z]+/, type: moo.keywords({keyword: 'class'})},
     }))
     check(compile({
-      identifier: {match: /[a-zA-Z]+/, keywords: {keyword: ['class']}},
+      identifier: {match: /[a-zA-Z]+/, type: moo.keywords({keyword: ['class']})},
     }))
   })
 
@@ -315,11 +315,11 @@ describe('keywords', () => {
     let lexer = compile({
       identifier: {
         match: /[a-zA-Z]+/,
-        keywords: {
+        type: moo.keywords({
           'kw-class': 'class',
           'kw-def': 'def',
           'kw-if': 'if',
-        },
+        }),
       },
       space: {match: /\s+/, lineBreaks: true},
     })
@@ -335,11 +335,91 @@ describe('keywords', () => {
     expect(() => compile({
       identifier: {
         match: /[a-zA-Z]+/,
-        keywords: {
+        type: moo.keywords({
           'kw-class': {foo: 'bar'},
-        },
+        }),
       },
     })).toThrow("keyword must be string (in keyword 'kw-class')")
+  })
+
+})
+
+describe('type transforms', () => {
+
+  test('can use moo.keywords as type', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: moo.keywords({
+          'kw-class': 'class',
+          'kw-def': 'def',
+          'kw-if': 'if',
+        }),
+      },
+      space: {match: /\s+/, lineBreaks: true},
+    })
+    lexer.reset('foo def')
+    expect(Array.from(lexer).map(t => t.type)).toEqual([
+        'identifier',
+        'space',
+        'kw-def',
+    ])
+  })
+
+  test('type can be a function', () => {
+    let lexer = compile({
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: () => 'moo',
+      },
+    })
+    lexer.reset('baa')
+    expect(lexer.next()).toMatchObject({ type: 'moo' })
+  })
+
+  test('supports case-insensitive keywords', () => {
+    const caseInsensitiveKeywords = map => {
+      const transform = moo.keywords(map)
+      return text => transform(text.toLowerCase())
+    }
+    let lexer = compile({
+      space: ' ',
+      identifier: {
+        match: /[a-zA-Z]+/,
+        type: caseInsensitiveKeywords({
+          keyword: ['moo'],
+        }),
+      },
+    })
+    lexer.reset('mOo')
+    expect(lexer.next()).toMatchObject({ type: 'keyword', value: 'mOo' })
+    lexer.reset('cheese')
+    expect(lexer.next()).toMatchObject({ type: 'identifier', value: 'cheese'})
+  })
+
+  test('cannot set type to a string', () => {
+    expect(() => compile({
+      identifier: {
+        type: 'moo',
+      },
+    })).toThrow("Type transform cannot be a string (type 'moo' for token 'identifier')")
+  })
+
+  test('can be used in an array', () => {
+    const lexer = compile([
+      { type: (name) => 'word-' + name, match: /[a-z]+/},
+      { type: 'space', match: / +/},
+    ])
+    lexer.reset('foo ')
+    expect(lexer.next()).toMatchObject({type: 'word-foo', value: 'foo'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
+  test('may result in questionable errors', () => {
+    const myTransform = function() {}
+    expect(() => compile([
+      { type: myTransform, next: 'moo'},
+    ])).toThrow("State-switching options are not allowed in stateless lexers (for token 'function () {}')")
   })
 
 })
@@ -454,7 +534,7 @@ describe('lexer', () => {
     // TODO: why does toString() return the value?
     const lexer = compile({
       apples: 'a',
-      name: {match: /[a-z]/, keywords: { kw: ['m'] }},
+      name: {match: /[a-z]/, type: moo.keywords({ kw: ['m'] })},
     }).reset('azm')
     expect(String(lexer.next())).toBe('a')
     expect(String(lexer.next())).toBe('z')
@@ -498,27 +578,22 @@ describe('Lexer#has', () => {
     expect(basicLexer.has('error')).toBe(true)
   })
 
-  test('returns false for nonexistent junk', () => {
-    expect(basicLexer.has('random')).toBe(false)
-  })
-
-  test('returns false for stuff inherited from Object', () => {
-    expect(basicLexer.has('hasOwnProperty')).toBe(false)
+  test('returns true even for nonexistent junk', () => {
+    expect(basicLexer.has('random')).toBe(true)
   })
 
   const keywordLexer = compile({
     identifier: {
       match: /[a-zA-Z]+/,
-      keywords: {
+      type: moo.keywords({
         'kw-class': 'class',
         'kw-def': 'def',
         'kw-if': 'if',
-      },
+      }),
     },
   })
 
-  test('works with keywords', () => {
-    expect(keywordLexer.has('identifier')).toBe(true)
+  test("returns true even for keywords", () => {
     expect(keywordLexer.has('kw-class')).toBe(true)
   })
 
@@ -550,20 +625,12 @@ describe('Lexer#has', () => {
     expect(statefulLexer.has('interp')).toEqual(true)
   })
 
-	test('works with error tokens - for first state', () => {
-		expect(statefulLexer.has('mainErr')).toEqual(true)
-	})
-
-	test('works with error tokens - for second state', () => {
-		expect(statefulLexer.has('litErr')).toEqual(true)
-	})
-
-  test('returns false for the state names themselves', () => {
-    expect(statefulLexer.has('main')).toEqual(false)
+  test('works with error tokens - for first state', () => {
+    expect(statefulLexer.has('mainErr')).toEqual(true)
   })
 
-  test('returns false for stuff inherited from Object when using states', () => {
-    expect(statefulLexer.has('toString')).toEqual(false)
+  test('works with error tokens - for second state', () => {
+    expect(statefulLexer.has('litErr')).toEqual(true)
   })
 
 })
@@ -857,7 +924,6 @@ describe('errors', () => {
       digits: /[0-9]+/,
       error: moo.error,
     })
-    expect(lexer.error).toMatchObject({tokenType: 'error'})
     lexer.reset('123foo')
     expect(lexer.next()).toMatchObject({type: 'digits', value: '123'})
     expect(lexer.next()).toMatchObject({type: 'error', value: 'foo', offset: 3})
