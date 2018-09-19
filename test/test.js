@@ -405,6 +405,23 @@ describe('type transforms', () => {
     })).toThrow("Type transform cannot be a string (type 'moo' for token 'identifier')")
   })
 
+  test('can be used in an array', () => {
+    const lexer = compile([
+      { type: (name) => 'word-' + name, match: /[a-z]+/},
+      { type: 'space', match: / +/},
+    ])
+    lexer.reset('foo ')
+    expect(lexer.next()).toMatchObject({type: 'word-foo', value: 'foo'})
+    expect(lexer.next()).toMatchObject({type: 'space', value: ' '})
+  })
+
+  test('may result in questionable errors', () => {
+    const myTransform = function() {}
+    expect(() => compile([
+      { type: myTransform, next: 'moo'},
+    ])).toThrow("State-switching options are not allowed in stateless lexers (for token 'function () {}')")
+  })
+
 })
 
 describe('value transforms', () => {
