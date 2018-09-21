@@ -544,7 +544,7 @@
   }
 
   Lexer.prototype.formatError = function(token, message) {
-    var value = token.value
+    var value = token.text
     var index = token.offset
     var eol = token.lineBreaks ? value.indexOf('\n') : value.length
     var start = Math.max(0, index - token.col + 1)
