@@ -407,10 +407,10 @@
     this.setState(state)
   }
 
-  Lexer.prototype._eat = hasSticky ? function(re) { // assume re is /y
-    return re.exec(this.buffer)
-  } : function(re) { // assume re is /g
-    var match = re.exec(this.buffer)
+  Lexer._eat = hasSticky ? function(re, buffer) { // assume re is /y
+    return re.exec(buffer)
+  } : function(re, buffer) { // assume re is /g
+    var match = re.exec(buffer)
     // will always match, since we used the |(?:) trick
     if (match[0].length === 0) {
       return null
@@ -419,14 +419,10 @@
   }
 
   Lexer.prototype._getGroup = function(match) {
-    if (match === null) {
-      return -1
-    }
-
     var groupCount = this.groups.length
     for (var i = 0; i < groupCount; i++) {
       if (match[i + 1] !== undefined) {
-        return i
+        return this.groups[i]
       }
     }
     throw new Error('Cannot find token type for matched text')
@@ -437,66 +433,53 @@
   }
 
   Lexer.prototype.next = function() {
-    if (this.queuedToken) {
-      var queuedToken = this.queuedToken, queuedThrow = this.queuedThrow
-      this.queuedToken = null
-      this.queuedThrow = false
-      if (queuedThrow) {
-        throw new Error(this.formatError(queuedToken, "invalid syntax"))
-      }
-      return queuedToken
-    }
-    var re = this.re
-    var buffer = this.buffer
+    var index = this.index
 
-    var index = re.lastIndex = this.index
+    // If a fallback token matched, we don't need to re-run the RegExp
+    if (this.queuedGroup) {
+      var token = this._token(this.queuedGroup, this.queuedText, index)
+      this.queuedGroup = null
+      this.queuedText = ""
+      return token
+    }
+
+    var buffer = this.buffer
     if (index === buffer.length) {
       return // EOF
     }
 
-    var group, text, matchIndex
-    group = this.fast[buffer.charCodeAt(index)]
+    // Fast matching for single characters
+    var group = this.fast[buffer.charCodeAt(index)]
     if (group) {
-      text = buffer.charAt(index)
-      matchIndex = index
-
-    } else {
-      var match = this._eat(re)
-      matchIndex = match ? match.index : this.buffer.length
-      var i = this._getGroup(match)
-
-      if ((this.error.fallback && matchIndex !== index) || i === -1) {
-        var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
-
-        if (i === -1) {
-          if (this.error.shouldThrow) {
-            throw new Error(this.formatError(fallbackToken, "invalid syntax"))
-          }
-          return fallbackToken
-        }
-      }
-
-      group = this.groups[i]
-      text = match[0]
-    }
-    var token = this._hadToken(group, text, matchIndex)
-
-    // throw, if no rule with {error: true}
-    if (fallbackToken) {
-      this.queuedToken = token
-      this.queuedThrow = group.shouldThrow
-    } else if (group.shouldThrow) {
-      throw new Error(this.formatError(token, "invalid syntax"))
+      return this._token(group, buffer.charAt(index), index)
     }
 
-    if (group.pop) this.popState()
-    else if (group.push) this.pushState(group.push)
-    else if (group.next) this.setState(group.next)
+    // Execute RegExp
+    var re = this.re
+    re.lastIndex = index
+    var match = Lexer._eat(re, buffer)
 
-    return fallbackToken || token
+    // Error tokens match the remaining buffer
+    var error = this.error
+    if (match == null) {
+      return this._token(error, buffer.slice(index, buffer.length), index)
+    }
+
+    var group = this._getGroup(match)
+    var text = match[0]
+
+    if (error.fallback && match.index !== index) {
+      this.queuedGroup = group
+      this.queuedText = text
+
+      // Fallback tokens contain the unmatched portion of the buffer
+      return this._token(error, buffer.slice(index, match.index), index)
+    }
+
+    return this._token(group, text, index)
   }
 
-  Lexer.prototype._hadToken = function(group, text, offset) {
+  Lexer.prototype._token = function(group, text, offset) {
     // count line breaks
     var lineBreaks = 0
     if (group.lineBreaks) {
@@ -529,6 +512,16 @@
     } else {
       this.col += size
     }
+
+    // throw, if no rule with {error: true}
+    if (group.shouldThrow) {
+      throw new Error(this.formatError(token, "invalid syntax"))
+    }
+
+    if (group.pop) this.popState()
+    else if (group.push) this.pushState(group.push)
+    else if (group.next) this.setState(group.next)
+
     return token
   }
 
