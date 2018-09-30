@@ -232,7 +232,6 @@
       parts.push(reCapture(pat))
     }
 
-
     // If there's no fallback rule, use the sticky flag so we only look for
     // matches at the current index.
     //
@@ -243,7 +242,7 @@
     var suffix = hasSticky || fallbackRule ? '' : '|'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 
-    return {regexp: combined, groups: groups, fast: fast, error: errorRule || defaultErrorRule}
+    return new Matcher(combined, groups, fast, errorRule || defaultErrorRule)
   }
 
   function compile(rules) {
@@ -260,6 +259,7 @@
       throw new Error("pop must be 1 (in token '" + g.defaultType + "' of state '" + name + "')")
     }
   }
+
   function compileStates(states, start) {
     var all = states.$all ? toRules(states.$all) : []
     delete states.$all
@@ -357,6 +357,84 @@
 
   /***************************************************************************/
 
+  var Matcher = function(regexp, groups, fast, error) {
+    this.regexp = regexp
+    this.groups = groups
+    this.fast = fast
+    this.error = error
+    this.queuedGroup = null
+    this.queuedText = ''
+  }
+
+  Matcher.prototype._eat = hasSticky ? function(re, buffer) { // assume re is /y
+    return re.exec(buffer)
+  } : function(re, buffer) { // assume re is /g
+    var match = re.exec(buffer)
+    // will always match, since we used the |(?:) trick
+    if (match[0].length === 0) {
+      return null
+    }
+    return match
+  }
+
+  Matcher.prototype._getGroup = function(match) {
+    var groupCount = this.groups.length
+    for (var i = 0; i < groupCount; i++) {
+      if (match[i + 1] !== undefined) {
+        return this.groups[i]
+      }
+    }
+    throw new Error('Cannot find token type for matched text')
+  }
+
+  Matcher.prototype.match = function(buffer, index) {
+    if (this.queuedGroup) {
+      var queuedGroup = this.queuedGroup
+      this.text = this.queuedText
+      this.queuedGroup = null
+      this.queuedText = ''
+      return queuedGroup
+    }
+
+    if (index === buffer.length) {
+      this.text = ""
+      return // EOF
+    }
+
+    var group = this.fast[buffer.charCodeAt(index)]
+    if (group) {
+      this.text = buffer.charAt(index)
+      return group
+    }
+
+    var re = this.regexp
+    re.lastIndex = index
+    var match = this._eat(re, buffer)
+
+    // Error tokens match the remaining buffer
+    if (match == null) {
+      this.text = buffer.slice(index, buffer.length)
+      return this.error
+    }
+
+    var group = this._getGroup(match)
+
+    // Fallback tokens match the unmatched portion of the buffer
+    if (this.error.fallback && match.index !== index) {
+      this.text = buffer.slice(index, match.index)
+
+      this.queuedGroup = group
+      this.queuedText = match[0]
+
+      return this.error
+    }
+
+    this.text = match[0]
+    return group
+  }
+
+  /***************************************************************************/
+
   var Lexer = function(states, state) {
     this.startState = state
     this.states = states
@@ -391,11 +469,7 @@
   Lexer.prototype.setState = function(state) {
     if (!state || this.state === state) return
     this.state = state
-    var info = this.states[state]
-    this.groups = info.groups
-    this.error = info.error
-    this.re = info.regexp
-    this.fast = info.fast
+    this.matcher = this.states[state]
   }
 
   Lexer.prototype.popState = function() {
@@ -407,85 +481,24 @@
     this.setState(state)
   }
 
-  Lexer.prototype._eat = hasSticky ? function(re) { // assume re is /y
-    return re.exec(this.buffer)
-  } : function(re) { // assume re is /g
-    var match = re.exec(this.buffer)
-    // will always match, since we used the |(?:) trick
-    if (match[0].length === 0) {
-      return null
-    }
-    return match
-  }
-
-  Lexer.prototype._getGroup = function(match) {
-    if (match === null) {
-      return -1
-    }
-
-    var groupCount = this.groups.length
-    for (var i = 0; i < groupCount; i++) {
-      if (match[i + 1] !== undefined) {
-        return i
-      }
-    }
-    throw new Error('Cannot find token type for matched text')
-  }
-
   function tokenToString() {
     return this.value
   }
 
   Lexer.prototype.next = function() {
-    if (this.queuedToken) {
-      var queuedToken = this.queuedToken, queuedThrow = this.queuedThrow
-      this.queuedToken = null
-      this.queuedThrow = false
-      if (queuedThrow) {
-        throw new Error(this.formatError(queuedToken, "invalid syntax"))
-      }
-      return queuedToken
-    }
-    var re = this.re
     var buffer = this.buffer
+    var index = this.index
+    var matcher = this.matcher
 
-    var index = re.lastIndex = this.index
-    if (index === buffer.length) {
-      return // EOF
+    var group = matcher.match(buffer, index)
+    if (group == undefined) {
+      return
     }
 
-    var group, text, matchIndex
-    group = this.fast[buffer.charCodeAt(index)]
-    if (group) {
-      text = buffer.charAt(index)
-      matchIndex = index
-
-    } else {
-      var match = this._eat(re)
-      matchIndex = match ? match.index : this.buffer.length
-      var i = this._getGroup(match)
-
-      if ((this.error.fallback && matchIndex !== index) || i === -1) {
-        var fallbackToken = this._hadToken(this.error, buffer.slice(index, matchIndex), index)
-
-        if (i === -1) {
-          if (this.error.shouldThrow) {
-            throw new Error(this.formatError(fallbackToken, "invalid syntax"))
-          }
-          return fallbackToken
-        }
-      }
-
-      group = this.groups[i]
-      text = match[0]
-    }
-    var token = this._hadToken(group, text, matchIndex)
+    var token = this._hadToken(group, matcher.text, index)
 
     // throw, if no rule with {error: true}
-    if (fallbackToken) {
-      this.queuedToken = token
-      this.queuedThrow = group.shouldThrow
-    } else if (group.shouldThrow) {
+    if (group.shouldThrow) {
       throw new Error(this.formatError(token, "invalid syntax"))
     }
 
@@ -493,7 +506,7 @@
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
 
-    return fallbackToken || token
+    return token
   }
 
   Lexer.prototype._hadToken = function(group, text, offset) {
@@ -509,16 +522,14 @@
       }
     }
 
-    var token = {
-      type: (typeof group.type === 'function' && group.type(text)) || group.defaultType,
-      value: typeof group.value === 'function' ? group.value(text) : text,
-      text: text,
-      toString: tokenToString,
-      offset: offset,
-      lineBreaks: lineBreaks,
-      line: this.line,
-      col: this.col,
-    }
+    var token = new Token
+    token.type = (typeof group.type === 'function' && group.type(text)) || group.defaultType
+    token.value = typeof group.value === 'function' ? group.value(text) : text
+    token.text = text
+    token.offset = offset
+    token.lineBreaks = lineBreaks
+    token.line = this.line
+    token.col = this.col
     // nb. adding more props to token object will make V8 sad!
 
     var size = text.length
@@ -569,6 +580,13 @@
 
   Lexer.prototype.has = function(tokenType) {
     return true
+  }
+
+
+  function Token() {}
+
+  Token.prototype.toString = function() {
+    return this.text
   }
 
 

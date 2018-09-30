@@ -102,7 +102,6 @@ describe('compiler', () => {
         'lol',
       ],
     })
-    expect(lexer.groups.length).toBe(3)
     expect(lexer.reset('string').next()).toMatchObject({type: 'op', value: 'string'})
     expect(lexer.reset('regexp').next()).toMatchObject({type: 'op', value: 'regexp'})
     expect(lexer.reset('something').next()).toMatchObject({type: 'op', value: 'something'})
@@ -155,7 +154,8 @@ describe('compiles literals', () => {
     let lexer = moo.compile({
       tok: [/t[ok]+/, /\w/, 'foo', 'token']
     })
-    expect(lexer.re.source.replace(/[(?:)]/g, '').replace(/\|$/, ''))
+    const re = lexer.matcher.regexp
+    expect(re.source.replace(/[(?:)]/g, '').replace(/\|$/, ''))
     .toMatch('token|foo|t[ok]+|\\w')
   })
 
@@ -296,7 +296,7 @@ describe('fallback tokens', () => {
     })
     lexer.reset('foo.bar')
     expect(Array.from(lexer).map(x => x.value)).toEqual(['foo', '.', 'bar'])
-    expect(lexer.fast).toEqual({})
+    expect(lexer.matcher.fast).toEqual({})
   })
 
 })
