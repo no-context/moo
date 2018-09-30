@@ -289,6 +289,16 @@ describe('fallback tokens', () => {
     expect(() => lexer.next()).toThrow('invalid syntax')
   })
 
+  test('disables fast single-character matching', () => {
+    const lexer = moo.compile({
+      fast: '.',
+      text: moo.fallback,
+    })
+    lexer.reset('foo.bar')
+    expect(Array.from(lexer).map(x => x.value)).toEqual(['foo', '.', 'bar'])
+    expect(lexer.fast).toEqual({})
+  })
+
 })
 
 describe('keywords', () => {

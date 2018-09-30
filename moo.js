@@ -156,6 +156,14 @@
     var fastAllowed = true
     var groups = []
     var parts = []
+
+    // If there is a fallback rule, then disable fast matching
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i].fallback) {
+        fastAllowed = false
+      }
+    }
+
     for (var i = 0; i < rules.length; i++) {
       var options = rules[i]
 
