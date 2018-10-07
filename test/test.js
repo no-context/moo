@@ -51,6 +51,16 @@ describe('compiler', () => {
     }
   })
 
+  test('accepts multiple fast rules in states', () => {
+    const states = {
+      main: {
+        a: 'a',
+        b: 'b'
+      }
+    }
+    expect(() => moo.states(states)).not.toThrow()
+  })
+
   test('accepts RegExps from other contexts', () => {
     const lexer = moo.compile({
       word: vm.runInNewContext(/\w+/),
