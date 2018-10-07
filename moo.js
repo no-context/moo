@@ -310,9 +310,9 @@
       for (var j = 0; j < groups.length; j++) {
         checkStateGroup(groups[j], name, map)
       }
-      var keys = Object.getOwnPropertyNames(state.fast)
-      for (var j = 0; j < keys.length; j++) {
-        checkStateGroup(state.fast[keys[j]], name, map)
+      var fastKeys = Object.getOwnPropertyNames(state.fast)
+      for (var j = 0; j < fastKeys.length; j++) {
+        checkStateGroup(state.fast[fastKeys[j]], name, map)
       }
     }
 
