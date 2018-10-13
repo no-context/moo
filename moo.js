@@ -407,7 +407,7 @@
     this.setState(state)
   }
 
-  Lexer._eat = hasSticky ? function(re, buffer) { // assume re is /y
+  var eat = hasSticky ? function(re, buffer) { // assume re is /y
     return re.exec(buffer)
   } : function(re, buffer) { // assume re is /g
     var match = re.exec(buffer)
@@ -457,7 +457,7 @@
     // Execute RegExp
     var re = this.re
     re.lastIndex = index
-    var match = Lexer._eat(re, buffer)
+    var match = eat(re, buffer)
 
     // Error tokens match the remaining buffer
     var error = this.error
