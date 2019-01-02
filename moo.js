@@ -544,16 +544,23 @@
     }
   }
 
+  Lexer.prototype.makeEOF = function(type) {
+    return {
+      type: type,
+      value: "",
+      text: "",
+      toString: tokenToString,
+      offset: this.buffer.length,
+      lineBreaks: 0,
+      line: this.line,
+      col: this.col,
+    }
+  }
+
   Lexer.prototype.formatError = function(token, message) {
     // An undefined token indicates EOF
     if (token == null) {
-      token = {
-        text: "",
-        offset: this.buffer.length,
-        lineBreaks: false,
-        col: this.col,
-        line: this.line,
-      }
+      var token = this.makeEOF()
     }
     var value = token.text
     var index = token.offset

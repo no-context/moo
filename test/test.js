@@ -946,6 +946,26 @@ describe('errors', () => {
     )
   })
 
+  test('can make EOF token', () => {
+    let lexer = compile({
+      ws: {match: /\s/, lineBreaks: true},
+      word: /[a-z]+/,
+    })
+    lexer.reset('abc\ndef quxx')
+    expect(Array.from(lexer).length).toBe(5)
+    const tok = lexer.makeEOF("eof")
+    expect(tok).toMatchObject({
+      type: "eof",
+      value: "",
+      text: "",
+      offset: 12,
+      lineBreaks: 0,
+      line: 2,
+      col: 9,
+    })
+    expect(lexer.makeEOF("eof").toString()).toBe("")
+  })
+
   test('seek to end of buffer when thrown', () => {
     let lexer = compile({
       digits: /[0-9]+/,
