@@ -545,6 +545,16 @@
   }
 
   Lexer.prototype.formatError = function(token, message) {
+    // An undefined token indicates EOF
+    if (token == null) {
+      token = {
+        text: "",
+        offset: this.buffer.length,
+        lineBreaks: false,
+        col: this.col,
+        line: this.line,
+      }
+    }
     var value = token.text
     var index = token.offset
     var eol = token.lineBreaks ? value.indexOf('\n') : value.length
