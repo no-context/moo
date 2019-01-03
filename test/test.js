@@ -1047,6 +1047,43 @@ describe('example: tosh', () => {
 
 describe('include', () => {
 
+  test('handles fast matching', () => {
+    const l = moo.states({
+      main: {
+        "{": "{",
+        include: 'shared',
+      },
+      shared: {
+        '*': '*',
+        word: /[a-z]+/,
+      }
+    })
+
+    l.reset("{foo*")
+    Array.from(l)
+  })
+
+  test('handles multiple states with same fast match', () => {
+    const l = moo.states({
+      main: {
+        include: 'shared',
+        "{": {match: "{", push: "inner"},
+      },
+      inner: {
+        "}": {match: "}", pop: 1},
+        include: 'shared',
+      },
+      shared: {
+        '*': '*',
+        word: /[a-z]+/,
+      },
+      x: 1,
+    })
+
+    l.reset("foo{bar*}")
+    Array.from(l)
+  })
+
   test('handles cycles', () => {
     const lexer = moo.states({
       $all: {

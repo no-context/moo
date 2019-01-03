@@ -184,7 +184,7 @@
         errorRule = options
       }
 
-      var match = options.match
+      var match = options.match.slice()
       if (fastAllowed) {
         while (match.length && typeof match[0] === 'string' && match[0].length === 1) {
           var word = match.shift()
