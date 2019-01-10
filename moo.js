@@ -41,16 +41,33 @@
       return '(?:' + reEscape(obj) + ')'
 
     } else if (isRegExp(obj)) {
-      // TODO: consider /u support
       if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
       if (obj.global) throw new Error('RegExp /g flag is implied')
       if (obj.sticky) throw new Error('RegExp /y flag is implied')
       if (obj.multiline) throw new Error('RegExp /m flag is implied')
-      if (obj.unicode) throw new Error('RegExp /u flag is not allowed')
       return obj.source
 
     } else {
       throw new Error('Not a pattern: ' + obj)
+    }
+  }
+
+  function UnicodePatternStateMachine () {
+    this.state = 'init' // init | hasFlag | noFlag
+  }
+  UnicodePatternStateMachine.prototype.hasFlag = function () {
+    return this.state === 'hasFlag'
+  }
+  UnicodePatternStateMachine.prototype.transition = function (pattern) {
+    if (!isRegExp(pattern)) { return }
+  
+    const err = new Error('RegExp /u flag must be used on all or no patterns')
+    if (pattern.unicode) {
+      if (this.state === 'noFlag') { throw err }
+      this.state = 'hasFlag'
+    } else {
+      if (this.state === 'hasFlag') { throw err }
+      this.state = 'noFlag'
     }
   }
 
@@ -156,6 +173,7 @@
     var fastAllowed = true
     var groups = []
     var parts = []
+    var unicodeState = new UnicodePatternStateMachine()
 
     // If there is a fallback rule, then disable fast matching
     for (var i = 0; i < rules.length; i++) {
@@ -210,6 +228,10 @@
 
       groups.push(options)
 
+      match.forEach(function (pattern) {
+        unicodeState.transition(pattern)
+      })
+
       // convert to RegExp
       var pat = reUnion(match.map(regexpOrLiteral))
 
@@ -240,6 +262,7 @@
     // match (i.e. an empty pattern).
     var fallbackRule = errorRule && errorRule.fallback
     var flags = hasSticky && !fallbackRule ? 'ym' : 'gm'
+    if (unicodeState.hasFlag()) { flags += 'u' }
     var suffix = hasSticky || fallbackRule ? '' : '|'
     var combined = new RegExp(reUnion(parts) + suffix, flags)
 

@@ -29,13 +29,12 @@ describe('compiler', () => {
     expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
-  test("warns for /g, /y, /i, /m, /u", () => {
+  test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow('implied')
     expect(() => compile({ word: /foo/i })).toThrow('not allowed')
     expect(() => compile({ word: /foo/y })).toThrow('implied')
     expect(() => compile({ word: /foo/m })).toThrow('implied')
-    expect(() => compile({ word: /foo/u })).toThrow('not allowed')
   })
 
   // TODO warns if no lineBreaks: true
@@ -147,6 +146,27 @@ describe('compiler', () => {
     expect(tokens.shift()).toMatchObject({type: 'number', value: '3.14'})
   })
 
+  test('accepts unicode RegExps', () => {
+    const lexer = compile({
+      identifier: /[$_\p{ID_Start}][$\p{ID_Continue}]*/u,
+      space: / +/u,
+      operator: ["+"],
+    })
+    lexer.reset('$foo π ভরা')
+    var tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({type: 'identifier', value: '$foo'})
+    expect(tokens.shift()).toMatchObject({type: 'identifier', value: 'π'})
+    expect(tokens.shift()).toMatchObject({type: 'identifier', value: 'ভরা'})
+  })
+
+  test('rejects mixed unicode and non-unicode RegExps', () => {
+    expect(() => {
+      compile({
+        identifier: /[$_\p{ID_Start}][$\p{ID_Continue}]*/u,
+        space: / +/,
+      })
+    }).toThrow('RegExp /u flag must be used on all or no patterns')
+  })
 })
 
 describe('compiles literals', () => {
