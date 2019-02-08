@@ -21,10 +21,6 @@
   function reEscape(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
   }
-  function reGroups(s) {
-    var re = new RegExp('|' + s)
-    return re.exec('').length - 1
-  }
   function reCapture(s) {
     return '(' + s + ')'
   }
@@ -218,7 +214,7 @@
       if (regexp.test("")) {
         throw new Error("RegExp matches empty string: " + regexp)
       }
-      var groupCount = reGroups(pat)
+      var groupCount = new RegExp("|"+pat).exec('').length -1
       if (groupCount > 0) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
