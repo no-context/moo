@@ -21,14 +21,12 @@ function chevrotainFromMoo(lexer) {
   for (var i=0; i<keys.length; i++) {
     var charCode = keys[i]
     var word = String.fromCharCode(charCode)
-    var pat = new RegExp(reEscape(word))
-    var group = lexer.fast[charCode]
-    tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
+    tokens.push(chevrotain.createToken({name: `fast${i}`, pattern: word}))
   }
   lexer.groups.forEach(group => {
     var options = group.match.map(pat => typeof pat === 'string' ? reEscape(pat) : pat.source)
     var pat = new RegExp(options.join('|'))
-    tokens.push(chevrotain.createToken({name: group.tokenType, pattern: pat}))
+    tokens.push(chevrotain.createToken({name: group.defaultType, pattern: pat}))
   })
   // "onlyStart" will track startOffset, startLine, startColumn.
   // By default endOffset, endLine and endColumn will also be tracked at the cost of a few % points in performance.
@@ -165,15 +163,11 @@ suite('python', () => {
   })
 
 
-  /* chevrotain's lexer
-   */
-  /*
+  //chevrotain's lexer
   let chevLexer = chevrotainFromMoo(pythonLexer)
   benchmark('chevrotain', function() {
-    let count = chevLexer.tokenize(kurtFile).tokens.length
-    if (count !== 14513) throw 'fail'
+    let lexResult = chevLexer.tokenize(kurtFile)
   })
-  */
 
   /*
   let pythonGroups = []
