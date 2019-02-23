@@ -28,10 +28,9 @@ describe('compiler', () => {
     expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
-  test("warns for /g, /y, /i, /m", () => {
+  test("warns for /g, /y, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow('implied')
-    expect(() => compile({ word: /foo/i })).toThrow('not allowed')
     expect(() => compile({ word: /foo/y })).toThrow('implied')
     expect(() => compile({ word: /foo/m })).toThrow('implied')
   })
@@ -1208,6 +1207,25 @@ describe("unicode flag", () => {
     expect(lexer2.next()).toMatchObject({value: "𝍖"})
     lexer2.reset("\\u{1D356}")
     expect(() => lexer2.next()).toThrow()
+  })
+
+})
+
+
+describe('ignoreCase flag', () => {
+
+  test("allows all rules to be /i", () => {
+    expect(() => compile({ a: /foo/i, b: /bar/i, c: "quxx" })).not.toThrow()
+    expect(() => compile({ a: /foo/i, b: /bar/, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/, b: /bar/i, c: "quxx" })).toThrow("If one rule is /i then all must be")
+  })
+
+  test("supports ignoreCase", () => {
+    const lexer = compile({ a: /foo/i, b: /bar/i, c: "quxx" })
+    lexer.reset("FoObArQuXx")
+    expect(lexer.next()).toMatchObject({value: "FoO"})
+    expect(lexer.next()).toMatchObject({value: "bAr"})
+    expect(lexer.next()).toMatchObject({value: "QuXx"})
   })
 
 })
