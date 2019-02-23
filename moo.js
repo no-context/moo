@@ -46,7 +46,6 @@
       if (obj.global) throw new Error('RegExp /g flag is implied')
       if (obj.sticky) throw new Error('RegExp /y flag is implied')
       if (obj.multiline) throw new Error('RegExp /m flag is implied')
-      if (obj.unicode) throw new Error('RegExp /u flag is not allowed')
       return obj.source
 
     } else {
@@ -154,6 +153,7 @@
     var errorRule = null
     var fast = Object.create(null)
     var fastAllowed = true
+    var unicodeFlag = null
     var groups = []
     var parts = []
 
@@ -210,6 +210,20 @@
 
       groups.push(options)
 
+      // Check unicode flag is used everywhere or nowhere
+      for (var j = 0; j < match.length; j++) {
+        var obj = match[j]
+        if (!isRegExp(obj)) {
+          continue
+        }
+
+        if (unicodeFlag === null) {
+          unicodeFlag = obj.unicode
+        } else if (unicodeFlag !== obj.unicode) {
+          throw new Error("If one rule is /u then all must be")
+        }
+      }
+
       // convert to RegExp
       var pat = reUnion(match.map(regexpOrLiteral))
 
@@ -241,8 +255,9 @@
     var fallbackRule = errorRule && errorRule.fallback
     var flags = hasSticky && !fallbackRule ? 'ym' : 'gm'
     var suffix = hasSticky || fallbackRule ? '' : '|'
-    var combined = new RegExp(reUnion(parts) + suffix, flags)
 
+    if (unicodeFlag === true) flags += "u"
+    var combined = new RegExp(reUnion(parts) + suffix, flags)
     return {regexp: combined, groups: groups, fast: fast, error: errorRule || defaultErrorRule}
   }
 
