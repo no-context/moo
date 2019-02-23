@@ -1220,6 +1220,16 @@ describe('ignoreCase flag', () => {
     expect(() => compile({ a: /foo/, b: /bar/i, c: "quxx" })).toThrow("If one rule is /i then all must be")
   })
 
+  test("allows all rules to be /ui", () => {
+    expect(() => compile({ a: /foo/ui, b: /bar/ui, c: "quxx" })).not.toThrow()
+    expect(() => compile({ a: /foo/u, b: /bar/i, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/i, b: /bar/u, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/ui, b: /bar/i, c: "quxx" })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/ui, b: /bar/u, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/i, b: /bar/ui, c: "quxx" })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/u, b: /bar/ui, c: "quxx" })).toThrow("If one rule is /i then all must be")
+  })
+
   test("supports ignoreCase", () => {
     const lexer = compile({ a: /foo/i, b: /bar/i, c: "quxx" })
     lexer.reset("FoObArQuXx")
