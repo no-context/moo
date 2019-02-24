@@ -118,6 +118,7 @@
       value: null,
       type: null,
       shouldThrow: false,
+      ignoreCase: null,
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -210,8 +211,12 @@
       groups.push(options)
 
       // Check unicode and ignoreCase flags are used everywhere or nowhere
+      var hasLiteralsWithCase = false
       for (var j = 0; j < match.length; j++) {
         var obj = match[j]
+        if (typeof obj === "string" && obj.toLowerCase() !== obj.toUpperCase()) {
+          hasLiteralsWithCase = true
+        }
         if (!isRegExp(obj)) {
           continue
         }
@@ -226,6 +231,25 @@
           ignoreCaseFlag = obj.ignoreCase
         } else if (ignoreCaseFlag !== obj.ignoreCase) {
           throw new Error("If one rule is /i then all must be")
+        }
+
+        // RegExp flags must match the rule's ignoreCase option, if set
+        if (options.ignoreCase !== null && obj.ignoreCase !== options.ignoreCase) {
+          throw new Error("ignoreCase option must match RegExp flags (in token '" + options.defaultType + "')")
+        }
+      }
+
+      if (hasLiteralsWithCase) {
+        var ignoreCase = !!options.ignoreCase
+        if (ignoreCaseFlag === null) {
+          ignoreCaseFlag = ignoreCase
+        } else if (ignoreCaseFlag !== ignoreCase) {
+          if (ignoreCaseFlag) {
+            throw new Error("Literal must be marked with {ignoreCase: true} (in token '" + options.defaultType + "')")
+          } else {
+            // TODO transform literals to ignore case, even if it's not set globally
+            throw new Error("If one rule sets ignoreCase then all must (in token '" + options.defaultType + "')")
+          }
         }
       }
 

@@ -1215,27 +1215,79 @@ describe("unicode flag", () => {
 describe('ignoreCase flag', () => {
 
   test("allows all rules to be /i", () => {
-    expect(() => compile({ a: /foo/i, b: /bar/i, c: "quxx" })).not.toThrow()
-    expect(() => compile({ a: /foo/i, b: /bar/, c: "quxx" })).toThrow("If one rule is /i then all must be")
-    expect(() => compile({ a: /foo/, b: /bar/i, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/i, b: /bar/i })).not.toThrow()
+    expect(() => compile({ a: /foo/i, b: /bar/ })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/, b: /bar/i })).toThrow("If one rule is /i then all must be")
   })
 
   test("allows all rules to be /ui", () => {
-    expect(() => compile({ a: /foo/ui, b: /bar/ui, c: "quxx" })).not.toThrow()
-    expect(() => compile({ a: /foo/u, b: /bar/i, c: "quxx" })).toThrow("If one rule is /i then all must be")
-    expect(() => compile({ a: /foo/i, b: /bar/u, c: "quxx" })).toThrow("If one rule is /i then all must be")
-    expect(() => compile({ a: /foo/ui, b: /bar/i, c: "quxx" })).toThrow("If one rule is /u then all must be")
-    expect(() => compile({ a: /foo/ui, b: /bar/u, c: "quxx" })).toThrow("If one rule is /i then all must be")
-    expect(() => compile({ a: /foo/i, b: /bar/ui, c: "quxx" })).toThrow("If one rule is /u then all must be")
-    expect(() => compile({ a: /foo/u, b: /bar/ui, c: "quxx" })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/ui, b: /bar/ui })).not.toThrow()
+    expect(() => compile({ a: /foo/u, b: /bar/i })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/i, b: /bar/u })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/ui, b: /bar/i })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/ui, b: /bar/u })).toThrow("If one rule is /i then all must be")
+    expect(() => compile({ a: /foo/i, b: /bar/ui })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/u, b: /bar/ui })).toThrow("If one rule is /i then all must be")
+  })
+
+  test("allow literals to be marked ignoreCase", () => {
+    expect(() => compile({
+      a: /foo/i,
+      lit: {match: "quxx", ignoreCase: true},
+    })).not.toThrow()
+    expect(() => compile([
+      { type: "a", match: /foo/i },
+      { type: "lit", match: "quxx", ignoreCase: true },
+    ])).not.toThrow()
+  })
+
+  test("require literals to be marked ignoreCase", () => {
+    expect(() => compile({
+      a: /foo/i,
+      lit: "quxx" ,
+    })).toThrow("Literal must be marked with {ignoreCase: true} (in token 'lit')")
+    expect(() => compile([
+      { type: "a", match: /foo/i },
+      { type: "lit", match: "quxx" },
+    ])).toThrow("Literal must be marked with {ignoreCase: true} (in token 'lit')")
+  })
+
+  test("ignoreCase is only required when case is relevant", () => {
+    expect(() => compile({
+      cat: {match: "cat", ignoreCase: true},
+      bat: {match: "BAT", ignoreCase: true},
+      comma: ',',
+      semi: ';',
+      lparen: '(',
+      rparen: ')',
+      lbrace: '{',
+      rbrace: '}',
+      lbracket: '[',
+      rbracket: ']',
+      and: '&&',
+      or: '||',
+      bitand: '&',
+      bitor: '|',
+    })).not.toThrow()
+  })
+
+  test("require ignoreCase option to be match RegExp flags", () => {
+    expect(() => compile({
+      word: { match: /[a-z]+/, ignoreCase: true },
+    })).toThrow("ignoreCase option must match RegExp flags")
+    expect(() => compile({
+      word: { match: ["foo", /[a-z]+/], ignoreCase: true },
+    })).toThrow("ignoreCase option must match RegExp flags")
+    expect(() => compile({
+      word: { match: /[a-z]+/i, ignoreCase: false },
+    })).toThrow("ignoreCase option must match RegExp flags")
   })
 
   test("supports ignoreCase", () => {
-    const lexer = compile({ a: /foo/i, b: /bar/i, c: "quxx" })
-    lexer.reset("FoObArQuXx")
+    const lexer = compile({ a: /foo/i, b: /bar/i, })
+    lexer.reset("FoObAr")
     expect(lexer.next()).toMatchObject({value: "FoO"})
     expect(lexer.next()).toMatchObject({value: "bAr"})
-    expect(lexer.next()).toMatchObject({value: "QuXx"})
   })
 
 })
