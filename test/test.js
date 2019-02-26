@@ -930,7 +930,7 @@ describe('errors', () => {
     )
   })
 
-  test('can format EOF', () => {
+  test('can format null at EOF', () => {
     let lexer = compile({
       ws: {match: /\s/, lineBreaks: true},
       word: /[a-z]+/,
@@ -945,6 +945,24 @@ describe('errors', () => {
       "          ^"
     )
   })
+
+  test('can format null even not at EOF', () => {
+    let lexer = compile({
+      ws: {match: /\s/, lineBreaks: true},
+      word: /[a-z]+/,
+    })
+    lexer.reset('abc\ndef quxx\nbar')
+    lexer.next()
+    lexer.next()
+    expect(lexer.line).toBe(2)
+    expect(lexer.col).toBe(1)
+    expect(lexer.formatError(undefined, "oh no!")).toBe(
+      "oh no! at line 2 col 1:\n\n" +
+      "  def quxx\n" +
+      "  ^"
+    )
+  })
+
 
   test('seek to end of buffer when thrown', () => {
     let lexer = compile({
