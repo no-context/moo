@@ -1,4 +1,3 @@
-
 const fs = require('fs')
 const vm = require('vm')
 
@@ -29,16 +28,13 @@ describe('compiler', () => {
     expect(lex4.next()).toMatchObject({type: 'err', text: 'nope!'})
   })
 
-  test("warns for /g, /y, /i, /m, /u", () => {
+  test("warns for /g, /y, /i, /m", () => {
     expect(() => compile({ word: /foo/ })).not.toThrow()
     expect(() => compile({ word: /foo/g })).toThrow('implied')
     expect(() => compile({ word: /foo/i })).toThrow('not allowed')
     expect(() => compile({ word: /foo/y })).toThrow('implied')
     expect(() => compile({ word: /foo/m })).toThrow('implied')
-    expect(() => compile({ word: /foo/u })).toThrow('not allowed')
   })
-
-  // TODO warns if no lineBreaks: true
 
   test('warns about missing states', () => {
     const rules = [
@@ -1185,4 +1181,33 @@ describe('include', () => {
          "str six",
       ])
   })
+})
+
+
+describe("unicode flag", () => {
+
+  test("allows all rules to be /u", () => {
+    expect(() => compile({ a: /foo/u, b: /bar/u, c: "quxx" })).not.toThrow()
+    expect(() => compile({ a: /foo/u, b: /bar/, c: "quxx" })).toThrow("If one rule is /u then all must be")
+    expect(() => compile({ a: /foo/, b: /bar/u, c: "quxx" })).toThrow("If one rule is /u then all must be")
+  })
+
+  test("supports unicode", () => {
+    const lexer = compile({
+      a: /[𝌆]/u,
+    })
+    lexer.reset("𝌆")
+    expect(lexer.next()).toMatchObject({value: "𝌆"})
+    lexer.reset("𝌆".charCodeAt(0))
+    expect(() => lexer.next()).toThrow()
+
+    const lexer2 = compile({
+      a: /\u{1D356}/u,
+    })
+    lexer2.reset("𝍖")
+    expect(lexer2.next()).toMatchObject({value: "𝍖"})
+    lexer2.reset("\\u{1D356}")
+    expect(() => lexer2.next()).toThrow()
+  })
+
 })
