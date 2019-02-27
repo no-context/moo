@@ -560,11 +560,20 @@
   }
 
   Lexer.prototype.formatError = function(token, message) {
-    var value = token.text
-    var index = token.offset
-    var eol = token.lineBreaks ? value.indexOf('\n') : value.length
-    var start = Math.max(0, index - token.col + 1)
-    var firstLine = this.buffer.substring(start, index + eol)
+    if (token == null) {
+      // An undefined token indicates EOF
+      var text = this.buffer.slice(this.index)
+      var token = {
+        text: text,
+        offset: this.index,
+        lineBreaks: text.indexOf('\n') === -1 ? 0 : 1,
+        line: this.line,
+        col: this.col,
+      }
+    }
+    var start = Math.max(0, token.offset - token.col + 1)
+    var eol = token.lineBreaks ? token.text.indexOf('\n') : token.text.length
+    var firstLine = this.buffer.substring(start, token.offset + eol)
     message += " at line " + token.line + " col " + token.col + ":\n\n"
     message += "  " + firstLine + "\n"
     message += "  " + Array(token.col).join(" ") + "^"
