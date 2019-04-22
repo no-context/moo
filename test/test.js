@@ -1217,13 +1217,21 @@ describe('include', () => {
   })
 })
 
+describe('unicode flag', () => {
+  test('allows all rules to be /u', () => {
+    expect(() => compile({a: /foo/u, b: /bar/u, c: 'quxx'})).not.toThrow()
+    expect(() => compile({a: /foo/u, b: /bar/, c: 'quxx'})).toThrow(
+      'If one rule is /u then all must be'
+    )
+    expect(() => compile({a: /foo/, b: /bar/u, c: 'quxx'})).toThrow(
+      'If one rule is /u then all must be'
+    )
+  })
 
-describe("unicode flag", () => {
-
-  test("allows all rules to be /u", () => {
-    expect(() => compile({ a: /foo/u, b: /bar/u, c: "quxx" })).not.toThrow()
-    expect(() => compile({ a: /foo/u, b: /bar/, c: "quxx" })).toThrow("If one rule is /u then all must be")
-    expect(() => compile({ a: /foo/, b: /bar/u, c: "quxx" })).toThrow("If one rule is /u then all must be")
+  test('unicode rules work with fallback token', () => {
+    expect(() =>
+      compile({a: moo.fallback, b: /bar/u, c: /quxx/u})
+    ).not.toThrow()
   })
 
   test("supports unicode", () => {
