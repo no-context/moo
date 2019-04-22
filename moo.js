@@ -219,12 +219,8 @@
 
         if (unicodeFlag === null) {
           unicodeFlag = obj.unicode
-        } else if (unicodeFlag !== obj.unicode) {
-          if (options.fallback === true) {
-            obj.unicode = true
-            continue
-          }
-          throw new Error("If one rule is /u then all must be")
+        } else if (unicodeFlag !== obj.unicode && options.fallback === false) {
+          throw new Error('If one rule is /u then all must be')
         }
       }
 
