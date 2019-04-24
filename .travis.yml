@@ -1,9 +1,12 @@
 language: node_js
 node_js:
-    - "node"
-    - "6"
+  - 'node'
+  - '6'
 install:
-    - npm install
+  - npm install && npm audit fix
 script:
-    - npm run test
-    - npm run benchmark
+  - npm run format
+  - npm run test
+  - npm run benchmark
+after_success:
+  - npm run semantic-release

@@ -13,17 +13,96 @@
   ],
   "license": "BSD-3-Clause",
   "scripts": {
+    "format": "prettier {,**/}*.{js,json,md,yml} --write",
     "test": "jest .",
     "benchmark": "benchr test/benchmark.js",
-    "moo": "echo 'Mooooo!'"
+    "moo": "echo 'Mooooo!'",
+    "commit": "npx git-cz",
+    "semantic-release": "semantic-release",
+    "prepush": "npm run format && npm run test && npm run build"
+  },
+  "lint-staged": {
+    "test/**/*.{js,json}": [
+      "git add"
+    ],
+    "moo.js": [
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "pre-commit": "lint-staged"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-customizable"
+    },
+    "cz-customizable": {
+      "config": "cz-config.js"
+    }
+  },
+  "gitHooks": {
+    "pre-commit": "lint-staged"
+  },
+  "release": {
+    "verifyConditions": [
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/git"
+    ],
+    "prepare": [
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      {
+        "path": "@semantic-release/git",
+        "assets": [
+          "CHANGELOG.md",
+          "package.json",
+          "package-lock.json",
+          "moo.js"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    "publish": [
+      "@semantic-release/github"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "prettier": {
+    "printWidth": 80,
+    "tabWidth": 2,
+    "useTabs": false,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "bracketSpacing": false,
+    "arrowParens": "avoid"
   },
   "devDependencies": {
+    "@commitlint/cli": "7.5.2",
+    "@commitlint/config-conventional": "7.5.0",
+    "@semantic-release/changelog": "3.0.2",
+    "@semantic-release/git": "7.0.8",
+    "@semantic-release/npm": "5.1.7",
     "benchr": "^3.2.0",
     "chevrotain": "4.2.0",
-    "jest": "^23.6.0",
+    "commitizen": "3.1.1",
+    "cz-customizable": "6.0.0",
+    "husky": "2.0.0",
+    "jest": "24.7.1",
     "lex": "^1.7.9",
     "lexing": "^0.8.0",
+    "lint-staged": "8.1.5",
+    "prettier": "1.17.0",
     "remix": "^0.1.4",
+    "semantic-release": "15.13.12",
     "tokenizer2": "^2.0.0"
   }
 }
