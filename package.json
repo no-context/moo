@@ -18,8 +18,7 @@
     "benchmark": "benchr test/benchmark.js",
     "moo": "echo 'Mooooo!'",
     "commit": "npx git-cz",
-    "semantic-release": "semantic-release",
-    "prepush": "npm run format && npm run test && npm run build"
+    "semantic-release": "semantic-release"
   },
   "lint-staged": {
     "test/**/*.{js,json}": [
@@ -32,7 +31,8 @@
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged"
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run format && npm run test"
     }
   },
   "config": {
