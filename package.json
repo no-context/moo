@@ -20,7 +20,7 @@
   "devDependencies": {
     "benchr": "^3.2.0",
     "chevrotain": "4.2.0",
-    "jest": "^23.6.0",
+    "jest": "24.7.1",
     "lex": "^1.7.9",
     "lexing": "^0.8.0",
     "remix": "^0.1.4",
