@@ -905,8 +905,9 @@ describe('errors', () => {
     expect(lexer.next()).toMatchObject({value: '456'})
     expect(() => lexer.next()).toThrow(
       "invalid syntax at line 2 col 4:\n\n" +
-      "  456baa\n" +
-      "     ^"
+      "1 123\n" +
+      "2 456baa\n" +
+      "     ⬆︎"
     )
   })
 
@@ -921,8 +922,10 @@ describe('errors', () => {
     expect(tok).toMatchObject({type: 'error', value: ' 12\n345\n6', lineBreaks: 2})
     expect(lexer.formatError(tok, "numbers!")).toBe(
       "numbers! at line 3 col 2:\n\n" +
-      "  g 12\n" +
-      "   ^"
+      "1 abc\n" +
+      "2 def\n" +
+      "3 g 12\n" +
+      "   ⬆︎\n"
     )
   })
 
@@ -937,8 +940,9 @@ describe('errors', () => {
     expect(lexer.col).toBe(9)
     expect(lexer.formatError(undefined, "EOF!")).toBe(
       "EOF! at line 2 col 9:\n\n" +
-      "  def quxx\n" +
-      "          ^"
+      "1 abc\n" +
+      "2 def quxx\n" +
+      "          ⬆︎\n"
     )
   })
 
@@ -954,8 +958,9 @@ describe('errors', () => {
     expect(lexer.col).toBe(1)
     expect(lexer.formatError(undefined, "oh no!")).toBe(
       "oh no! at line 2 col 1:\n\n" +
-      "  def quxx\n" +
-      "  ^"
+      "1 abc\n" +
+      "2 def quxx\n" +
+      "  ⬆︎\n"
     )
   })
 

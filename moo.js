@@ -530,7 +530,9 @@
 
     // throw, if no rule with {error: true}
     if (group.shouldThrow) {
-      throw new Error(this.formatError(token, "invalid syntax"))
+      var err = new Error(this.formatError(token, "invalid syntax"))
+      err.token = token
+      throw err;
     }
 
     if (group.pop) this.popState()
@@ -571,13 +573,26 @@
         col: this.col,
       }
     }
-    var start = Math.max(0, token.offset - token.col + 1)
-    var eol = token.lineBreaks ? token.text.indexOf('\n') : token.text.length
-    var firstLine = this.buffer.substring(start, token.offset + eol)
+    
+    var lines = this.buffer.split("\n")
+      .slice(
+          Math.max(0, token.line - 5), 
+          token.line
+      );
+    var lastLineDigits = String(token.line).length
     message += " at line " + token.line + " col " + token.col + ":\n\n"
-    message += "  " + firstLine + "\n"
-    message += "  " + Array(token.col).join(" ") + "^"
+    message += lines
+      .map(function(line, i) {
+          return pad(token.line - lines.length + i + 1, lastLineDigits) + " " + line;
+      })
+      .join("\n")
+    message += "\n" + pad("", lastLineDigits + token.col) + "⬆︎\n"
     return message
+
+    function pad(n, length) {
+      var s = String(n)
+      return Array(length - s.length + 1).join(" ") + s
+    }
   }
 
   Lexer.prototype.clone = function() {
