@@ -53,6 +53,39 @@
     }
   }
 
+  function pad(n, length) {
+    var s = String(n)
+    if (s.length > length) {
+      return n
+    }
+    return Array(length - s.length + 1).join(" ") + s
+  }
+
+  function lastNLines(string, numLines) {
+    var position = string.length
+    var lineBreaks = 0;
+    while (true) {
+      var idx = string.lastIndexOf("\n", position - 1)
+      if (idx === -1) {
+        break;
+      } else {
+        lineBreaks++
+      }
+      position = idx
+      if (lineBreaks === numLines) {
+        break;
+      }
+      if (position === 0) {
+        break;
+      }
+    }
+    var startPosition = 
+      lineBreaks < numLines ?
+      0 : 
+      position + 1
+    return string.substring(startPosition).split("\n")
+  }
+
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
@@ -531,7 +564,6 @@
     // throw, if no rule with {error: true}
     if (group.shouldThrow) {
       var err = new Error(this.formatError(token, "invalid syntax"))
-      err.token = token
       throw err;
     }
 
@@ -561,6 +593,8 @@
     }
   }
 
+  Lexer.prototype.lastNLines = lastNLines
+
   Lexer.prototype.formatError = function(token, message) {
     if (token == null) {
       // An undefined token indicates EOF
@@ -574,25 +608,27 @@
       }
     }
     
-    var lines = this.buffer.split("\n")
-      .slice(
-          Math.max(0, token.line - 5), 
-          token.line
-      );
-    var lastLineDigits = String(token.line).length
-    message += " at line " + token.line + " col " + token.col + ":\n\n"
-    message += lines
-      .map(function(line, i) {
-          return pad(token.line - lines.length + i + 1, lastLineDigits) + " " + line;
-      })
-      .join("\n")
-    message += "\n" + pad("", lastLineDigits + token.col) + "⬆︎\n"
-    return message
-
-    function pad(n, length) {
-      var s = String(n)
-      return Array(length - s.length + 1).join(" ") + s
+    var numLinesAround = 2
+    var firstDisplayedLine = Math.max(token.line - numLinesAround, 1)
+    var lastDisplayedLine = token.line + numLinesAround
+    var lastLineDigits = String(lastDisplayedLine).length
+    var displayedLines = lastNLines(
+        this.buffer, 
+        (this.line - token.line) + numLinesAround + 1
+      )
+      .slice(0, 5)
+    var errorLines = []
+    errorLines.push(message + " at line " + token.line + " col " + token.col + ":")
+    errorLines.push("")
+    for (var i = 0; i < displayedLines.length; i++) {
+      var line = displayedLines[i]
+      var lineNo = firstDisplayedLine + i
+      errorLines.push(pad(lineNo, lastLineDigits) + "  " + line);
+      if (lineNo === token.line) {
+        errorLines.push(pad("", lastLineDigits + token.col + 1) + "^")
+      }
     }
+    return errorLines.join("\n")
   }
 
   Lexer.prototype.clone = function() {

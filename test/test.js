@@ -905,9 +905,9 @@ describe('errors', () => {
     expect(lexer.next()).toMatchObject({value: '456'})
     expect(() => lexer.next()).toThrow(
       "invalid syntax at line 2 col 4:\n\n" +
-      "1 123\n" +
-      "2 456baa\n" +
-      "     ⬆︎"
+      "1  123\n" +
+      "2  456baa\n" +
+      "      ^"
     )
   })
 
@@ -922,10 +922,12 @@ describe('errors', () => {
     expect(tok).toMatchObject({type: 'error', value: ' 12\n345\n6', lineBreaks: 2})
     expect(lexer.formatError(tok, "numbers!")).toBe(
       "numbers! at line 3 col 2:\n\n" +
-      "1 abc\n" +
-      "2 def\n" +
-      "3 g 12\n" +
-      "   ⬆︎\n"
+      "1  abc\n" +
+      "2  def\n" +
+      "3  g 12\n" +
+      "    ^\n" +
+      "4  345\n" +
+      "5  6"
     )
   })
 
@@ -940,9 +942,9 @@ describe('errors', () => {
     expect(lexer.col).toBe(9)
     expect(lexer.formatError(undefined, "EOF!")).toBe(
       "EOF! at line 2 col 9:\n\n" +
-      "1 abc\n" +
-      "2 def quxx\n" +
-      "          ⬆︎\n"
+      "1  abc\n" +
+      "2  def quxx\n" +
+      "           ^"
     )
   })
 
@@ -958,9 +960,10 @@ describe('errors', () => {
     expect(lexer.col).toBe(1)
     expect(lexer.formatError(undefined, "oh no!")).toBe(
       "oh no! at line 2 col 1:\n\n" +
-      "1 abc\n" +
-      "2 def quxx\n" +
-      "  ⬆︎\n"
+      "1  abc\n" +
+      "2  def quxx\n" +
+      "   ^\n" +
+      "3  bar"
     )
   })
 
@@ -1257,4 +1260,57 @@ describe('unicode flag', () => {
     expect(() => lexer2.next()).toThrow()
   })
 
+})
+
+describe("lastNLines", () => {
+  const lexer = moo.compile({})
+
+  test("grabs last n lines if more than needed", () => {
+    const input = "line 1\nline 2\nline 3"
+    expect(lexer.lastNLines(input, 2))
+      .toEqual([
+        "line 2",
+        "line 3"
+      ])
+  })
+
+  test("grabs all lines if not enough", () => {
+    const input = "line 1\nline 2\nline 3"
+    expect(lexer.lastNLines(input, 10))
+      .toEqual([
+        "line 1",
+        "line 2",
+        "line 3"
+      ])
+  })
+
+  test("grabs last empty line", () => {
+    const input = "line 1\nline 2\nline 3\n"
+    expect(lexer.lastNLines(input, 2))
+      .toEqual([
+        "line 3",
+        ""
+      ])
+  })
+
+  test("grabs first empty line", () => {
+    const input = "\nline 1\nline 2\nline 3"
+    expect(lexer.lastNLines(input, 10))
+      .toEqual([
+        "",
+        "line 1",
+        "line 2",
+        "line 3"
+      ])
+  })
+
+  test("does not grab first empty line if unneeded", () => {
+    const input = "\nline 1\nline 2\nline 3"
+    expect(lexer.lastNLines(input, 3))
+      .toEqual([
+        "line 1",
+        "line 2",
+        "line 3"
+      ])
+  })
 })
