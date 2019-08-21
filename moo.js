@@ -53,10 +53,9 @@
     }
   }
 
-  function pad(n, length) {
-    var s = String(n)
+  function pad(s, length) {
     if (s.length > length) {
-      return n
+      return s
     }
     return Array(length - s.length + 1).join(" ") + s
   }
@@ -593,8 +592,6 @@
     }
   }
 
-  Lexer.prototype.lastNLines = lastNLines
-
   Lexer.prototype.formatError = function(token, message) {
     if (token == null) {
       // An undefined token indicates EOF
@@ -623,7 +620,7 @@
     for (var i = 0; i < displayedLines.length; i++) {
       var line = displayedLines[i]
       var lineNo = firstDisplayedLine + i
-      errorLines.push(pad(lineNo, lastLineDigits) + "  " + line);
+      errorLines.push(pad(String(lineNo), lastLineDigits) + "  " + line);
       if (lineNo === token.line) {
         errorLines.push(pad("", lastLineDigits + token.col + 1) + "^")
       }
