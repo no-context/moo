@@ -53,6 +53,13 @@
     }
   }
 
+  function zeropad(string, length) {
+    if (string.length < length) {
+      return new Array(length - string.length + 1).join("0") + string;
+    }
+    return string;
+  }
+
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
@@ -229,6 +236,7 @@
 
       // Add backreference support
       var groupCount = reGroups(pat)
+      let numberOfGroupsPreviousToBackreferences = groups.length
       for (let g = 0; g < groupCount; g++) {
         /*
          * Stub group for this capture group, this should never be referenced
@@ -243,17 +251,27 @@
        * placeholder in the built regexp, being careful to avoid
        * false-positives due to escaped backslashes.
        */
-      let numberOfGroupsPreviousToBackreferences = groups.length
       var hasBackreference = false
-      pat = pat.replace(/((?:^|[^\\])(?:\\\\)*\\)(\d)(?=\D)/g, (match, front, backreferenceGroupNumber) => {
-        const number = parseInt(backreferenceGroupNumber, 10)
-        if (number < 1 || number > groupCount) {
-          throw new Error("Backreference \\" + number + " out of range in regexp " + regexpOrLiteral)
-        }
-        hasBackreference = true
-        // Account for all the previous capture groups
-        return front + String(numberOfGroupsPreviousToBackreferences - 1 + number)
-      })
+      if (groupCount > 0) {
+        /*
+         * WARNING: we require your regexp to contain a capture group to opt
+         * into this because you cannot use this with certain regexps, e.g.
+         * `/()[\1]/` should matches SOH (U+0001) but we see the \1 as a
+         * backreference and rewrite it.
+         *
+         * To solve this, avoid octal escapes, use `\u0001` instead.
+         */
+
+        pat = pat.replace(/((?:^|[^\\])(?:\\\\)*\\)([1-9][0-9]*)(?=[^0-9])/g, (match, front, backreferenceGroupNumber) => {
+          const number = parseInt(backreferenceGroupNumber, 10)
+          if (number < 1 || number > groupCount) {
+            throw new Error("Backreference \\" + number + " out of range in regexp " + pat + " (if you meant to use an octal escape, instead use \\u" + zeropad(number.toString(16), 4))
+          }
+          hasBackreference = true
+          // Account for all the previous capture groups
+          return front + String(numberOfGroupsPreviousToBackreferences + number)
+        })
+      }
 
       // validate
       var regexp = new RegExp(pat)

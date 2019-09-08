@@ -475,16 +475,17 @@ describe('value transforms', () => {
 })
 
 describe('backreferences', () => {
-  test('throws error if backreference but no capture group', () => {
+  test('does not get processed if no capture groups', () => {
     expect(() => moo.compile({
-      tok: /foo\1/
-    })).toThrow("out of range")
+      tok: /foo\1/,
+      tok2: /[\1]/
+    })).not.toThrow()
   })
 
-  test('throws error on invalid backreference', () => {
+  test('throws error on invalid backreference when capture groups present', () => {
     expect(() => moo.compile({
       tok: /(f)(o)\3/
-    })).toThrow("out of range")
+    })).toThrow('use \\u0003')
   })
 
   test('enable back-references', () => {
@@ -505,6 +506,20 @@ describe('backreferences', () => {
     let tokens = lexAll(lexer).filter(t => t.type !== 'space')
     expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
     expect(tokens.shift()).toMatchObject({ type: 'dollarStringConstant', text: dollarString, value: dollarString })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+  })
+
+  test('works with multi-digit backreferences', () => {
+    let lexer = moo.compile({
+      test: /(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\11/,
+      fubar: 'fubar',
+    });
+    const alpha = 'abcdefghijklk'
+    const fullString = 'fubar' + alpha + 'fubar'
+    lexer.reset(fullString)
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+    expect(tokens.shift()).toMatchObject({ type: 'test', text: alpha, value: alpha })
     expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
   })
 });
