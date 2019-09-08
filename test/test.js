@@ -474,6 +474,41 @@ describe('value transforms', () => {
 
 })
 
+describe('backreferences', () => {
+  test('throws error if backreference but no capture group', () => {
+    expect(() => moo.compile({
+      tok: /foo\1/
+    })).toThrow("out of range")
+  })
+
+  test('throws error on invalid backreference', () => {
+    expect(() => moo.compile({
+      tok: /(f)(o)\3/
+    })).toThrow("out of range")
+  })
+
+  test('enable back-references', () => {
+    let lexer = moo.compile({
+      // https://www.postgresql.org/docs/11/sql-syntax-lexical.html#SQL-SYNTAX-DOLLAR-QUOTING
+      // The tag, if any, of a dollar-quoted string follows the same rules as an unquoted identifier, except that it cannot contain a dollar sign.
+      // SQL identifiers and key words must begin with a letter (a-z, but also letters with diacritical marks and non-Latin letters) or an underscore (_). Subsequent characters in an identifier or key word can be letters, underscores, digits (0-9), or dollar signs ($).
+      dollarStringConstant: {
+        match: /\$([\w_][\w\d_]*)?\$[^]*?\$\1\$/,
+        lineBreaks: true,
+      },
+
+      fubar: 'fubar',
+    });
+    const dollarString = '$outer$ outer $middle$ middle $inner$\n!inner!\n$inner$ /middle $middle$ /outer $outer$'
+    const fullString = 'fubar' + dollarString + 'fubar'
+    lexer.reset(fullString)
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+    expect(tokens.shift()).toMatchObject({ type: 'dollarStringConstant', text: dollarString, value: dollarString })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+  })
+});
+
 describe('lexer', () => {
 
   var simpleLexer = compile({

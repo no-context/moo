@@ -227,13 +227,40 @@
       // convert to RegExp
       var pat = reUnion(match.map(regexpOrLiteral))
 
+      // Add backreference support
+      var groupCount = reGroups(pat)
+      for (let g = 0; g < groupCount; g++) {
+        /*
+         * Stub group for this capture group, this should never be referenced
+         * later in the code since the capture group will only be non-null if
+         * the parent capture group (with lower index) is non-null, in which
+         * case the parent will win.
+         */
+        groups.push(null)
+      }
+      /*
+       * Replace backreferences like \1 with backreferences to the correct
+       * placeholder in the built regexp, being careful to avoid
+       * false-positives due to escaped backslashes.
+       */
+      let numberOfGroupsPreviousToBackreferences = groups.length
+      var hasBackreference = false
+      pat = pat.replace(/((?:^|[^\\])(?:\\\\)*\\)(\d)(?=\D)/g, (match, front, backreferenceGroupNumber) => {
+        const number = parseInt(backreferenceGroupNumber, 10)
+        if (number < 1 || number > groupCount) {
+          throw new Error("Backreference \\" + number + " out of range in regexp " + regexpOrLiteral)
+        }
+        hasBackreference = true
+        // Account for all the previous capture groups
+        return front + String(numberOfGroupsPreviousToBackreferences - 1 + number)
+      })
+
       // validate
       var regexp = new RegExp(pat)
       if (regexp.test("")) {
         throw new Error("RegExp matches empty string: " + regexp)
       }
-      var groupCount = reGroups(pat)
-      if (groupCount > 0) {
+      if (groupCount > 0 && !hasBackreference) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
 
