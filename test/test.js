@@ -484,8 +484,8 @@ describe('backreferences', () => {
 
   test('throws error on invalid backreference when capture groups present', () => {
     expect(() => moo.compile({
-      tok: /(f)(o)\3/
-    })).toThrow('use \\u0003')
+      tok: /(f)(o)\13/
+    })).toThrow('use \\u000b')
   })
 
   test('enable back-references', () => {
