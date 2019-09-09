@@ -55,9 +55,9 @@
 
   function zeropad(string, length) {
     if (string.length < length) {
-      return new Array(length - string.length + 1).join("0") + string;
+      return new Array(length - string.length + 1).join("0") + string
     }
-    return string;
+    return string
   }
 
   function objectToRules(object) {
@@ -264,8 +264,8 @@
 
         pat = pat.replace(/((?:^|[^\\])(?:\\\\)*\\)([1-9][0-9]*)(?=[^0-9])/g, (match, front, backreferenceGroupNumber) => {
           const number = parseInt(backreferenceGroupNumber, 10)
-          const couldBeOctal = !!backreferenceGroupNumber.match(/^[0-7]+$/);
-          const octalNumber = couldBeOctal && parseInt(backreferenceGroupNumber, 8);
+          const couldBeOctal = !!backreferenceGroupNumber.match(/^[0-7]+$/)
+          const octalNumber = couldBeOctal && parseInt(backreferenceGroupNumber, 8)
           if (number < 1 || number > groupCount) {
             throw new Error(
               "Backreference \\" + backreferenceGroupNumber + " out of range in regexp " + pat
