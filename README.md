@@ -270,14 +270,14 @@ For example, to tokenize JS-style string interpolation such as `a${{c: d}}e`, yo
         strstart: {match: '`', push: 'lit'},
         ident:    /\w+/,
         lbrace:   {match: '{', push: 'main'},
-        rbrace:   {match: '}', pop: true},
+        rbrace:   {match: '}', pop: 1},
         colon:    ':',
         space:    {match: /\s+/, lineBreaks: true},
       },
       lit: {
         interp:   {match: '${', push: 'main'},
         escape:   /\\./,
-        strend:   {match: '`', pop: true},
+        strend:   {match: '`', pop: 1},
         const:    {match: /(?:[^$`]|\$(?!\{))+/, lineBreaks: true},
       },
     })
