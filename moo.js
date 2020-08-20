@@ -601,12 +601,14 @@
     var tokenLastLinePrependExpanded = tokenLastLinePrepend.replace(/\t/g, "    ")
 
     var highlightIndentation = lastLineExpanded.replace(/[^ ]/g, " ")
-    var highlightLength = !tokenTextLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
-        0 :
-        tokenTextLastLineExpanded.length
+    var highlightLength = innerLineBreaks ?
+        Math.max.apply(null, lines.map(function (line) { return line.length })) :
+        (!tokenTextLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
+          0 :
+          tokenTextLastLineExpanded.length)
 
     var highlight = highlightLength ?
-        Array(highlightLength + 1).join("~") :
+        Array(highlightLength + 1).join(innerLineBreaks ? "^" : "~") :
         (token.offset >= this.buffer.length ? "^EOF" : "^")
 
     message += "      \t" + highlightIndentation.slice(0, tokenLastLinePrependExpanded.length) + highlight + "\n"
