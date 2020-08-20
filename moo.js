@@ -587,7 +587,7 @@
         .map(function (line) { return line.replace(/\t/g, "    ") })
         .map(function(curLine, i) {
           return pad(String(token.line + innerLineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
-        }, this)
+        })
         .join("")
 
     var lastLine = lines[lines.length - 1]
