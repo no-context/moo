@@ -584,7 +584,7 @@
     message += " at line " + token.line + " col " + token.col + ":\n\n"
 
     message += lines
-        .map(line => line.replace(/\t/g, "    "))
+        .map(function (line) { return line.replace(/\t/g, "    ") })
         .map(function(curLine, i) {
           return pad(String(token.line + innerLineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
         }, this)
