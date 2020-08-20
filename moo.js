@@ -15,6 +15,10 @@
 
   /***************************************************************************/
 
+  function pad(text, width) {
+    return Array(width - text.length + 1).join(" ") + text
+  }
+
   function isRegExp(o) { return o && toString.call(o) === '[object RegExp]' }
   function isObject(o) { return o && typeof o === 'object' && !isRegExp(o) && !Array.isArray(o) }
 
@@ -562,21 +566,46 @@
   Lexer.prototype.formatError = function(token, message) {
     if (token == null) {
       // An undefined token indicates EOF
-      var text = this.buffer.slice(this.index)
       var token = {
-        text: text,
+        text: "",
         offset: this.index,
-        lineBreaks: text.indexOf('\n') === -1 ? 0 : 1,
+        lineBreaks: 0,
         line: this.line,
         col: this.col,
       }
     }
-    var start = Math.max(0, token.offset - token.col + 1)
-    var eol = token.lineBreaks ? token.text.indexOf('\n') : token.text.length
-    var firstLine = this.buffer.substring(start, token.offset + eol)
+
+    var lines = this.buffer
+        .split("\n")
+        .slice(Math.max(0, token.line + token.lineBreaks - 5), token.line + token.lineBreaks)
+
     message += " at line " + token.line + " col " + token.col + ":\n\n"
-    message += "  " + firstLine + "\n"
-    message += "  " + Array(token.col).join(" ") + "^"
+
+    message += lines
+        .map(line => line.replace(/\t/g, "    "))
+        .map(function(curLine, i) {
+          return pad(String(token.line + token.lineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
+        }, this)
+        .join("")
+
+    var lastLine = lines[lines.length - 1]
+    var lastLineExpanded = lastLine.replace(/\t/g, "    ")
+
+    var tokenValueLines = token.text.split("\n")
+    var tokenValueLastLine = tokenValueLines[tokenValueLines.length - 1]
+    var tokenValueLastLineExpanded = tokenValueLastLine.replace(/\t/g, "    ")
+
+    var tokenLastLinePrepend = tokenValueLines.length === 1 ? lastLine.slice(0, token.col - 1) : ""
+    var tokenLastLinePrependExpanded = tokenLastLinePrepend.replace(/\t/g, "    ")
+
+    var highlightIndentation = lastLineExpanded.replace(/[^ ]/g, " ")
+    var highlightLength = !tokenValueLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
+        0 :
+        tokenValueLastLineExpanded.length
+    var highlight = highlightLength ? Array(highlightLength + 1).join("~") : "^"
+
+    message += "      \t" + highlightIndentation.slice(0, tokenLastLinePrependExpanded.length) + highlight + "\n"
+
     return message
   }
 
