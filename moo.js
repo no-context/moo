@@ -604,7 +604,12 @@
     var highlightLength = !tokenValueLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
         0 :
         tokenValueLastLineExpanded.length
-    var highlight = highlightLength ? Array(highlightLength + 1).join("~") : "^"
+
+    var highlight = highlightLength ?
+        Array(highlightLength + 1).join("~") :
+        (token.offset >= this.buffer.length ?
+            "^EOF" :
+            (tokenLastLinePrependExpanded.length >= lastLineExpanded.length ? "^EOL" : "^"))
 
     message += "      \t" + highlightIndentation.slice(0, tokenLastLinePrependExpanded.length) + highlight + "\n"
 

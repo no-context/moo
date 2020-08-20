@@ -944,7 +944,7 @@ describe('errors', () => {
       "EOF! at line 2 col 9:\n\n" +
       "     1\tabc\n" +
       "     2\tdef quxx\n" +
-      "      \t        ^\n"
+      "      \t        ^EOF\n"
     )
   })
 
