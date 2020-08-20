@@ -579,39 +579,36 @@
 
     var lines = this.buffer
         .split("\n")
-        .slice(Math.max(0, token.line + innerLineBreaks - 5), token.line + innerLineBreaks)
+        .slice(Math.max(0, token.line - 5), token.line)
 
     message += " at line " + token.line + " col " + token.col + ":\n\n"
 
     message += lines
         .map(function (line) { return line.replace(/\t/g, "    ") })
         .map(function(curLine, i) {
-          return pad(String(token.line + innerLineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
+          return pad(String(token.line - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
         })
         .join("")
 
     var lastLine = lines[lines.length - 1]
     var lastLineExpanded = lastLine.replace(/\t/g, "    ")
 
-    var tokenTextLines = token.text.split("\n").slice(0, innerLineBreaks + 1)
-    var tokenTextLastLine = tokenTextLines[tokenTextLines.length - 1]
-    var tokenTextLastLineExpanded = tokenTextLastLine.replace(/\t/g, "    ")
+    var lastLinePrepend = lastLine.slice(0, token.col - 1)
+    var lastLinePrependExpanded = lastLinePrepend.replace(/\t/g, "    ")
 
-    var tokenLastLinePrepend = tokenTextLines.length === 1 ? lastLine.slice(0, token.col - 1) : ""
-    var tokenLastLinePrependExpanded = tokenLastLinePrepend.replace(/\t/g, "    ")
+    var tokenTextFirstLine = token.text.split("\n")[0]
+    var tokenTextFirstLineExpanded = tokenTextFirstLine.replace(/\t/g, "    ")
 
     var highlightIndentation = lastLineExpanded.replace(/[^ ]/g, " ")
-    var highlightLength = innerLineBreaks ?
-        Math.max.apply(null, lines.map(function (line) { return line.length })) :
-        (!tokenTextLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
-          0 :
-          tokenTextLastLineExpanded.length)
+    var highlightLength = !tokenTextFirstLine || lastLinePrependExpanded.length >= lastLineExpanded.length ?
+        0 :
+        tokenTextFirstLineExpanded.length
 
     var highlight = highlightLength ?
         Array(highlightLength + 1).join(innerLineBreaks ? "^" : "~") :
         (token.offset >= this.buffer.length ? "^EOF" : "^")
 
-    message += "      \t" + highlightIndentation.slice(0, tokenLastLinePrependExpanded.length) + highlight + "\n"
+    message += "      \t" + highlightIndentation.slice(0, lastLinePrependExpanded.length) + highlight + "\n"
 
     return message
   }
