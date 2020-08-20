@@ -593,17 +593,17 @@
     var lastLine = lines[lines.length - 1]
     var lastLineExpanded = lastLine.replace(/\t/g, "    ")
 
-    var tokenValueLines = token.text.split("\n").slice(0, innerLineBreaks + 1)
-    var tokenValueLastLine = tokenValueLines[tokenValueLines.length - 1]
-    var tokenValueLastLineExpanded = tokenValueLastLine.replace(/\t/g, "    ")
+    var tokenTextLines = token.text.split("\n").slice(0, innerLineBreaks + 1)
+    var tokenTextLastLine = tokenTextLines[tokenTextLines.length - 1]
+    var tokenTextLastLineExpanded = tokenTextLastLine.replace(/\t/g, "    ")
 
-    var tokenLastLinePrepend = tokenValueLines.length === 1 ? lastLine.slice(0, token.col - 1) : ""
+    var tokenLastLinePrepend = tokenTextLines.length === 1 ? lastLine.slice(0, token.col - 1) : ""
     var tokenLastLinePrependExpanded = tokenLastLinePrepend.replace(/\t/g, "    ")
 
     var highlightIndentation = lastLineExpanded.replace(/[^ ]/g, " ")
-    var highlightLength = !tokenValueLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
+    var highlightLength = !tokenTextLastLine || tokenLastLinePrependExpanded.length >= lastLineExpanded.length ?
         0 :
-        tokenValueLastLineExpanded.length
+        tokenTextLastLineExpanded.length
 
     var highlight = highlightLength ?
         Array(highlightLength + 1).join("~") :
