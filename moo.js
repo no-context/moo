@@ -575,23 +575,25 @@
       }
     }
 
+    const innerLineBreaks = token.lineBreaks - Number(token.text.substr(-1) === "\n")
+
     var lines = this.buffer
         .split("\n")
-        .slice(Math.max(0, token.line + token.lineBreaks - 5), token.line + token.lineBreaks)
+        .slice(Math.max(0, token.line + innerLineBreaks - 5), token.line + innerLineBreaks)
 
     message += " at line " + token.line + " col " + token.col + ":\n\n"
 
     message += lines
         .map(line => line.replace(/\t/g, "    "))
         .map(function(curLine, i) {
-          return pad(String(token.line + token.lineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
+          return pad(String(token.line + innerLineBreaks - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
         }, this)
         .join("")
 
     var lastLine = lines[lines.length - 1]
     var lastLineExpanded = lastLine.replace(/\t/g, "    ")
 
-    var tokenValueLines = token.text.split("\n")
+    var tokenValueLines = token.text.split("\n").slice(0, innerLineBreaks + 1)
     var tokenValueLastLine = tokenValueLines[tokenValueLines.length - 1]
     var tokenValueLastLineExpanded = tokenValueLastLine.replace(/\t/g, "    ")
 
