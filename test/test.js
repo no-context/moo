@@ -960,7 +960,7 @@ describe('errors', () => {
       "oh no! at line 2 col 1:\n\n" +
       "     1\tabc\n" +
       "     2\tdef quxx\n" +
-      "      \t^\n"
+      "      \t^       \n"
     )
   })
 

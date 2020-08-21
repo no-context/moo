@@ -591,16 +591,14 @@
         .join("")
 
     var lastLine = lines[lines.length - 1]
-    var lastLineExpanded = lastLine.replace(/\t/g, "    ")
-
     var lastLinePrepend = lastLine.slice(0, token.col - 1)
     var lastLinePrependExpanded = lastLinePrepend.replace(/\t/g, "    ")
 
     var tokenTextFirstLine = token.text.split("\n")[0]
     var tokenTextFirstLineExpanded = tokenTextFirstLine.replace(/\t/g, "    ")
 
-    var highlightIndentation = lastLineExpanded.replace(/[^ ]/g, " ")
-    var highlightLength = !tokenTextFirstLine || lastLinePrependExpanded.length >= lastLineExpanded.length ?
+    var highlightIndentation = lastLine.replace(/[^ \t]/g, " ").replace(/\t/g, ".___")
+    var highlightLength = !tokenTextFirstLine || lastLinePrependExpanded.length >= highlightIndentation.length ?
         0 :
         tokenTextFirstLineExpanded.length
 
@@ -608,7 +606,10 @@
         Array(highlightLength + 1).join(innerLineBreaks ? "^" : "~") :
         (token.offset >= this.buffer.length ? "^EOF" : "^")
 
-    message += "      \t" + highlightIndentation.slice(0, lastLinePrependExpanded.length) + highlight + "\n"
+    message += "      \t" +
+        highlightIndentation.slice(0, lastLinePrependExpanded.length) +
+        highlight +
+        highlightIndentation.slice(lastLinePrependExpanded.length + highlight.length) + "\n"
 
     return message
   }
