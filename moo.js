@@ -575,8 +575,6 @@
       }
     }
 
-    const innerLineBreaks = token.lineBreaks - Number(token.text.substr(-1) === "\n")
-
     var lines = this.buffer
         .split("\n")
         .slice(Math.max(0, token.line - 5), token.line)
@@ -603,7 +601,7 @@
         tokenTextFirstLineExpanded.length
 
     var highlight = highlightLength ?
-        Array(highlightLength + 1).join(innerLineBreaks ? "^" : "~") :
+        Array(highlightLength + 1).join(token.lineBreaks ? "^" : "~") :
         (token.offset >= this.buffer.length ? "^EOF" : "^")
 
     message += "      \t" +
