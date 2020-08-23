@@ -595,7 +595,7 @@
     var tokenTextFirstLine = token.text.split("\n")[0]
     var tokenTextFirstLineExpanded = tokenTextFirstLine.replace(/\t/g, "    ")
 
-    var highlightIndentation = lastLine.replace(/[^ \t]/g, " ").replace(/\t/g, ".___")
+    var highlightIndentation = lastLine.replace(/[^ \t]/g, " ").replace(/\t/g, "\\tab")
     var highlightLength = !tokenTextFirstLine || lastLinePrependExpanded.length >= highlightIndentation.length ?
         0 :
         tokenTextFirstLineExpanded.length
