@@ -240,12 +240,10 @@ Keywords can also have **individual types**.
     lexer.next() // -> { type: 'name', value: 'foo' }
 ```
 
-You can use [itt](https://github.com/nathan/itt)'s iterator adapters to make constructing keyword objects easier:
+You can use `Object.fromEntries` to easily construct keyword objects:
 
 ```js
-    itt(['class', 'def', 'if'])
-    .map(k => ['kw-' + k, k])
-    .toObject()
+Object.fromEntries(['class', 'def', 'if'].map(k => ['kw-' + k, k]))
 ```
 
 
@@ -350,10 +348,10 @@ Create an array of tokens.
     let tokens = Array.from(lexer);
 ```
 
-Use [itt](https://github.com/nathan/itt)'s iteration tools with Moo.
+Use [itt](https://www.npmjs.com/package/itt)'s iteration tools with Moo.
 
 ```js
-    for (let [here, next] = itt(lexer).lookahead()) { // pass a number if you need more tokens
+    for (let [here, next] of itt(lexer).lookahead()) { // pass a number if you need more tokens
       // enjoy!
     }
 ```
