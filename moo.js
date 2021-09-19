@@ -364,6 +364,7 @@
         var tokenType = reverseMap[keyword]
         source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
       })
+      source += 'default: return\n'
       source += '}\n'
     }
     source += '}\n'
