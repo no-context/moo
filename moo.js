@@ -368,7 +368,10 @@
       source += '}\n'
     }
     source += '}\n'
-    return Function('value', source) // type
+    // Return function instead of Function to combat CSP blocking
+    return function(k) {
+      return reverseMap[k];
+    }
   }
 
   /***************************************************************************/
