@@ -387,6 +387,7 @@
     this.line = info ? info.line : 1
     this.col = info ? info.col : 1
     this.queuedToken = info ? info.queuedToken : null
+    this.queuedText = info ? info.queuedText: "";
     this.queuedThrow = info ? info.queuedThrow : null
     this.setState(info ? info.state : this.startState)
     this.stack = info && info.stack ? info.stack.slice() : []
@@ -400,6 +401,7 @@
       state: this.state,
       stack: this.stack.slice(),
       queuedToken: this.queuedToken,
+      queuedText: this.queuedText,
       queuedThrow: this.queuedThrow,
     }
   }
