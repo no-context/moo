@@ -474,6 +474,56 @@ describe('value transforms', () => {
 
 })
 
+describe('backreferences', () => {
+  test('does not get processed if no capture groups', () => {
+    expect(() => moo.compile({
+      tok: /foo\1/,
+      tok2: /[\1]/
+    })).not.toThrow()
+  })
+
+  test('throws error on invalid backreference when capture groups present', () => {
+    expect(() => moo.compile({
+      tok: /(f)(o)\13/
+    })).toThrow('use \\u000b')
+  })
+
+  test('enable back-references', () => {
+    let lexer = moo.compile({
+      // https://www.postgresql.org/docs/11/sql-syntax-lexical.html#SQL-SYNTAX-DOLLAR-QUOTING
+      // The tag, if any, of a dollar-quoted string follows the same rules as an unquoted identifier, except that it cannot contain a dollar sign.
+      // SQL identifiers and key words must begin with a letter (a-z, but also letters with diacritical marks and non-Latin letters) or an underscore (_). Subsequent characters in an identifier or key word can be letters, underscores, digits (0-9), or dollar signs ($).
+      dollarStringConstant: {
+        match: /\$([\w_][\w\d_]*)?\$[^]*?\$\1\$/,
+        lineBreaks: true,
+      },
+
+      fubar: 'fubar',
+    });
+    const dollarString = '$outer$ outer $middle$ middle $inner$\n!inner!\n$inner$ /middle $middle$ /outer $outer$'
+    const fullString = 'fubar' + dollarString + 'fubar'
+    lexer.reset(fullString)
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+    expect(tokens.shift()).toMatchObject({ type: 'dollarStringConstant', text: dollarString, value: dollarString })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+  })
+
+  test('works with multi-digit backreferences', () => {
+    let lexer = moo.compile({
+      test: /(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\11/,
+      fubar: 'fubar',
+    });
+    const alpha = 'abcdefghijklk'
+    const fullString = 'fubar' + alpha + 'fubar'
+    lexer.reset(fullString)
+    let tokens = lexAll(lexer).filter(t => t.type !== 'space')
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+    expect(tokens.shift()).toMatchObject({ type: 'test', text: alpha, value: alpha })
+    expect(tokens.shift()).toMatchObject({ type: 'fubar', text: 'fubar', value: 'fubar' })
+  })
+});
+
 describe('lexer', () => {
 
   var simpleLexer = compile({

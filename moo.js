@@ -53,6 +53,13 @@
     }
   }
 
+  function zeropad(string, length) {
+    if (string.length < length) {
+      return new Array(length - string.length + 1).join("0") + string
+    }
+    return string
+  }
+
   function objectToRules(object) {
     var keys = Object.getOwnPropertyNames(object)
     var result = []
@@ -227,13 +234,60 @@
       // convert to RegExp
       var pat = reUnion(match.map(regexpOrLiteral))
 
+      // Add backreference support
+      var groupCount = reGroups(pat)
+      let numberOfGroupsPreviousToBackreferences = groups.length
+      for (let g = 0; g < groupCount; g++) {
+        /*
+         * Stub group for this capture group, this should never be referenced
+         * later in the code since the capture group will only be non-null if
+         * the parent capture group (with lower index) is non-null, in which
+         * case the parent will win.
+         */
+        groups.push(null)
+      }
+      /*
+       * Replace backreferences like \1 with backreferences to the correct
+       * placeholder in the built regexp, being careful to avoid
+       * false-positives due to escaped backslashes.
+       */
+      var hasBackreference = false
+      if (groupCount > 0) {
+        /*
+         * WARNING: we require your regexp to contain a capture group to opt
+         * into this because you cannot use this with certain regexps, e.g.
+         * `/()[\1]/` should matches SOH (U+0001) but we see the \1 as a
+         * backreference and rewrite it.
+         *
+         * To solve this, avoid octal escapes, use `\u0001` instead.
+         */
+
+        pat = pat.replace(/((?:^|[^\\])(?:\\\\)*\\)([1-9][0-9]*)(?=[^0-9])/g, (match, front, backreferenceGroupNumber) => {
+          const number = parseInt(backreferenceGroupNumber, 10)
+          const couldBeOctal = !!backreferenceGroupNumber.match(/^[0-7]+$/)
+          const octalNumber = couldBeOctal && parseInt(backreferenceGroupNumber, 8)
+          if (number < 1 || number > groupCount) {
+            throw new Error(
+              "Backreference \\" + backreferenceGroupNumber + " out of range in regexp " + pat
+              + (
+                couldBeOctal
+                ? " (if you meant to use an octal escape, instead use \\u" + zeropad(octalNumber.toString(16), 4) + ")"
+                : ""
+              )
+            )
+          }
+          hasBackreference = true
+          // Account for all the previous capture groups
+          return front + String(numberOfGroupsPreviousToBackreferences + number)
+        })
+      }
+
       // validate
       var regexp = new RegExp(pat)
       if (regexp.test("")) {
         throw new Error("RegExp matches empty string: " + regexp)
       }
-      var groupCount = reGroups(pat)
-      if (groupCount > 0) {
+      if (groupCount > 0 && !hasBackreference) {
         throw new Error("RegExp has capture groups: " + regexp + "\nUse (?: … ) instead")
       }
 
