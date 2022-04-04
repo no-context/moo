@@ -335,40 +335,22 @@
   }
 
   function keywordTransform(map) {
-    var reverseMap = Object.create(null)
-    var byLength = Object.create(null)
+    var reverseMap = new Map
     var types = Object.getOwnPropertyNames(map)
     for (var i = 0; i < types.length; i++) {
       var tokenType = types[i]
       var item = map[tokenType]
       var keywordList = Array.isArray(item) ? item : [item]
       keywordList.forEach(function(keyword) {
-        (byLength[keyword.length] = byLength[keyword.length] || []).push(keyword)
         if (typeof keyword !== 'string') {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
-        reverseMap[keyword] = tokenType
+        reverseMap.set(keyword, tokenType)
       })
     }
-
-    // fast string lookup
-    // https://jsperf.com/string-lookups
-    function str(x) { return JSON.stringify(x) }
-    var source = ''
-    source += 'switch (value.length) {\n'
-    for (var length in byLength) {
-      var keywords = byLength[length]
-      source += 'case ' + length + ':\n'
-      source += 'switch (value) {\n'
-      keywords.forEach(function(keyword) {
-        var tokenType = reverseMap[keyword]
-        source += 'case ' + str(keyword) + ': return ' + str(tokenType) + '\n'
-      })
-      source += 'default: return\n'
-      source += '}\n'
+    return function(k) {
+      return reverseMap.get(k)  // type
     }
-    source += '}\n'
-    return Function('value', source) // type
   }
 
   /***************************************************************************/
