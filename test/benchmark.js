@@ -67,7 +67,7 @@ suite('keywords', () => {
   }
 
   const lexer = moo.compile({
-    name: {match: /[a-z]+/, keywords: {cowword: keywords}},
+    name: {match: /[a-z]+/, keywords: moo.keywords({cowword: keywords})},
     space: {match: /\s+/, lineBreaks: true},
   })
   lexer.reset(source)
