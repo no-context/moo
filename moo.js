@@ -335,7 +335,28 @@
   }
 
   function keywordTransform(map) {
-    var reverseMap = new Map
+
+    // Use a JavaScript Map to map keywords to their corresponding token type
+    // unless Map is unsupported, then fall back to using an Object:
+    var reverseMap, reverseMapGet, reverseMapSet;
+    try {
+      reverseMap = new Map
+      reverseMapGet = function(k) {
+        return reverseMap.get(k)
+      }
+      reverseMapSet = function (k, v) {
+        reverseMap.set(k, v)
+      }
+    } catch (_error) {
+      reverseMap = Object.create(null)
+      reverseMapGet = function(k) {
+        return reverseMap[k]
+      }
+      reverseMapSet = function (k, v) {
+        reverseMap[k] = v
+      }
+    }
+
     var types = Object.getOwnPropertyNames(map)
     for (var i = 0; i < types.length; i++) {
       var tokenType = types[i]
@@ -345,11 +366,11 @@
         if (typeof keyword !== 'string') {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
-        reverseMap.set(keyword, tokenType)
+        reverseMapSet(keyword, tokenType)
       })
     }
     return function(k) {
-      return reverseMap.get(k)  // type
+      return reverseMapGet(k)
     }
   }
 
