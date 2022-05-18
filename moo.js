@@ -350,7 +350,11 @@
         if (typeof keyword !== 'string') {
           throw new Error("keyword must be string (in keyword '" + tokenType + "')")
         }
-        isMap ? reverseMap.set(keyword, tokenType) : reverseMap[keyword] = tokenType
+        if (isMap) {
+          reverseMap.set(keyword, tokenType)
+        } else {
+          reverseMap[keyword] = tokenType
+        }
       })
     }
     return function(k) {
