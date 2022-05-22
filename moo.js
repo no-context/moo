@@ -15,6 +15,10 @@
 
   /***************************************************************************/
 
+  function pad(text, width) {
+    return Array(width - text.length + 1).join(" ") + text
+  }
+
   function isRegExp(o) { return o && toString.call(o) === '[object RegExp]' }
   function isObject(o) { return o && typeof o === 'object' && !isRegExp(o) && !Array.isArray(o) }
 
@@ -556,21 +560,49 @@
   Lexer.prototype.formatError = function(token, message) {
     if (token == null) {
       // An undefined token indicates EOF
-      var text = this.buffer.slice(this.index)
       var token = {
-        text: text,
+        text: "",
         offset: this.index,
-        lineBreaks: text.indexOf('\n') === -1 ? 0 : 1,
+        lineBreaks: 0,
         line: this.line,
         col: this.col,
       }
     }
-    var start = Math.max(0, token.offset - token.col + 1)
-    var eol = token.lineBreaks ? token.text.indexOf('\n') : token.text.length
-    var firstLine = this.buffer.substring(start, token.offset + eol)
+
+    var lines = this.buffer
+        .split("\n")
+        .slice(Math.max(0, token.line - 5), token.line)
+
     message += " at line " + token.line + " col " + token.col + ":\n\n"
-    message += "  " + firstLine + "\n"
-    message += "  " + Array(token.col).join(" ") + "^"
+
+    message += lines
+        .map(function (line) { return line.replace(/\t/g, "    ") })
+        .map(function(curLine, i) {
+          return pad(String(token.line - (lines.length - i) + 1), 6) + "\t" + curLine + "\n"
+        })
+        .join("")
+
+    var lastLine = lines[lines.length - 1]
+    var lastLinePrepend = lastLine.slice(0, token.col - 1)
+    var lastLinePrependExpanded = lastLinePrepend.replace(/\t/g, "    ")
+
+    var tokenTextFirstLine = token.text.split("\n")[0]
+    var tokenTextFirstLineExpanded = tokenTextFirstLine.replace(/\t/g, "    ")
+
+    var highlightIndentation = lastLine.replace(/[^ \t]/g, " ").replace(/\t/g, "\\tab")
+    var highlightLength = !tokenTextFirstLine || lastLinePrependExpanded.length >= highlightIndentation.length ?
+        0 :
+        tokenTextFirstLineExpanded.length
+
+    var highlight = highlightLength ?
+        Array(highlightLength + 1).join(token.lineBreaks ? "^" : "~") :
+        (token.offset >= this.buffer.length ? "^EOF" : "^")
+
+    message += "      \t" +
+        highlightIndentation.slice(0, lastLinePrependExpanded.length) +
+        highlight +
+        highlightIndentation.slice(lastLinePrependExpanded.length + highlight.length) + "\n"
+
     return message
   }
 
