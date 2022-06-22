@@ -305,6 +305,33 @@ describe('fallback tokens', () => {
     expect(lexer.fast).toEqual({})
   })
 
+  test('save and reset', () => {
+    const lexer = compile({
+      number: {match: /\d+/},
+      text: moo.fallback
+    })
+    lexer.reset('test123')
+    lexer.next()
+
+    const savedInfo = lexer.save();
+    expect(savedInfo).toMatchObject({
+      queuedGroup: {defaultType: 'number'},
+      queuedText: '123'
+    })
+
+    lexer.reset()
+    expect(lexer).toMatchObject({
+      queuedGroup: null,
+      queuedText: '',
+    })
+
+    lexer.reset('', savedInfo)
+    expect(lexer.next()).toMatchObject({
+      type: 'number',
+      text: '123',
+    })
+  })
+
 })
 
 describe('keywords', () => {
