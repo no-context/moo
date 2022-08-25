@@ -764,14 +764,35 @@ describe('stateful lexer', () => {
   })
 
   test('warns for non-boolean pop', () => {
-    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
-    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).toThrow("pop must be 1 (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 'cow'}}})).toThrow("pop must be boolean or positive integer (in token 'bar' of state 'start')")
+    expect(() => moo.states({start: {bar: {match: 'bar', pop: 2}}})).not.toThrow()
     expect(() => moo.states({start: {bar: {match: 'bar', pop: true}}})).not.toThrow()
     expect(() => moo.states({start: {bar: {match: 'bar', pop: 1}}})).not.toThrow()
     expect(() => moo.states({start: {bar: {match: 'bar', pop: false}}})).not.toThrow()
     expect(() => moo.states({start: {bar: {match: 'bar', pop: 0}}})).not.toThrow()
   })
 
+  test('pops many times', () => {
+    let lexer = moo.states({
+      main: {
+        strstart: {match: '"', push: 'str'},
+        ident:    /\w+/,
+        space:    {match: /\s+/, lineBreaks: true},
+      },
+      str: {
+        strend:   {match: '"', pop: true},
+        tplstart: {match: '$', push: 'tpl'},
+        content:  moo.fallback,
+      },
+      tpl: {
+        strend:   {match: '"', pop: 2},
+        tplstart: {match: '$', next: 'tpl'},
+        ident:    /\w+/,
+        content:  moo.fallback,
+      },
+    }).reset('"$foo $bar" baz')
+    expect(lexAll(lexer).map(t => t.type).join(' ')).toBe('strstart tplstart ident content tplstart ident strend space ident')
+  })
 })
 
 

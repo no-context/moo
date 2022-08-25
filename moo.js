@@ -303,8 +303,8 @@
     if (state && !map[state]) {
       throw new Error("Missing state '" + state + "' (in token '" + g.defaultType + "' of state '" + name + "')")
     }
-    if (g && g.pop && +g.pop !== 1) {
-      throw new Error("pop must be 1 (in token '" + g.defaultType + "' of state '" + name + "')")
+    if (g && g.pop && typeof g.pop !== 'boolean' && !(typeof g.pop === 'number' && g.pop > 0)) {
+      throw new Error("pop must be boolean or positive integer (in token '" + g.defaultType + "' of state '" + name + "')")
     }
   }
   function compileStates(states, start) {
@@ -560,7 +560,10 @@
       throw err;
     }
 
-    if (group.pop) this.popState()
+    if (group.pop) {
+      for (var i = group.pop === true ? 1 : group.pop; i > 0; i--) 
+        this.popState()
+    }
     else if (group.push) this.pushState(group.push)
     else if (group.next) this.setState(group.next)
 
