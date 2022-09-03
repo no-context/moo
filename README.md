@@ -28,7 +28,7 @@ Define your tokens **using regular expressions**. Moo will compile 'em down to a
 
 You _might_ be able to go faster still by writing your lexer by hand rather than using RegExps, but that's icky.
 
-Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness-of-parsing-real-world-javascript-regexps-d9ee336df983#.2l8qu3l76). Because that would be horrible.
+Oh, and it [avoids parsing RegExps by itself](https://hackernoon.com/the-madness-of-parsing-real-world-javascript-regexps-d9ee336df983#.2l8qu3l76), because that would be horrible.
 
 
 Usage
