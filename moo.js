@@ -22,7 +22,7 @@
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
   }
   function reGroups(s) {
-    var re = new RegExp('|' + s)
+    var re = new RegExp('|' + s,'u')
     return re.exec('').length - 1
   }
   function reCapture(s) {
@@ -260,7 +260,7 @@
       var pat = reUnion(match.map(regexpOrLiteral))
 
       // validate
-      var regexp = new RegExp(pat)
+      var regexp = new RegExp(pat,'u')
       if (regexp.test("")) {
         throw new Error("RegExp matches empty string: " + regexp)
       }
