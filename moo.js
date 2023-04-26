@@ -41,8 +41,6 @@
       return '(?:' + reEscape(obj) + ')'
 
     } else if (isRegExp(obj)) {
-      // TODO: consider /u support
-      if (obj.ignoreCase) throw new Error('RegExp /i flag not allowed')
       if (obj.global) throw new Error('RegExp /g flag is implied')
       if (obj.sticky) throw new Error('RegExp /y flag is implied')
       if (obj.multiline) throw new Error('RegExp /m flag is implied')
@@ -152,6 +150,7 @@
       value: null,
       type: null,
       shouldThrow: false,
+      ignoreCase: null,
     }
 
     // Avoid Object.assign(), so we support IE9+
@@ -186,6 +185,7 @@
     var fast = Object.create(null)
     var fastAllowed = true
     var unicodeFlag = null
+    var ignoreCaseFlag = null
     var groups = []
     var parts = []
 
@@ -242,9 +242,13 @@
 
       groups.push(options)
 
-      // Check unicode flag is used everywhere or nowhere
+      // Check unicode and ignoreCase flags are used everywhere or nowhere
+      var hasLiteralsWithCase = false
       for (var j = 0; j < match.length; j++) {
         var obj = match[j]
+        if (typeof obj === "string" && obj.toLowerCase() !== obj.toUpperCase()) {
+          hasLiteralsWithCase = true
+        }
         if (!isRegExp(obj)) {
           continue
         }
@@ -253,6 +257,31 @@
           unicodeFlag = obj.unicode
         } else if (unicodeFlag !== obj.unicode && options.fallback === false) {
           throw new Error('If one rule is /u then all must be')
+        }
+
+        if (ignoreCaseFlag === null) {
+          ignoreCaseFlag = obj.ignoreCase
+        } else if (ignoreCaseFlag !== obj.ignoreCase) {
+          throw new Error("If one rule is /i then all must be")
+        }
+
+        // RegExp flags must match the rule's ignoreCase option, if set
+        if (options.ignoreCase !== null && obj.ignoreCase !== options.ignoreCase) {
+          throw new Error("ignoreCase option must match RegExp flags (in token '" + options.defaultType + "')")
+        }
+      }
+
+      if (hasLiteralsWithCase) {
+        var ignoreCase = !!options.ignoreCase
+        if (ignoreCaseFlag === null) {
+          ignoreCaseFlag = ignoreCase
+        } else if (ignoreCaseFlag !== ignoreCase) {
+          if (ignoreCaseFlag) {
+            throw new Error("Literal must be marked with {ignoreCase: true} (in token '" + options.defaultType + "')")
+          } else {
+            // TODO transform literals to ignore case, even if it's not set globally
+            throw new Error("If one rule sets ignoreCase then all must (in token '" + options.defaultType + "')")
+          }
         }
       }
 
@@ -289,6 +318,7 @@
     var suffix = hasSticky || fallbackRule ? '' : '|'
 
     if (unicodeFlag === true) flags += "u"
+    if (ignoreCaseFlag === true) flags += "i"
     var combined = new RegExp(reUnion(parts) + suffix, flags)
     return {regexp: combined, groups: groups, fast: fast, error: errorRule || defaultErrorRule}
   }
