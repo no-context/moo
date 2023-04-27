@@ -1,4 +1,6 @@
-var moo = require('../moo')
+
+const moo = require('../moo')
+const indented = require('../indent')
 
 
 function assert(x) {
@@ -17,7 +19,6 @@ function err(name, message) {
 
 var opPat = [
   // operators
-  '(',')', '[', ']', '{', '}',
   ',',':', '.', ';', '@', '->',
   '+=','-=', '*=', '/=', '//=', '%=', '@=',
   '&=','|=', '^=', '>>=', '<<=', '**=',
@@ -32,13 +33,17 @@ var opPat = [
   '=',
 ];
 
-var pythonLexer = moo.compile({
-  Whitespace: /[ ]+/, // TODO tabs
+var rules = {
+  ws: /[ \t]+/,
   NAME: /[A-Za-z_][A-Za-z0-9_]*/,
-  OP: opPat,
+  OP: [
+    {match: ['(', '[', '{'], push: 'paren'},
+    {match: [')', ']', '}'], pop: 1},
+    opPat,
+  ],
   COMMENT: /#.*/,
-  NEWLINE: { match: /\r|\r\n|\n/, lineBreaks: true },
-  Continuation: /\\/,
+  // TODO "unexpected character after line continuation character"
+  continuation: {match: /\\(?:\r|\r\n|\n)/, lineBreaks: true},
   ERRORTOKEN: {match: /[\$?`]/, error: true},
   // TODO literals: str, long, float, imaginary
   NUMBER: [
@@ -52,113 +57,53 @@ var pythonLexer = moo.compile({
     {match: /"(?:\\["\\rn]|[^"\\\n])*?"/, value: x => x.slice(1, -1)},
     {match: /'(?:\\['\\rn]|[^'\\\n])*?'/, value: x => x.slice(1, -1)},
   ],
+}
+
+var base = moo.states({
+  start: Object.assign({}, rules, {
+    NEWLINE: {match: /\r|\r\n|\n/, lineBreaks: true},
+  }),
+  paren: Object.assign({}, rules, {
+    NL: {match: /\r|\r\n|\n/, lineBreaks: true},
+  }),
+})
+
+var pythonLexer = indented(base, {
+  whitespace: 'ws',
+  newline: 'NEWLINE',
+  indent: 'INDENT',
+  dedent: 'DEDENT',
+  comment: 'COMMENT',
+  // TODO: Continuations shouldn't emit INDENT
 })
 
 
 var tokenize = function(input, emit) {
   var lexer = pythonLexer.reset(input);
-  var lex = function() { return lexer.next(); }
 
-  var tok = lex();
-  var last;
-  var peeked;
-  function next() {
-    if (peeked) {
-      peeked = null;
-      return peeked;
+  var isLine = false
+  var tok
+  while (tok = lexer.next()) {
+    switch (tok.type) {
+      case 'NEWLINE':
+        if (!isLine) tok.type = 'NL'
+        isLine = false
+        break
+      case 'COMMENT':
+        emit(tok)
+        tok = lexer.next()
+        if (tok.type === 'NEWLINE') tok.type = 'NL'
+        break
+      case 'continuation':
+        continue
+      default:
+        isLine = true
     }
-    last = tok;
-    tok = lex();
+    emit(tok)
   }
-  function peek() {
-    return peeked = lex();
-    // return peeked ? peeked : peeked = lex();
-  }
+  emit({type: 'ENDMARKER', value: ''})
+}
 
-  var stack = [];
-  var currentIndent = 0;
-
-  while (tok) {
-    var indent = 0;
-    var indentation = '';
-    if (tok.type === 'Whitespace' && (!last || last.type === 'NEWLINE' || last.type === 'NL')) {
-      indentation = tok.value;
-      indent = indentation.length;
-      next();
-    }
-    if (tok.type === 'COMMENT') {
-      // TODO encoding declarations
-      emit(tok);
-      next();
-      // assert tok.type === 'NEWLINE' ?
-    }
-    if (tok.type === 'NEWLINE') {
-      tok.type = 'NL';
-      emit(tok);
-      next();
-      continue;
-    }
-
-    var parenlev = 0;
-    var isLine = true;
-    while (tok && isLine) {
-      switch (tok.type) {
-        case 'Whitespace':
-          next();
-          continue;
-        case 'Continuation':
-          next();
-          if (tok.type === 'NEWLINE') {
-            next();
-          }
-          continue;
-        case 'NEWLINE':
-          if (parenlev) {
-            // implicit line continuation
-            tok.type = 'NL';
-          } else {
-            isLine = false;
-          }
-          emit(tok);
-          next();
-          break;
-        case 'OP':
-          if (/[([{]/.test(tok.value[0])) {
-            parenlev++;
-          } else if (/[)\]}]/.test(tok.value[0])) {
-            parenlev = Math.max(0, parenlev - 1);
-          }
-          // fall-thru
-        default:
-          if (indent !== null) {
-            // emit INDENT or DEDENT
-            if (indent > currentIndent) {
-              stack.push(currentIndent);
-              currentIndent = indent;
-              emit({ type: 'INDENT', value: indentation });
-            } else {
-              while (indent < currentIndent) {
-                currentIndent = stack.pop();
-                emit({ type: 'DEDENT', value: '' });
-              }
-              if (indent > currentIndent) {
-                throw err('IndentationError', "unindent does not match any outer indentation level");
-              }
-            }
-            indent = null;
-          }
-          emit(tok);
-          next();
-      }
-    }
-  }
-
-  while (currentIndent) {
-    currentIndent = stack.pop();
-    emit({ type: 'DEDENT', value: '' });
-  }
-  emit({ type: 'ENDMARKER', value: '' });
-};
 
 function outputTokens(source) {
   var tokens = [];
@@ -227,7 +172,7 @@ let pythonTokens = [
   'OP ")"',
   'OP ":"',
   'NEWLINE "\\n"',
-  'INDENT "    "',
+  'INDENT ""',
   'NAME "print"',
   'OP "("',
   'NAME "tok_name"',
