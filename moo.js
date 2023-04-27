@@ -402,6 +402,19 @@
     this.buffer = ''
     this.stack = []
     this.reset()
+    if (Transform) Transform.call(this, {readableObjectMode: true})
+  }
+
+  if (typeof module !== 'undefined' && module.exports) {
+    var Transform = require('stream').Transform
+    require('util').inherits(Lexer, Transform)
+
+    Lexer.prototype._transform = function(chunk, encoding, cb) {
+      this.feed(chunk.toString())
+      var token
+      while (token = this.next()) this.push(token)
+      cb()
+    }
   }
 
   Lexer.prototype.reset = function(data, info) {
