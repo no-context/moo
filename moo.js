@@ -60,29 +60,10 @@
     return Array(length - s.length + 1).join(" ") + s
   }
 
-  function lastNLines(string, numLines) {
-    var position = string.length
-    var lineBreaks = 0;
-    while (true) {
-      var idx = string.lastIndexOf("\n", position - 1)
-      if (idx === -1) {
-        break;
-      } else {
-        lineBreaks++
-      }
-      position = idx
-      if (lineBreaks === numLines) {
-        break;
-      }
-      if (position === 0) {
-        break;
-      }
-    }
-    var startPosition = 
-      lineBreaks < numLines ?
-      0 : 
-      position + 1
-    return string.substring(startPosition).split("\n")
+  function nLines(string, from, to) {
+    const reg = new RegExp(`^([^\\n]*\\n){${from - 1}}(([^\\n]*\\n){${to - from}})`);
+    const res = reg.exec(string);
+    return res?.[2]?.split('\n') ?? [];
   }
 
   function objectToRules(object) {
@@ -603,9 +584,10 @@
     var firstDisplayedLine = Math.max(token.line - numLinesAround, 1)
     var lastDisplayedLine = token.line + numLinesAround
     var lastLineDigits = String(lastDisplayedLine).length
-    var displayedLines = lastNLines(
+    var displayedLines = nLines(
         this.buffer, 
-        (this.line - token.line) + numLinesAround + 1
+        firstDisplayedLine,
+        lastDisplayedLine,
       )
       .slice(0, 5)
     var errorLines = []
