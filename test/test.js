@@ -931,6 +931,42 @@ describe('errors', () => {
     )
   })
 
+  test('can be externally triggered', () => {
+    let lexer = compile({
+      newlines: { match: /\n+/, lineBreaks: true },
+      numbers: /[0-9 ]+/
+    })
+    lexer.reset('1\n2\n3\n4')
+    const tok = lexer.next()
+    expect(lexer.formatError(tok, "Syntax error")).toBe(
+      "Syntax error at line 1 col 1:\n\n" +
+      "1  1\n" +
+      "   ^\n" +
+      "2  2\n" +
+      "3  3"
+    )
+  })
+
+  test('can support more than one data chunk', () => {
+    let lexer = compile({
+      newlines: { match: /\n+/, lineBreaks: true },
+      numbers: /[0-9 ]+/
+    })
+    lexer.reset('\n\n')
+    lexer.next()
+    lexer.next()
+    lexer.next()
+    lexer.reset('1\n2\n3\n4', lexer.save())
+    const tok = lexer.next()
+    expect(lexer.formatError(tok, "Syntax error")).toBe(
+      "Syntax error at line 3 col 1:\n\n" +
+      "3  1\n" +
+      "   ^\n" +
+      "4  2\n" +
+      "5  3"
+    )
+  })
+
   test('can format null at EOF', () => {
     let lexer = compile({
       ws: {match: /\s/, lineBreaks: true},

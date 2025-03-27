@@ -60,28 +60,28 @@
     return Array(length - s.length + 1).join(" ") + s
   }
 
-  function lastNLines(string, numLines) {
-    var position = string.length
-    var lineBreaks = 0;
+  function lastNLines(string, firstLine, lastLine) {
+    var position = 0;
+    var lineBreaks = 1;
+    var startPosition = 0;
     while (true) {
-      var idx = string.lastIndexOf("\n", position - 1)
+      var idx = string.indexOf("\n", position);
       if (idx === -1) {
         break;
       } else {
         lineBreaks++
       }
-      position = idx
-      if (lineBreaks === numLines) {
+      position = idx + 1;
+      if (lineBreaks === firstLine) {
+        startPosition = position;
+      }
+      if (lineBreaks === lastLine) {
         break;
       }
       if (position === 0) {
         break;
       }
     }
-    var startPosition = 
-      lineBreaks < numLines ?
-      0 : 
-      position + 1
     return string.substring(startPosition).split("\n")
   }
 
@@ -408,6 +408,7 @@
     this.buffer = data || ''
     this.index = 0
     this.line = info ? info.line : 1
+    this.bufferFirstLine = this.line
     this.col = info ? info.col : 1
     this.queuedToken = info ? info.queuedToken : null
     this.queuedText = info ? info.queuedText: "";
@@ -600,14 +601,16 @@
     }
     
     var numLinesAround = 2
-    var firstDisplayedLine = Math.max(token.line - numLinesAround, 1)
+    var firstDisplayedLine = this.bufferFirstLine + Math.max(token.line - this.bufferFirstLine - numLinesAround, 0)
     var lastDisplayedLine = token.line + numLinesAround
     var lastLineDigits = String(lastDisplayedLine).length
+    var firstBufferedLine = firstDisplayedLine - this.bufferFirstLine + 1
+    var lastBufferedLine = lastDisplayedLine - this.bufferFirstLine + 1
     var displayedLines = lastNLines(
         this.buffer, 
-        (this.line - token.line) + numLinesAround + 1
-      )
-      .slice(0, 5)
+        firstBufferedLine,
+        lastBufferedLine)
+        .slice(0, lastDisplayedLine - firstDisplayedLine + 1)
     var errorLines = []
     errorLines.push(message + " at line " + token.line + " col " + token.col + ":")
     errorLines.push("")
