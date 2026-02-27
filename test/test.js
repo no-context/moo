@@ -1242,6 +1242,20 @@ describe('unicode flag', () => {
     ).not.toThrow()
   })
 
+  test("string literals work with /u rules", () => {
+    const lexer = compile({
+      OP: ['+=', '-='],
+      NUMBER: /[0-9]+/u,
+      WS: / +/u,
+    })
+    lexer.reset('3 -= 2')
+    expect(lexer.next()).toMatchObject({type: 'NUMBER', value: '3'})
+    expect(lexer.next()).toMatchObject({type: 'WS'})
+    expect(lexer.next()).toMatchObject({type: 'OP', value: '-='})
+    expect(lexer.next()).toMatchObject({type: 'WS'})
+    expect(lexer.next()).toMatchObject({type: 'NUMBER', value: '2'})
+  })
+
   test("supports unicode", () => {
     const lexer = compile({
       a: /[𝌆]/u,

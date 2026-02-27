@@ -19,7 +19,10 @@
   function isObject(o) { return o && typeof o === 'object' && !isRegExp(o) && !Array.isArray(o) }
 
   function reEscape(s) {
-    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, function(x) {
+      if (x === '-') return '\\x2d'
+      return '\\' + x
+    })
   }
   function reGroups(s) {
     var re = new RegExp('|' + s)
