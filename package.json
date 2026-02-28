@@ -4,7 +4,8 @@
   "description": "Optimised tokenizer/lexer generator! 🐄 Much performance. Moo!",
   "main": "moo.js",
   "files": [
-    "moo.js"
+    "moo.js",
+    "indent.js"
   ],
   "repository": "https://github.com/tjvr/moo.git",
   "author": "Tim Radvan <tim@tjvr.org>",

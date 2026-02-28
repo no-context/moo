@@ -1053,7 +1053,7 @@ describe('example: python', () => {
   test('triple-quoted strings', () => {
     let example = '"""abc""" 1+1 """def"""'
     expect(lexAll(pythonLexer.reset(example)).map(t => t.value)).toEqual(
-      ['abc', " ", "1", "+", "1", " ", 'def']
+      ['abc', "1", "+", "1", 'def']
     )
   })
 
@@ -1068,6 +1068,12 @@ describe('example: python', () => {
     tokens.pop()
     expect(tokens.pop()).not.toBe('ERRORTOKEN ""')
   })
+
+  // TODO: continuations
+  // TODO: indent after comment
+  // TODO: always NL after COMMENT
+  // TODO: line numbers vs. strings
+  // TODO: NL inside parens
 
 })
 

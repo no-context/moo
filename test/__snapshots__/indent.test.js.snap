@@ -1,0 +1,93 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`indent example 1`] = `
+Array [
+  Object {
+    "col": 5,
+    "line": 2,
+    "lineBreaks": 0,
+    "offset": 5,
+    "toString": [Function],
+    "type": "id",
+    "value": "if",
+  },
+  Object {
+    "col": 8,
+    "line": 2,
+    "lineBreaks": 0,
+    "offset": 8,
+    "toString": [Function],
+    "type": "id",
+    "value": "this",
+  },
+  Object {
+    "type": "indent",
+    "value": "",
+  },
+  Object {
+    "col": 7,
+    "line": 3,
+    "lineBreaks": 0,
+    "offset": 19,
+    "toString": [Function],
+    "type": "id",
+    "value": "if",
+  },
+  Object {
+    "col": 10,
+    "line": 3,
+    "lineBreaks": 0,
+    "offset": 22,
+    "toString": [Function],
+    "type": "id",
+    "value": "that",
+  },
+  Object {
+    "type": "indent",
+    "value": "",
+  },
+  Object {
+    "col": 9,
+    "line": 4,
+    "lineBreaks": 0,
+    "offset": 35,
+    "toString": [Function],
+    "type": "id",
+    "value": "another",
+  },
+  Object {
+    "type": "dedent",
+    "value": "",
+  },
+  Object {
+    "type": "dedent",
+    "value": "",
+  },
+  Object {
+    "col": 5,
+    "line": 5,
+    "lineBreaks": 0,
+    "offset": 47,
+    "toString": [Function],
+    "type": "id",
+    "value": "else",
+  },
+  Object {
+    "type": "indent",
+    "value": "",
+  },
+  Object {
+    "col": 7,
+    "line": 6,
+    "lineBreaks": 0,
+    "offset": 58,
+    "toString": [Function],
+    "type": "id",
+    "value": "there",
+  },
+  Object {
+    "type": "dedent",
+    "value": "",
+  },
+]
+`;
